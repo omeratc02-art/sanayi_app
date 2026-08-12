@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "258200808152",
+    "project_id": "sanayi-omer-tr",
+    "storage_bucket": "sanayi-omer-tr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258200808152:android:4df336be2a308f465545ad",
+        "android_client_info": {
+          "package_name": "com.example.sanayi_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8LRMF0poH-5Gt5Bp2os95B4Ld2wiflf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

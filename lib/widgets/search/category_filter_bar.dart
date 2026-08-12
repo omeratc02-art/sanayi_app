@@ -27,9 +27,9 @@ class CategoryFilterBar extends StatelessWidget {
             selected: isSelected,
             showCheckmark: false,
             onSelected: (_) => onSelected(value),
-            selectedColor: AppColors.red,
+            selectedColor: AppColors.primary,
             backgroundColor: Colors.white,
-            side: BorderSide(color: isSelected ? AppColors.red : AppColors.divider),
+            side: BorderSide(color: isSelected ? AppColors.primary : AppColors.divider),
             labelStyle: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,

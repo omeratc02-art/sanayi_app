@@ -32,9 +32,9 @@ class DateStrip extends StatelessWidget {
               width: 58,
               height: 68,
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.red : Colors.white,
+                color: isSelected ? AppColors.primary : Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: isSelected ? AppColors.red : AppColors.divider),
+                border: Border.all(color: isSelected ? AppColors.primary : AppColors.divider),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

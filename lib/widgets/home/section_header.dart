@@ -18,14 +18,24 @@ class SectionHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 17),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: 19.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+            ),
           ),
         ),
         if (onSeeAll != null)
           TextButton(
             onPressed: onSeeAll,
-            style: TextButton.styleFrom(foregroundColor: AppColors.red),
-            child: const Text('Tümünü Gör'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Tümünü Gör'),
+                Icon(Icons.chevron_right, size: 18),
+              ],
+            ),
           ),
       ],
     );

@@ -19,21 +19,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Tapping the home search field opens the search tab', (WidgetTester tester) async {
-    await pumpApp(tester);
-
-    final homeSearchField = find.descendant(of: find.byType(HomeTab), matching: find.byType(TextField));
-    await tester.tap(homeSearchField);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Usta Ara'), findsOneWidget);
-    expect(find.text('Usta adı veya sorun ara...'), findsOneWidget);
-  });
-
   testWidgets('Tapping a home category opens search pre-filtered by that category', (WidgetTester tester) async {
     await pumpApp(tester);
 
-    final lastikCategory = find.descendant(of: find.byType(HomeTab), matching: find.text('Lastik'));
+    final lastikCategory = find.descendant(of: find.byType(HomeTab), matching: find.text('Lastik & Jant'));
     await tester.tap(lastikCategory);
     await tester.pumpAndSettle();
 

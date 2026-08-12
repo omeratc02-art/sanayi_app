@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sanayi_app/main.dart';
 
 void main() {
-  testWidgets('Home page renders search bar, categories and bottom nav', (WidgetTester tester) async {
+  testWidgets('Home page renders hero, categories and bottom nav', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -16,12 +16,12 @@ void main() {
     await tester.tap(find.text('Misafir olarak devam et'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Aracınıza ne oldu?'), findsOneWidget);
-    expect(find.byIcon(Icons.search), findsWidgets);
-    expect(find.text('Popüler Ustalar'), findsOneWidget);
-    expect(find.text('En Yüksek Puanlılar'), findsOneWidget);
+    expect(find.text('Doğru ustayı güvenle bulun.'), findsOneWidget);
+    expect(find.text('Hangi hizmete ihtiyacınız var?'), findsOneWidget);
+    expect(find.text('Araçlarım'), findsOneWidget);
     expect(find.text('Ana Sayfa'), findsOneWidget);
-    expect(find.text('Randevular'), findsOneWidget);
+    expect(find.text('Randevularım'), findsOneWidget);
+    expect(find.text('Mesajlar'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
   });
 }

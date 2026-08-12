@@ -6,7 +6,9 @@ import '../../widgets/mechanic_detail/detail_action_bar.dart';
 import '../../widgets/mechanic_detail/open_status_badge.dart';
 import '../../widgets/mechanic_detail/stat_tile.dart';
 import '../../widgets/mechanic_detail/verified_badge.dart';
-import '../booking/appointment_booking_page.dart';
+import '../../widgets/trust/trust_info_sheet.dart';
+import '../booking/appointment_request_page.dart';
+import '../service_listing/reviews_page.dart';
 
 class MechanicDetailPage extends StatelessWidget {
   const MechanicDetailPage({super.key, required this.mechanic});
@@ -34,10 +36,10 @@ class MechanicDetailPage extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.car_repair, color: AppColors.red, size: 40),
+              child: const Icon(Icons.car_repair, color: AppColors.primary, size: 40),
             ),
             const SizedBox(height: 14),
             Text(
@@ -57,44 +59,93 @@ class MechanicDetailPage extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (mechanic.isVerified) const VerifiedBadge(),
+                if (mechanic.isVerified)
+                  InkWell(
+                    onTap: () => showTrustInfoSheet(
+                      context,
+                      icon: Icons.verified_rounded,
+                      accentColor: Colors.blue[700]!,
+                      title: 'Doğrulanmış Servis',
+                      description:
+                          'Bu işletme, doğrulama sürecimizi başarıyla tamamlamıştır. İşletme bilgileri '
+                          'doğrulanmış ve kalite standartlarını korumak amacıyla müşteri geri bildirimleri '
+                          'sürekli olarak izlenmektedir.',
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    child: const VerifiedBadge(),
+                  ),
                 OpenStatusBadge(isOpen: mechanic.isOpen),
               ],
             ),
             const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ReviewsPage(mechanic: mechanic)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.star, color: Colors.amber, size: 20),
-                  const SizedBox(width: 6),
-                  Text(
-                    mechanic.rating.toStringAsFixed(1),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '(${mechanic.reviewCount} değerlendirme)',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  ),
-                ],
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.star, color: Colors.amber, size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      mechanic.rating.toStringAsFixed(1),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '(${mechanic.reviewCount} değerlendirme)',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(Icons.info_outline_rounded, size: 17, color: AppColors.textSecondary.withValues(alpha: 0.7)),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: StatTile(
-                    icon: Icons.repeat,
-                    label: 'Tekrar Müşteri',
-                    value: '%${mechanic.repeatCustomerRate}',
+                  child: InkWell(
+                    onTap: () => showTrustInfoSheet(
+                      context,
+                      icon: Icons.repeat_rounded,
+                      accentColor: AppColors.primaryDark,
+                      title: 'Tekrar Tercih Oranı',
+                      description:
+                          'Bu oran, bir önceki ziyaretinden sonra müşterilerin başka bir hizmet için bu '
+                          'servis sağlayıcısına tekrar dönme yüzdesini gösterir. Yüksek bir oran, daha '
+                          'güçlü bir müşteri memnuniyeti ve güveni olduğunu gösterir.',
+                      highlight: 'Müşterilerin %${mechanic.repeatCustomerRate}\'i bu hizmeti tekrar tercih etti.',
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        StatTile(
+                          icon: Icons.repeat,
+                          label: 'Tekrar Müşteri',
+                          value: '%${mechanic.repeatCustomerRate}',
+                        ),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Icon(
+                            Icons.info_outline_rounded,
+                            size: 16,
+                            color: AppColors.textSecondary.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -125,9 +176,11 @@ class MechanicDetailPage extends StatelessWidget {
       bottomNavigationBar: DetailActionBar(
         onCall: () => _showFeedback(context, '${mechanic.phone} aranıyor...'),
         onNavigate: () => _showFeedback(context, 'Yol tarifi açılıyor: ${mechanic.address}'),
-        onBook: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => AppointmentBookingPage(mechanic: mechanic))),
+        onBook: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AppointmentRequestPage(mechanic: mechanic, serviceLabel: mechanic.specialty),
+          ),
+        ),
       ),
     );
   }
@@ -153,7 +206,7 @@ class _InfoCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.red, size: 22),
+          Icon(icon, color: AppColors.primary, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

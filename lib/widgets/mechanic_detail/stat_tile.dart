@@ -20,7 +20,7 @@ class StatTile extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.red, size: 22),
+          Icon(icon, color: AppColors.primary, size: 22),
           const SizedBox(height: 8),
           Text(
             value,

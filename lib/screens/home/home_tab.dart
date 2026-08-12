@@ -2,145 +2,87 @@ import 'package:flutter/material.dart';
 
 import '../../data/mock_data.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/home/category_item.dart';
-import '../../widgets/home/popular_mechanic_card.dart';
-import '../../widgets/home/problem_search_field.dart';
+import '../../widgets/categories/category_list.dart';
+import '../../widgets/home/emergency_help_card.dart';
+import '../../widgets/home/greeting_bar.dart';
+import '../../widgets/home/hero_emergency_cluster.dart';
+import '../../widgets/home/my_vehicles_section.dart';
+import '../../widgets/home/premium_hero_header.dart';
 import '../../widgets/home/section_header.dart';
-import '../../widgets/home/top_rated_mechanic_tile.dart';
-import '../mechanic_detail/mechanic_detail_page.dart';
+import '../notifications/notifications_page.dart';
 
 class HomeTab extends StatelessWidget {
-  const HomeTab({
-    super.key,
-    this.onSearchTap,
-    this.onCategoryTap,
-    this.onSeeAllPopular,
-    this.onSeeAllTopRated,
-  });
+  const HomeTab({super.key, this.userName, this.onCategoryTap, this.onSeeAllCategories});
 
-  final VoidCallback? onSearchTap;
+  /// Null means guest — see [GreetingBar.userName].
+  final String? userName;
   final ValueChanged<String>? onCategoryTap;
-  final VoidCallback? onSeeAllPopular;
-  final VoidCallback? onSeeAllTopRated;
+  final VoidCallback? onSeeAllCategories;
+
+  static const _clusterSpacing = AppSpacing.lg;
+  static const _headerToContentSpacing = AppSpacing.md;
+  static const _sectionPadding = EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xxl, AppSpacing.xl, 0);
+
+  void _showComingSoon(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false,
       child: CustomScrollView(
         slivers: [
+          // 1. Hero section (+ paired Emergency card).
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.md, AppSpacing.xl, 0),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Merhaba 👋',
-                          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Aracınıza ne oldu?',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 22),
-                        ),
-                      ],
+                  GreetingBar(
+                    userName: userName,
+                    onNotificationTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotificationsPage()),
                     ),
                   ),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                  const SizedBox(height: _clusterSpacing),
+                  HeroEmergencyCluster(
+                    hero: const PremiumHeroHeader(),
+                    emergency: EmergencyHelpCard(
+                      onTap: () => _showComingSoon(context, 'Acil yardım özelliği yakında aktif olacak.'),
                     ),
-                    child: const Icon(Icons.notifications_none, color: AppColors.red),
                   ),
                 ],
               ),
             ),
           ),
+          // 2. "Hangi hizmete ihtiyacınız var?"
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: ProblemSearchField(onTap: onSearchTap),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              padding: _sectionPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionHeader(title: 'Kategoriler'),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 108,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: MockData.categories.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) => CategoryItem(
-                        category: MockData.categories[index],
-                        onTap: () => onCategoryTap?.call(MockData.categories[index].label),
-                      ),
-                    ),
+                  SectionHeader(title: 'Hangi hizmete ihtiyacınız var?', onSeeAll: onSeeAllCategories),
+                  const SizedBox(height: _headerToContentSpacing),
+                  CategoryList(
+                    categories: MockData.categories,
+                    onCategoryTap: (label) => onCategoryTap?.call(label),
                   ),
                 ],
               ),
             ),
           ),
-          SliverToBoxAdapter(
+          // 3. "Araçlarım" (My Vehicles).
+          const SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader(title: 'Popüler Ustalar', onSeeAll: onSeeAllPopular),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 190,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: MockData.popularMechanics.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) => PopularMechanicCard(
-                        mechanic: MockData.popularMechanics[index],
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => MechanicDetailPage(mechanic: MockData.popularMechanics[index]),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              padding: _sectionPadding,
+              child: MyVehiclesSection(),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-              child: SectionHeader(title: 'En Yüksek Puanlılar', onSeeAll: onSeeAllTopRated),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            sliver: SliverList.builder(
-              itemCount: MockData.topRatedMechanics.length,
-              itemBuilder: (context, index) => TopRatedMechanicTile(
-                mechanic: MockData.topRatedMechanics[index],
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => MechanicDetailPage(mechanic: MockData.topRatedMechanics[index]),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
         ],
       ),
     );

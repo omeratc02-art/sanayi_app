@@ -21,15 +21,14 @@ class TimeSlotGrid extends StatelessWidget {
           onTap: slot.isAvailable ? () => onSelected(slot.label) : null,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            width: 74,
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: !slot.isAvailable
                   ? AppColors.divider.withValues(alpha: 0.4)
-                  : (isSelected ? AppColors.red : Colors.white),
+                  : (isSelected ? AppColors.primary : Colors.white),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? AppColors.red : AppColors.divider),
+              border: Border.all(color: isSelected ? AppColors.primary : AppColors.divider),
             ),
             child: Text(
               slot.label,

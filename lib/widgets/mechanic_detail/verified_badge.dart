@@ -20,6 +20,8 @@ class VerifiedBadge extends StatelessWidget {
             'Onaylı Usta',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue[700]),
           ),
+          const SizedBox(width: 4),
+          Icon(Icons.info_outline_rounded, size: 14, color: Colors.blue[700]?.withValues(alpha: 0.7)),
         ],
       ),
     );

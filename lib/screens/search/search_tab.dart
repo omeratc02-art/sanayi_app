@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../data/mock_data.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/home/top_rated_mechanic_tile.dart';
 import '../../widgets/search/category_filter_bar.dart';
 import '../../widgets/search/empty_search_state.dart';
+import '../../widgets/search/mechanic_list_tile.dart';
 import '../../widgets/search/sort_filter_bar.dart';
 import '../mechanic_detail/mechanic_detail_page.dart';
 
@@ -125,7 +125,7 @@ class _SearchTabState extends State<SearchTab> {
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                     itemCount: results.length,
-                    itemBuilder: (context, index) => TopRatedMechanicTile(
+                    itemBuilder: (context, index) => MechanicListTile(
                       mechanic: results[index],
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => MechanicDetailPage(mechanic: results[index])),

@@ -1,0 +1,120 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Chat + mechanic-account access is unchanged from the project's
+    // previous (fully open) rules — customers can message without signing
+    // in (see CustomerConversationPage's 'customer-demo' fallback), so
+    // these intentionally stay open. Only `appointments` below is newly
+    // restricted.
+    match /chats/{chatId} {
+      allow read, write: if true;
+
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    match /mechanicAccounts/{uid} {
+      allow read, write: if true;
+    }
+
+    // A new appointment request always starts as a 'pending' document —
+    // created either by a customer (see AppointmentRequestStore.submit,
+    // which persists a request the moment it's submitted) or by a
+    // mechanic proposing a counter-time (MechanicAppointmentsScreen's
+    // "Başka Saat Öner"). Customers can use the rest of this app without
+    // signing in (see CustomerConversationPage's 'customer-demo'
+    // fallback), so creating a pending request must stay open the same
+    // way, rather than requiring a mechanic account.
+    //
+    // Updating or deleting an appointment (accepting, declining, or any
+    // other status change) stays restricted to a signed-in mechanic
+    // account (one with its own mechanicAccounts document) — this is what
+    // scopes "Bekleyen Talepler" to only the signed-in mechanic's own
+    // business, and stops one business from reading or altering another's
+    // requests.
+    //
+    // Reading is granted to that same mechanic account, OR to an
+    // authenticated customer whose own UID matches the document's
+    // customerId — strict per-document ownership, not "any signed-in
+    // user" (which would let one customer read another's appointments).
+    // Guest/demo requests (customerId == 'customer-demo', created without
+    // Firebase Auth — see AppointmentRequestStore/resolveCustomerId) are
+    // deliberately NOT covered here: there is no real per-guest identity
+    // to check ownership against yet, so they simply get no read access
+    // under this rule rather than a rule broad enough to leak every
+    // guest's requests to every other guest.
+    match /appointments/{appointmentId} {
+      allow create: if request.resource.data.status == 'pending';
+
+      // Split from a single `allow read` into `get` + `list`: Firestore
+      // validates `list` queries against the query's own where() clauses,
+      // not actual document data, so a rule that OR's in
+      // `resource.data.customerId` (not constrained by any where() in
+      // MechanicAppointmentsScreen's businessId+status query) makes the
+      // whole list request unprovable and denies it outright — even for
+      // the mechanic branch, which doesn't depend on resource.data at all.
+      // `get` (the customer's single-document watchAppointmentById) keeps
+      // the exact same two-branch condition as before, since a `get` is
+      // evaluated against real resource data and has no such issue.
+      allow get: if
+        (request.auth != null
+         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid)))
+        ||
+        (request.auth != null
+         && request.auth.uid == resource.data.customerId);
+
+      // Mechanic-only: the only condition here doesn't depend on
+      // resource.data, so it's provable for any list query regardless of
+      // its where() clauses — this is what lets
+      // MechanicAppointmentsScreen's businessId+status query pass.
+      allow list: if request.auth != null
+        && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid));
+
+      // Customer-only: a second, separate `allow list` rather than OR'd
+      // into the statement above — kept apart deliberately so this
+      // resource.data-dependent condition can never taint the mechanic's
+      // businessId+status query the way the original combined `allow
+      // read` did. This one is only ever provable for a query that
+      // constrains customerId to the caller's own uid — exactly what
+      // AppointmentRepository.watchCustomerAppointments does
+      // (.where('customerId', isEqualTo: customerId)) — so it can't be
+      // used to list any other customer's appointments.
+      allow list: if request.auth != null
+        && resource.data.customerId == request.auth.uid;
+
+      // Mechanic permission is unchanged from before (accept, decline, or
+      // any other status change made from the mechanic's own screens).
+      //
+      // The second branch is new and intentionally narrow: it lets the
+      // owning authenticated customer perform exactly one transition —
+      // agreeing to a mechanic's already-proposed time — and nothing else.
+      // resource.data.status == 'pending' means this can only fire once,
+      // from the state a proposal actually left the document in;
+      // resource.data.appointmentTime != '00:00' means a real time must
+      // already be proposed (the customer can't "accept" an untouched
+      // request); request.resource.data.status == 'accepted' fixes the
+      // only status value this write may produce; and
+      // diff(...).affectedKeys().hasOnly(['status']) is the actual
+      // enforcement — Firestore rejects the write outright if any field
+      // other than status differs from the current document, so
+      // customerId, appointmentId, businessId, appointmentTime, and every
+      // customer/vehicle/service field are guaranteed untouched by this
+      // path regardless of what a client attempts to send.
+      allow update: if
+        (request.auth != null
+         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid)))
+        ||
+        (request.auth != null
+         && request.auth.uid == resource.data.customerId
+         && resource.data.status == 'pending'
+         && resource.data.appointmentTime != '00:00'
+         && request.resource.data.status == 'accepted'
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+
+      allow delete: if request.auth != null
+        && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid));
+    }
+  }
+}

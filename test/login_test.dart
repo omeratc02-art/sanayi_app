@@ -36,7 +36,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MainShell), findsOneWidget);
-    expect(find.text('Aracınıza ne oldu?'), findsOneWidget);
+    expect(find.text('Aracınız için doğru ustayı bulun.'), findsOneWidget);
     expect(find.byType(LoginPage), findsNothing);
   });
 

@@ -71,9 +71,9 @@ class _FilterPill extends StatelessWidget {
       selected: selected,
       showCheckmark: false,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.red,
+      selectedColor: AppColors.primary,
       backgroundColor: Colors.white,
-      side: BorderSide(color: selected ? AppColors.red : AppColors.divider),
+      side: BorderSide(color: selected ? AppColors.primary : AppColors.divider),
       labelStyle: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w500,
