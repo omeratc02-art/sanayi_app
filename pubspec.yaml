@@ -70,6 +70,12 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#025256"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  # app_icon_foreground.png already bakes in the 66% Android safe-zone
+  # padding itself (see tool/generate_adaptive_foreground.dart) — the
+  # tool's own default 16% inset would double that padding on top.
+  adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
