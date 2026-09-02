@@ -6,6 +6,7 @@ import '../../data/pending_booking_vehicle.dart';
 import '../../mechanic/appointments/data/appointment.dart';
 import '../../mechanic/appointments/data/appointment_repository.dart';
 import '../../models/vehicle.dart';
+import '../../screens/home/all_vehicles_page.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/firebase_instances.dart';
 import '../common/premium_surface.dart';
@@ -13,17 +14,24 @@ import 'section_header.dart';
 
 /// The customer's garage — derived live from their own real appointment
 /// history (distinct (araçModeli, plaka) pairs out of
-/// AppointmentRepository.watchCustomerAppointments), most recently used
-/// first. Deliberately not a separate user-managed vehicle store: no such
-/// Firestore collection exists, and inventing one (plus the "add/edit
-/// vehicle" UI it would need) was explicitly scoped out — this is "vehicles
-/// you've booked with before", not a garage a customer curates by hand.
-/// "Yeni Araç Ekle" stays a stub for the same reason.
+/// AppointmentRepository.watchCustomerAppointments via
+/// deriveVehiclesFromAppointments), most recently used first. Deliberately
+/// not a separate user-managed vehicle store: no such Firestore collection
+/// exists, and inventing one (plus the "add/edit vehicle" UI it would need)
+/// was explicitly scoped out — this is "vehicles you've booked with
+/// before", not a garage a customer curates by hand. "Yeni Araç Ekle" stays
+/// a stub for the same reason.
 ///
-/// Tapping a real vehicle reuses the exact same "Araç Tamiri" entry point
-/// [onCategoryTap] the homepage's own Araç Tamiri card calls (see
+/// Shows only the 3 most recent vehicles — with more than that, the
+/// section header's "Tümünü Gör" opens AllVehiclesPage with the rest,
+/// passing the already-derived list straight through rather than opening a
+/// second independent watchCustomerAppointments subscription there.
+///
+/// Tapping a real vehicle (here or on AllVehiclesPage) calls the shared
+/// openVehicleBooking, which reuses the exact same "Araç Tamiri" entry
+/// point [onCategoryTap] the homepage's own Araç Tamiri card calls (see
 /// HomeTab/MainShell._openVehicleRepair) — it only additionally stashes the
-/// tapped vehicle in [PendingBookingVehicle] first, so
+/// tapped vehicle in PendingBookingVehicle first, so
 /// AppointmentRequestPage can pre-fill from it once the customer reaches
 /// the end of that same, unmodified sub-service -> mechanic -> booking-form
 /// flow every other entry point already uses.
@@ -37,6 +45,8 @@ class MyVehiclesSection extends StatefulWidget {
 }
 
 class _MyVehiclesSectionState extends State<MyVehiclesSection> {
+  static const _previewCount = 3;
+
   StreamSubscription<List<Appointment>>? _subscription;
   List<Appointment> _appointments = [];
 
@@ -65,32 +75,18 @@ class _MyVehiclesSectionState extends State<MyVehiclesSection> {
     super.dispose();
   }
 
-  // Distinct (vehicleModel, licensePlate) pairs, most recently booked
-  // first. Blank vehicleModel entries are skipped — never a made-up label.
-  List<Vehicle> get _vehicles {
-    final sorted = [..._appointments]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final seen = <String>{};
-    final vehicles = <Vehicle>[];
-    for (final appointment in sorted) {
-      final model = appointment.vehicleModel.trim();
-      if (model.isEmpty) continue;
-      final plate = appointment.licensePlate.trim();
-      final key = '$model|$plate';
-      if (!seen.add(key)) continue;
-      vehicles.add(Vehicle(modelLabel: model, licensePlate: plate));
-    }
-    return vehicles;
-  }
-
   void _showComingSoon(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _openBookingFor(Vehicle vehicle) {
-    PendingBookingVehicle.set(vehicleLabel: vehicle.modelLabel, licensePlate: vehicle.licensePlate);
-    widget.onCategoryTap?.call('Araç Tamiri');
+  void _openAllVehicles(List<Vehicle> vehicles) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AllVehiclesPage(vehicles: vehicles, onCategoryTap: widget.onCategoryTap),
+      ),
+    );
   }
 
   static const _headerToContentSpacing = AppSpacing.md;
@@ -99,24 +95,31 @@ class _MyVehiclesSectionState extends State<MyVehiclesSection> {
 
   @override
   Widget build(BuildContext context) {
-    final vehicles = _vehicles;
+    final vehicles = deriveVehiclesFromAppointments(_appointments);
+    final preview = vehicles.take(_previewCount).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Araçlarım'),
+        SectionHeader(
+          title: 'Araçlarım',
+          onSeeAll: vehicles.length > _previewCount ? () => _openAllVehicles(vehicles) : null,
+        ),
         const SizedBox(height: _headerToContentSpacing),
         PremiumSurface(
           padding: _listCardPadding,
           borderRadius: AppRadius.lg,
           child: Column(
             children: [
-              if (vehicles.isEmpty)
+              if (preview.isEmpty)
                 const Padding(padding: _rowVerticalPadding, child: _NoVehiclesYet())
               else
-                for (final vehicle in vehicles) ...[
+                for (final vehicle in preview) ...[
                   Padding(
                     padding: _rowVerticalPadding,
-                    child: _VehicleRow(vehicle: vehicle, onTap: () => _openBookingFor(vehicle)),
+                    child: VehicleRow(
+                      vehicle: vehicle,
+                      onTap: () => openVehicleBooking(vehicle: vehicle, onCategoryTap: widget.onCategoryTap),
+                    ),
                   ),
                   const Divider(height: 1),
                 ],
@@ -154,8 +157,10 @@ class _NoVehiclesYet extends StatelessWidget {
   }
 }
 
-class _VehicleRow extends StatelessWidget {
-  const _VehicleRow({required this.vehicle, required this.onTap});
+/// One vehicle row — shared between MyVehiclesSection's 3-item preview and
+/// AllVehiclesPage's full list, so the two never visually diverge.
+class VehicleRow extends StatelessWidget {
+  const VehicleRow({super.key, required this.vehicle, required this.onTap});
 
   final Vehicle vehicle;
   final VoidCallback onTap;

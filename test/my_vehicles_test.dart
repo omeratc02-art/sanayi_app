@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
 import 'package:sanayi_app/main.dart';
+import 'package:sanayi_app/screens/home/all_vehicles_page.dart';
 import 'package:sanayi_app/screens/home/vehicle_repair_category_page.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
 
@@ -121,6 +122,106 @@ void main() {
       find.text('Henüz aracınız yok. Randevu aldığınızda araçlarınız burada görünecek.'),
       findsNothing,
     );
+    // Only 2 distinct vehicles — nothing more to see, so no "Tümünü Gör".
+    expect(find.text('Tümünü Gör'), findsNothing);
+  });
+
+  testWidgets('With more than 3 vehicles, the home screen shows only the 3 most recent and "Tümünü Gör"', (
+    WidgetTester tester,
+  ) async {
+    await seedAppointment(
+      id: 'appt-1',
+      vehicleModel: 'Renault Clio 2018',
+      plate: '34 ABC 123',
+      createdAt: DateTime.utc(2026, 8, 1),
+    );
+    await seedAppointment(
+      id: 'appt-2',
+      vehicleModel: 'Toyota Corolla 2020',
+      plate: '06 XYZ 456',
+      createdAt: DateTime.utc(2026, 8, 5),
+    );
+    await seedAppointment(
+      id: 'appt-3',
+      vehicleModel: 'Fiat Egea 2019',
+      plate: '35 EGE 123',
+      createdAt: DateTime.utc(2026, 8, 10),
+    );
+    // The 2 most recent — these 2 plus the 3 above make 5 distinct
+    // vehicles, so only the most recent 3 (Peugeot, Ford, and Fiat Egea)
+    // should show on the home screen; Renault/Toyota are pushed off.
+    await seedAppointment(
+      id: 'appt-4',
+      vehicleModel: 'Peugeot 208 2021',
+      plate: '42 PEU 456',
+      createdAt: DateTime.utc(2026, 8, 15),
+    );
+    await seedAppointment(
+      id: 'appt-5',
+      vehicleModel: 'Ford Focus 2017',
+      plate: '16 FOR 789',
+      createdAt: DateTime.utc(2026, 8, 20),
+    );
+
+    await pumpApp(tester);
+
+    // 3 most recent visible on the home screen.
+    expect(find.text('Ford Focus 2017'), findsOneWidget);
+    expect(find.text('Peugeot 208 2021'), findsOneWidget);
+    expect(find.text('Fiat Egea 2019'), findsOneWidget);
+    // The 2 oldest are pushed off the preview.
+    expect(find.text('Toyota Corolla 2020'), findsNothing);
+    expect(find.text('Renault Clio 2018'), findsNothing);
+
+    expect(find.text('Tümünü Gör'), findsOneWidget);
+  });
+
+  testWidgets('"Tümünü Gör" opens AllVehiclesPage with every vehicle, and tapping one there still books', (
+    WidgetTester tester,
+  ) async {
+    await seedAppointment(
+      id: 'appt-1',
+      vehicleModel: 'Renault Clio 2018',
+      plate: '34 ABC 123',
+      createdAt: DateTime.utc(2026, 8, 1),
+    );
+    await seedAppointment(
+      id: 'appt-2',
+      vehicleModel: 'Toyota Corolla 2020',
+      plate: '06 XYZ 456',
+      createdAt: DateTime.utc(2026, 8, 5),
+    );
+    await seedAppointment(
+      id: 'appt-3',
+      vehicleModel: 'Fiat Egea 2019',
+      plate: '35 EGE 123',
+      createdAt: DateTime.utc(2026, 8, 10),
+    );
+    await seedAppointment(
+      id: 'appt-4',
+      vehicleModel: 'Peugeot 208 2021',
+      plate: '42 PEU 456',
+      createdAt: DateTime.utc(2026, 8, 15),
+    );
+
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Tümünü Gör'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AllVehiclesPage), findsOneWidget);
+    // Including the one pushed off the homepage's 3-item preview.
+    expect(find.text('Renault Clio 2018'), findsOneWidget);
+    expect(find.text('Toyota Corolla 2020'), findsOneWidget);
+    expect(find.text('Fiat Egea 2019'), findsOneWidget);
+    expect(find.text('Peugeot 208 2021'), findsOneWidget);
+
+    // The oldest — the one only reachable from this full list, not the
+    // homepage preview — still books through the same real entry point.
+    await tester.tap(find.text('Renault Clio 2018'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(VehicleRepairCategoryPage), findsOneWidget);
   });
 
   testWidgets('Tapping a real vehicle in Araçlarım opens the Araç Tamiri flow', (WidgetTester tester) async {

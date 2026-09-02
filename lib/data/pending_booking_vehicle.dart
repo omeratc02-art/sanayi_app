@@ -1,3 +1,19 @@
+import 'package:flutter/foundation.dart';
+
+import '../models/vehicle.dart';
+
+/// Starts a vehicle-linked booking — stashes [vehicle] in
+/// [PendingBookingVehicle] and reuses the exact same "Araç Tamiri" entry
+/// point [onCategoryTap] the homepage's own Araç Tamiri card already calls.
+/// The one shared tap-handler both MyVehiclesSection (the homepage's 3-item
+/// preview) and AllVehiclesPage (the full "Tümünü Gör" list) call, so a
+/// vehicle tap behaves identically no matter which of the two rows it came
+/// from.
+void openVehicleBooking({required Vehicle vehicle, required ValueChanged<String>? onCategoryTap}) {
+  PendingBookingVehicle.set(vehicleLabel: vehicle.modelLabel, licensePlate: vehicle.licensePlate);
+  onCategoryTap?.call('Araç Tamiri');
+}
+
 /// Carries the vehicle a customer picked from "Araçlarım" (see
 /// MyVehiclesSection) through the existing Araç Tamiri -> sub-service ->
 /// AppointmentRequestPage navigation chain, without threading a new
