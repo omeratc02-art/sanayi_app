@@ -50,7 +50,7 @@ class MechanicListTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  mechanic.specialty,
+                  mechanic.specialtyLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
@@ -66,12 +66,8 @@ class MechanicListTile extends StatelessWidget {
                       '${mechanic.rating} (${mechanic.reviewCount})',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(width: 7),
-                    const Icon(Icons.location_on, color: AppColors.textSecondary, size: 14),
-                    Text(
-                      mechanic.distanceLabel,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    ),
+                    // No distance chip: real mechanicAccounts have no real
+                    // geolocation data yet (see Mechanic.distanceLabel).
                   ],
                 ),
               ],
@@ -86,22 +82,26 @@ class MechanicListTile extends StatelessWidget {
                 mechanic.priceFromLabel,
                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: (mechanic.isOpen ? Colors.green : AppColors.textSecondary).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  mechanic.isOpen ? 'Açık' : 'Kapalı',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: mechanic.isOpen ? Colors.green[700] : AppColors.textSecondary,
+              // No open/closed chip when isOpen is null (no working hours
+              // entered yet) — unknown, not a default "closed".
+              if (mechanic.isOpen != null) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (mechanic.isOpen! ? Colors.green : AppColors.textSecondary).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    mechanic.isOpen! ? 'Açık' : 'Kapalı',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: mechanic.isOpen! ? Colors.green[700] : AppColors.textSecondary,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ],

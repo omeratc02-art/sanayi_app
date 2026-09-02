@@ -5,6 +5,8 @@ import '../../mechanic/appointments/data/chat_message.dart';
 import '../../mechanic/appointments/data/chat_repository.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/identity.dart';
+import '../../utils/relative_time.dart';
 import 'customer_conversation_page.dart';
 
 /// Conversation list — the real destination for the bottom nav's "Mesajlar"
@@ -57,17 +59,23 @@ class _CustomerConversationListPageState extends State<CustomerConversationListP
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.sm),
-              child: Row(
-                children: [
-                  for (var i = 0; i < _filters.length; i++) ...[
-                    _FilterChip(
-                      label: _filters[i],
-                      selected: _selectedFilter == i,
-                      onTap: () => setState(() => _selectedFilter = i),
-                    ),
-                    if (i < _filters.length - 1) const SizedBox(width: 8),
+              // Scrollable, not a bare Row: these 3 labels can overflow a
+              // narrower phone width — same fix already applied to
+              // SortFilterBar's chip row for the same reason.
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _filters.length; i++) ...[
+                      _FilterChip(
+                        label: _filters[i],
+                        selected: _selectedFilter == i,
+                        onTap: () => setState(() => _selectedFilter = i),
+                      ),
+                      if (i < _filters.length - 1) const SizedBox(width: 8),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
             Expanded(
@@ -218,28 +226,21 @@ class _ConversationRow extends StatelessWidget {
   final String mechanicName;
   final Mechanic? mechanic;
 
-  // Matches CustomerConversationPage's own sender id for "me".
-  static const _customerSenderId = 'customer-demo';
-
-  static String _formatTime(DateTime createdAt) {
-    final difference = DateTime.now().difference(createdAt);
-    if (difference.inMinutes < 1) return 'Şimdi';
-    if (difference.inMinutes < 60) return '${difference.inMinutes} dk';
-    if (difference.inHours < 24) return '${difference.inHours} sa';
-    if (difference.inDays < 7) return '${difference.inDays} g';
-    return '${createdAt.day.toString().padLeft(2, '0')}.${createdAt.month.toString().padLeft(2, '0')}.${createdAt.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final isVerified = mechanic?.isVerified ?? false;
+    // The real signed-in customer id (falls back to 'customer-demo' only
+    // for guests, same as CustomerConversationPage) — was previously
+    // hardcoded to the guest literal, which miscounted unread messages
+    // for every signed-in customer.
+    final customerSenderId = resolveCustomerId();
 
     return StreamBuilder<List<ChatMessage>>(
       stream: ChatRepository().watchMessages(chatId),
       builder: (context, snapshot) {
         final messages = snapshot.data ?? const <ChatMessage>[];
         final lastMessage = messages.isEmpty ? null : messages.last;
-        final unreadCount = messages.where((m) => !m.isRead && m.senderId != _customerSenderId).length;
+        final unreadCount = messages.where((m) => !m.isRead && m.senderId != customerSenderId).length;
 
         return Material(
           color: AppColors.surface,
@@ -318,7 +319,7 @@ class _ConversationRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        lastMessage == null ? '' : _formatTime(lastMessage.createdAt),
+                        lastMessage == null ? '' : formatRelativeTime(lastMessage.createdAt),
                         style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                       ),
                       if (unreadCount > 0) ...[

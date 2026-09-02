@@ -1,0 +1,5 @@
+# Compiled JS from TypeScript
+lib/
+generated/
+
+node_modules/

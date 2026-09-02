@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../config/feature_flags.dart';
 import '../../theme/app_theme.dart';
 
 /// A large, saturated turquoise-to-primary gradient card — the app's
@@ -23,6 +24,13 @@ class PremiumHeroHeader extends StatelessWidget {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // Mentions sigorta only while kSigortaEnabled — kept as a simple
+  // conditional (not a separate always-on string) so re-enabling the flag
+  // restores this copy automatically instead of needing a second edit.
+  static const _subtitle = kSigortaEnabled
+      ? 'Tamir, ekspertiz, sigorta ve daha fazlası — güvenle yanınızda.'
+      : 'Tamir, ekspertiz ve daha fazlası — güvenle yanınızda.';
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +63,9 @@ class PremiumHeroHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // "Find the right mechanic with confidence."
+                      // "Everything for your car is here!"
                       const Text(
-                        'Doğru ustayı güvenle bulun.',
+                        'Aracın için her şey burada!',
                         style: TextStyle(
                           fontSize: _titleFontSize,
                           fontWeight: FontWeight.bold,
@@ -68,8 +76,7 @@ class PremiumHeroHeader extends StatelessWidget {
                       ),
                       const SizedBox(height: _titleSpacing),
                       Text(
-                        'Doğrulanmış ustaları keşfedin, gerçek müşteri yorumlarını inceleyin, '
-                        'güvenilir hizmet sağlayıcılarını karşılaştırın ve randevunuzu güvenle oluşturun.',
+                        _subtitle,
                         style: TextStyle(
                           fontSize: _subtitleFontSize,
                           color: Colors.white.withValues(alpha: 0.88),

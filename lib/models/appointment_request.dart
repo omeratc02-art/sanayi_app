@@ -16,6 +16,7 @@ class AppointmentRequest {
     this.vehicleLabel,
     this.status = AppointmentRequestStatus.pendingProvider,
     this.proposedTime,
+    this.proposedDateTime,
   });
 
   final String id;
@@ -26,6 +27,14 @@ class AppointmentRequest {
   final String? vehicleLabel;
   AppointmentRequestStatus status;
   String? proposedTime;
+
+  /// Set only when [status] is [AppointmentRequestStatus.providerProposed]
+  /// via a real negotiated proposal (Appointment.teklifEdilenTarih/Saat) —
+  /// null for the older "mechanic set an exact time directly" path, which
+  /// has no separate proposed date (only the time changes there). Accepting
+  /// a real proposal (see AppointmentRequestStore.accept) needs this to
+  /// know it must call acceptTimeProposal rather than acceptProposedTime.
+  DateTime? proposedDateTime;
 
   /// The submitting customer's identity — the same Firebase Auth UID (or
   /// 'customer-demo' guest fallback) already used for chat sender ids, see

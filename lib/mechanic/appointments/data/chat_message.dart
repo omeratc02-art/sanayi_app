@@ -53,6 +53,7 @@ class ChatSummary {
     required this.lastMessageSenderId,
     required this.lastMessageSenderRole,
     required this.lastMessageAt,
+    this.customerDisplayName,
   });
 
   final String chatId;
@@ -70,4 +71,12 @@ class ChatSummary {
   /// whose latest message predates this field.
   final String lastMessageSenderRole;
   final DateTime? lastMessageAt;
+
+  /// The customer's Firebase Auth displayName, written by the customer
+  /// themselves at send time (see ChatRepository.sendMessage) — never read
+  /// from another user's Auth profile client-side, since that's not
+  /// possible. Null for guests, accounts that predate this field, or any
+  /// account whose displayName was never set; callers must fall back to a
+  /// neutral label rather than assuming a value.
+  final String? customerDisplayName;
 }

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/premium_surface.dart';
 import 'data/appointment.dart';
+import 'data/appointment_repository.dart';
 import 'mechanic_conversation_page.dart';
 
 /// Read-only detail screen for an already-accepted, same-day appointment —
@@ -12,12 +13,12 @@ import 'mechanic_conversation_page.dart';
 /// MechanicRequestDetailsPage on purpose: that page is for *pending*
 /// requests still awaiting an accept/decline decision (used by
 /// MechanicHomeScreen's "Bekleyen Talepler" list) and keeps its
-/// accept/suggest-another-time actions; this page has no decision to make
-/// — the appointment is already confirmed — so there are no actions here
-/// at all (no Accept Request, Suggest Another Time, or Message). Purely
-/// informational, laid out as exactly two cards: appointment (vehicle,
-/// service, when, duration) and customer (identity, distance, note). Every
-/// field comes from the [appointment] passed in — no hardcoded sample data.
+/// accept/suggest-another-time actions; this page has no such decision to
+/// make — the appointment is already confirmed. Its only action is marking
+/// the completed job (see _CompletionActionBar), shown only while
+/// tamamlanmaDurumu is still "beklemede". Laid out as two cards
+/// (appointment, customer) plus that conditional bottom bar. Every field
+/// comes from the [appointment] passed in — no hardcoded sample data.
 class MechanicAppointmentDetailsPage extends StatelessWidget {
   const MechanicAppointmentDetailsPage({super.key, required this.appointment});
 
@@ -59,7 +60,7 @@ class MechanicAppointmentDetailsPage extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           _AppointmentCard(
-            vehicleModel: '${appointment.vehicleBrand} ${appointment.vehicleModel}',
+            vehicleModel: appointment.vehicleModel,
             licensePlate: appointment.licensePlate,
             service: appointment.serviceType,
             appointmentDate: _formatDate(appointment.start),
@@ -68,12 +69,99 @@ class MechanicAppointmentDetailsPage extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           _CustomerCard(
+            appointment: appointment,
             customerName: appointment.customerName,
             phoneNumber: appointment.customerPhone,
             distance: appointment.distance,
             note: appointment.customerNote,
+            businessId: appointment.businessId,
+            vehicleInfo: '${appointment.vehicleModel} · ${appointment.licensePlate}',
+            service: appointment.serviceType,
           ),
         ],
+      ),
+      bottomNavigationBar: appointment.tamamlanmaDurumu == 'beklemede'
+          ? _CompletionActionBar(appointment: appointment)
+          : null,
+    );
+  }
+}
+
+/// Bottom action bar with the mechanic's one available action on this page
+/// — hides itself locally once the write succeeds (rather than popping the
+/// page), since tamamlanmaDurumu is no longer "beklemede" at that point.
+class _CompletionActionBar extends StatefulWidget {
+  const _CompletionActionBar({required this.appointment});
+
+  final Appointment appointment;
+
+  @override
+  State<_CompletionActionBar> createState() => _CompletionActionBarState();
+}
+
+class _CompletionActionBarState extends State<_CompletionActionBar> {
+  var _isSubmitting = false;
+  var _isCompleted = false;
+
+  Future<void> _markCompleted() async {
+    setState(() => _isSubmitting = true);
+    try {
+      await AppointmentRepository().markMechanicCompleted(widget.appointment.appointmentId);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('İşaretleme başarısız: $error')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isSubmitting = false;
+      _isCompleted = true;
+    });
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('İş Tamamlandı Olarak İşaretlendi'),
+        content: const Text('Müşterinin onayı bekleniyor. Müşteri onayladığında iş tamamlanmış sayılacaktır.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isCompleted) return const SizedBox.shrink();
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.divider)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.md),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _markCompleted,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('İşi Tamamladım'),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -167,16 +255,38 @@ class _AppointmentCard extends StatelessWidget {
 /// divider, and the two actions below are a clear primary/secondary pair.
 class _CustomerCard extends StatelessWidget {
   const _CustomerCard({
+    required this.appointment,
     required this.customerName,
     required this.phoneNumber,
     required this.distance,
     required this.note,
+    required this.businessId,
+    required this.vehicleInfo,
+    required this.service,
   });
+
+  /// The same real Appointment this whole page was opened for — passed
+  /// straight through to MechanicConversationPage so its own "Talebi
+  /// Görüntüle" button can open MechanicRequestDetailsPage with real data
+  /// instead of needing to guess one from businessId/chatId alone.
+  final Appointment appointment;
 
   final String customerName;
   final String phoneNumber;
   final String distance;
   final String note;
+
+  /// Same slug used everywhere else (chats/{businessId}, appointments'
+  /// businessId field, mechanicAccounts.businessId) — passed in from the
+  /// real appointment this page was opened for, so "Mesaj Gönder" below
+  /// opens that appointment's actual conversation instead of a fixed id.
+  final String businessId;
+
+  /// Real appointment fields, passed straight through to
+  /// MechanicConversationPage's summary card — see that widget's
+  /// customerName/vehicleInfo/serviceLabel doc comment.
+  final String vehicleInfo;
+  final String service;
 
   static const _buttonHeight = 48.0;
   static const _noteBackground = Color(0xFFF5F7FA);
@@ -197,6 +307,8 @@ class _CustomerCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           _IconTextRow(icon: Icons.person_outline, text: customerName),
+          const SizedBox(height: 8),
+          _IconTextRow(icon: Icons.phone_outlined, text: phoneNumber),
           const SizedBox(height: 8),
           _InfoRow(icon: Icons.location_on_outlined, label: 'Mesafe', value: distance),
           const SizedBox(height: AppSpacing.lg),
@@ -236,7 +348,7 @@ class _CustomerCard extends StatelessWidget {
                     ),
                     onPressed: () => launchUrl(Uri(scheme: 'tel', path: phoneNumber.replaceAll(' ', ''))),
                     icon: const Icon(Icons.call_rounded, size: 18),
-                    label: const Text('Müşteriyi Ara'),
+                    label: const Text('Ara'),
                   ),
                 ),
               ),
@@ -250,7 +362,13 @@ class _CustomerCard extends StatelessWidget {
                     ),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const MechanicConversationPage(chatId: 'ahmet-yilmaz-yag-degisimi'),
+                        builder: (_) => MechanicConversationPage(
+                          chatId: businessId,
+                          customerName: customerName,
+                          vehicleInfo: vehicleInfo,
+                          serviceLabel: service,
+                          appointment: appointment,
+                        ),
                       ),
                     ),
                     icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),

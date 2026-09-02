@@ -1,11 +1,29 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
 import 'package:sanayi_app/main.dart';
 import 'package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart';
 import 'package:sanayi_app/screens/search/search_tab.dart';
+import 'package:sanayi_app/utils/firebase_instances.dart';
+
+import 'test_utils/fake_google_sign_in_platform.dart';
+import 'test_utils/mechanic_seed.dart';
 
 void main() {
+  setUp(() async {
+    firebaseAuthInstance = MockFirebaseAuth(
+      mockUser: MockUser(uid: 'test-user-id', email: 'test@example.com', isEmailVerified: true),
+      signedIn: false,
+    );
+    firestoreInstance = FakeFirebaseFirestore();
+    GoogleSignInPlatform.instance = FakeGoogleSignInPlatform();
+    // SearchTab now queries mechanicAccounts directly instead of MockData.
+    await seedMechanicAccounts(firestoreInstance);
+  });
+
   Future<void> pumpApp(WidgetTester tester) async {
     tester.view.physicalSize = const Size(400, 1400);
     tester.view.devicePixelRatio = 1.0;
@@ -15,7 +33,17 @@ void main() {
     await tester.pumpWidget(const SanayiApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Misafir olarak devam et'));
+    await tester.tap(find.textContaining('Müşteri Modu'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Giriş Yap'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'E-posta'), 'test@example.com');
+    await tester.enterText(find.widgetWithText(TextField, 'Şifre'), 'password123');
+    await tester.tap(
+      find.descendant(of: find.byType(AlertDialog), matching: find.widgetWithText(ElevatedButton, 'Giriş Yap')),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -34,7 +62,8 @@ void main() {
     expect(find.descendant(of: detailScope, matching: find.text('Hızlı Lastikçi')), findsWidgets);
     expect(find.descendant(of: detailScope, matching: find.text('Onaylı Usta')), findsOneWidget);
     expect(find.descendant(of: detailScope, matching: find.text('%84')), findsOneWidget);
-    expect(find.descendant(of: detailScope, matching: find.text('0.8 km')), findsOneWidget);
+    // No distance assertion: real mechanicAccounts have no real geolocation
+    // data yet, so the distance stat tile was removed from this page.
     expect(find.descendant(of: detailScope, matching: find.text('₺200 - ₺380')), findsOneWidget);
     expect(find.descendant(of: detailScope, matching: find.text('Her gün: 09:00 - 20:00')), findsOneWidget);
     expect(find.descendant(of: detailScope, matching: find.text('Randevu Al')), findsOneWidget);

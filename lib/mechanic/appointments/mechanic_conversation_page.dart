@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
+import 'data/appointment.dart';
 import 'data/chat_message.dart';
 import 'data/chat_repository.dart';
 import 'mechanic_request_details_page.dart';
@@ -16,19 +17,43 @@ import 'mechanic_request_details_page.dart';
 /// Messages are real, Firestore-backed data (see [ChatRepository])
 /// streamed live via StreamBuilder — nothing here is mock/local state.
 class MechanicConversationPage extends StatefulWidget {
-  const MechanicConversationPage({super.key, required this.chatId});
+  const MechanicConversationPage({
+    super.key,
+    required this.chatId,
+    this.customerName,
+    this.vehicleInfo,
+    this.serviceLabel,
+    this.appointment,
+  });
 
   final String chatId;
+
+  /// Real appointment data for the summary card at the top of this screen
+  /// — passed in by callers that already have it (see
+  /// MechanicAppointmentDetailsPage). Left null by callers that don't have
+  /// a specific appointment to source it from (e.g. the notifications
+  /// list's generic "new message" tap, which only knows the chatId); in
+  /// that case the summary card is simply not shown rather than guessing
+  /// or falling back to placeholder data.
+  final String? customerName;
+  final String? vehicleInfo;
+  final String? serviceLabel;
+
+  /// The same real Appointment the summary-card strings above were derived
+  /// from, when the caller has one (see MechanicAppointmentDetailsPage) —
+  /// lets "Talebi Görüntüle" open MechanicRequestDetailsPage with real
+  /// data instead of guessing one from chatId (which identifies a
+  /// business, not a specific appointment — see that page's now-required
+  /// Appointment param). Null for callers that don't have one (e.g. the
+  /// notifications list's generic "new message" tap); the button is
+  /// hidden entirely in that case rather than shown broken or faked.
+  final Appointment? appointment;
 
   @override
   State<MechanicConversationPage> createState() => _MechanicConversationPageState();
 }
 
 class _MechanicConversationPageState extends State<MechanicConversationPage> {
-  static const _customerName = 'Ahmet Yılmaz';
-  static const _vehicle = 'Renault Clio · 34 ABC 123';
-  static const _service = 'Yağ Değişimi';
-
   // TODO: There's no request<->chat linking yet (see
   // MechanicNotificationsScreen's TODOs) — callers still pass the same
   // hardcoded demo chatId until that exists. Falls back to the original
@@ -46,6 +71,19 @@ class _MechanicConversationPageState extends State<MechanicConversationPage> {
   // ignore: prefer_final_fields — kept non-final deliberately (see TODO above).
   bool _isCustomerTyping = false;
   int _lastMessageCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _markMessagesRead();
+  }
+
+  // Marks the customer's unread messages in this chat as read — symmetric
+  // to CustomerConversationPage's own call, same shared write path
+  // (ChatRepository.markMessagesRead).
+  void _markMessagesRead() {
+    _repository.markMessagesRead(chatId: widget.chatId, currentSenderId: _mechanicSenderId);
+  }
 
   @override
   void dispose() {
@@ -100,28 +138,37 @@ class _MechanicConversationPageState extends State<MechanicConversationPage> {
         centerTitle: true,
         title: const Text('Mesajlar'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MechanicRequestDetailsPage()),
+          // Only shown when a real Appointment actually made it through to
+          // this screen (see widget.appointment doc comment) — never a
+          // no-op button, and never a guess from chatId alone.
+          if (widget.appointment != null)
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => MechanicRequestDetailsPage(appointment: widget.appointment!)),
+              ),
+              child: const Text(
+                'Talebi Görüntüle',
+                style: TextStyle(color: AppColors.turquoise, fontWeight: FontWeight.w600),
+              ),
             ),
-            child: const Text(
-              'Talebi Görüntüle',
-              style: TextStyle(color: AppColors.turquoise, fontWeight: FontWeight.w600),
-            ),
-          ),
         ],
       ),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: _CustomerSummaryCard(
-              customerName: _customerName,
-              vehicle: _vehicle,
-              service: _service,
+          // Only shown when the caller actually had real appointment data
+          // to source it from (see MechanicConversationPage.customerName
+          // doc comment) — no placeholder/guessed data ever fills this in.
+          if (widget.customerName != null && widget.customerName!.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: _CustomerSummaryCard(
+                customerName: widget.customerName!,
+                vehicle: widget.vehicleInfo ?? '',
+                service: widget.serviceLabel ?? '',
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
           const _TodayLabel(),
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
@@ -134,6 +181,7 @@ class _MechanicConversationPageState extends State<MechanicConversationPage> {
                 if (messages.length != _lastMessageCount) {
                   _lastMessageCount = messages.length;
                   _scrollToLatest();
+                  _markMessagesRead();
                 }
 
                 return ListView.separated(

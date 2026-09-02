@@ -116,5 +116,73 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid));
     }
+
+    // The real, production appointment collection (Turkish field names —
+    // see lib/mechanic/appointments/data/appointment.dart's
+    // fromFirestore/toFirestore for the exact mapping). Mirrors the
+    // `appointments` rules above field-for-field: işletme_kimliği ==
+    // businessId, müşteri_kimliği == customerId, durum == status.
+    // 'beklemede' is this app's own chosen value for a freshly-submitted
+    // request (see AppointmentRequestStore.submit) — only 'kabul edildi'
+    // (accepted) has been confirmed against real production data.
+    match /randevular/{randevuId} {
+      allow create: if request.auth != null && request.resource.data.durum == 'beklemede';
+
+      allow get: if
+        (request.auth != null
+         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid)))
+        ||
+        (request.auth != null
+         && request.auth.uid == resource.data['müşteri_kimliği']);
+
+      allow list: if request.auth != null
+        && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid));
+
+      allow list: if request.auth != null
+        && resource.data['müşteri_kimliği'] == request.auth.uid;
+
+      // Public trust signal: VerifiedJobsBadge (shown to customers on
+      // ServiceCenterCard/MechanicDetailPage before they ever book, plus
+      // MechanicProfileScreen) needs to read a verified-completed-job count
+      // for any business — via AppointmentRepository.fetchVerifiedCompletedCount,
+      // an aggregate .count() query. Firestore evaluates count queries under
+      // the same `list` permission as a regular query, so this is scoped as
+      // narrowly as possible: any authenticated caller (customer or
+      // mechanic — not literally public) may list/count only documents
+      // already in the "dogrulanmis_tamamlandi" (customer-verified) state,
+      // provable only for a query that includes that exact where() clause.
+      allow list: if request.auth != null
+        && resource.data.tamamlanmaDurumu == 'dogrulanmis_tamamlandi';
+
+      allow update: if
+        (request.auth != null
+         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid)))
+        ||
+        (request.auth != null
+         && request.auth.uid == resource.data['müşteri_kimliği']
+         && resource.data.durum == 'beklemede'
+         && resource.data.randevu_zamani != '00:00'
+         && request.resource.data.durum == 'kabul edildi'
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum']))
+        ||
+        // Customer completion-verification: the owning customer may act
+        // only while the document sits in "usta_onayladi_bekleniyor" (i.e.
+        // only after the mechanic has already marked it complete via
+        // markMechanicCompleted — see AppointmentRepository), and may only
+        // move it to one of the two real outcomes. affectedKeys().hasOnly
+        // is the actual enforcement, exactly like the accept-time branch
+        // above: durum, randevuTarihi, müşteriTelefonu, and every other
+        // field are guaranteed untouched by this path regardless of what a
+        // client attempts to send.
+        (request.auth != null
+         && request.auth.uid == resource.data['müşteri_kimliği']
+         && resource.data.tamamlanmaDurumu == 'usta_onayladi_bekleniyor'
+         && request.resource.data.tamamlanmaDurumu in ['dogrulanmis_tamamlandi', 'anlasmazlik']
+         && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['tamamlanmaDurumu', 'musteriOnayTarihi', 'musteriPuani', 'musteriYorumu']));
+
+      allow delete: if request.auth != null
+        && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid));
+    }
   }
 }

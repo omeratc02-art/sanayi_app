@@ -1,8 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../mechanic/auth/mechanic_login_page.dart';
 import '../screens/auth/login_page.dart';
+import '../utils/firebase_instances.dart';
 
 /// Development-only launcher — lets whoever is running the app locally pick
 /// which side to open (customer vs. mechanic) instead of hardcoding either
@@ -44,7 +44,7 @@ class DevModeLauncher extends StatelessWidget {
                       // past it via a stale session. This only affects
                       // this one transition; mechanic sign-in/out is
                       // untouched.
-                      await FirebaseAuth.instance.signOut();
+                      await firebaseAuthInstance.signOut();
                       if (!context.mounted) return;
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const LoginPage()),

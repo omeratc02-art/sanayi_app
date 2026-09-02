@@ -59,7 +59,9 @@ class MaintenanceMajorDetailPage extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ServiceListingPage(serviceName: _serviceName)),
+                  MaterialPageRoute(
+                    builder: (_) => const ServiceListingPage(serviceName: _serviceName, hizmetTuru: 'tamir'),
+                  ),
                 ),
                 icon: const Icon(Icons.storefront_rounded),
                 label: const Text('Yakındaki Servisleri Gör'),

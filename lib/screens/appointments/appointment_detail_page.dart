@@ -1,20 +1,69 @@
 import 'package:flutter/material.dart';
 
+import '../../data/appointment_request_store.dart';
 import '../../models/appointment_request.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/chat_id.dart';
 import '../../utils/turkish_date.dart';
+import '../../widgets/appointments/propose_time_dialog.dart';
 import '../../widgets/common/premium_surface.dart';
 import 'customer_conversation_page.dart';
 
 /// Minimal detail view for one appointment, pushed from
 /// AppointmentRequestCard when the customer taps a card on the
 /// Upcoming/Past tabs (see AppointmentsTab). Uses only the AppointmentRequest
-/// data the tapped card already had — no new Firestore query.
-class AppointmentDetailPage extends StatelessWidget {
+/// data the tapped card already had — no new Firestore query. While
+/// request.status is providerProposed, also shows the same Accept/"Farklı
+/// Saat İste" actions as NotificationsPage's _NewTimeSuggestedCard, reusing
+/// AppointmentRequestStore.accept/requestAnotherTime rather than duplicating
+/// that logic — this is the appointment a customer actually lands on from
+/// "Randevularım", so the response to a mechanic's proposal belongs here too.
+class AppointmentDetailPage extends StatefulWidget {
   const AppointmentDetailPage({super.key, required this.request});
 
   final AppointmentRequest request;
+
+  @override
+  State<AppointmentDetailPage> createState() => _AppointmentDetailPageState();
+}
+
+class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
+  AppointmentRequest get request => widget.request;
+
+  // Same accept flow as NotificationsPage._acceptSuggestion — accept() is a
+  // real Firestore operation for authenticated customers, so only a
+  // failure needs reporting; a success mutates request.status in place, so
+  // setState below is enough to refresh the pill/actions on this page.
+  Future<void> _acceptSuggestion() async {
+    final success = await AppointmentRequestStore.instance.accept(request);
+    if (!mounted) return;
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Randevu onaylanamadı. Lütfen tekrar deneyin.')),
+      );
+      return;
+    }
+    setState(() {});
+  }
+
+  // Same counter-proposal flow as NotificationsPage._requestAnotherTime —
+  // reuses AppointmentRequestStore.requestAnotherTime, a real Firestore
+  // write, rather than inventing a separate flow here.
+  Future<void> _requestAnotherTime() async {
+    final picked = await pickProposedDateTime(context);
+    if (picked == null || !mounted) return;
+    final (date, time) = picked;
+    final success = await AppointmentRequestStore.instance.requestAnotherTime(request, date: date, time: time);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Farklı bir saat öneriniz iletildi.' : 'Öneriniz gönderilemedi. Lütfen tekrar deneyin.',
+        ),
+      ),
+    );
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,12 +114,66 @@ class AppointmentDetailPage extends StatelessWidget {
                   ],
                   const SizedBox(height: AppSpacing.md),
                   _DetailStatusPill(status: request.status, proposedTime: request.proposedTime),
+                  if (request.status == AppointmentRequestStatus.providerProposed) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    _ProposalActions(onAccept: _acceptSuggestion, onRequestAnotherTime: _requestAnotherTime),
+                  ],
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Same accept/"request another time" action row as NotificationsPage's
+/// _NewTimeSuggestedCard (same styling and button labels) — shown only
+/// while request.status == providerProposed, i.e. the customer hasn't yet
+/// responded to the mechanic's proposed time.
+class _ProposalActions extends StatelessWidget {
+  const _ProposalActions({required this.onAccept, required this.onRequestAnotherTime});
+
+  final VoidCallback onAccept;
+  final VoidCallback onRequestAnotherTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 44,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.turquoise,
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: onAccept,
+              child: const Text('Kabul Et'),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SizedBox(
+            height: 44,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.turquoise,
+                side: const BorderSide(color: AppColors.turquoise),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: onRequestAnotherTime,
+              child: const Text('Farklı Saat Öner'),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -12,7 +12,13 @@ import 'mechanic_appointment_details_page.dart';
 /// MechanicAppointmentDetailsPage; no details are shown inline. Dummy data
 /// only (see data/calendar_appointment.dart) — no Firestore wired up yet.
 class AppointmentCalendarView extends StatefulWidget {
-  const AppointmentCalendarView({super.key, required this.selectedDate, required this.appointments, this.onSlotSelected});
+  const AppointmentCalendarView({
+    super.key,
+    required this.selectedDate,
+    required this.appointments,
+    this.onSlotSelected,
+    this.onWeekChanged,
+  });
 
   /// Which day is "active" — determines which week is shown (the Mon–Sun
   /// week containing this date) and which day header is highlighted.
@@ -33,12 +39,20 @@ class AppointmentCalendarView extends StatefulWidget {
   /// instead of a bare grid.
   final ValueChanged<DateTime>? onSlotSelected;
 
+  /// When non-null, the normal "Tüm Randevular" view (onSlotSelected ==
+  /// null) also shows the existing prev/next week arrows (reused as-is
+  /// from slot-selection mode below), calling this with the new week's
+  /// selectedDate (±7 days) instead of paging the slot-selection strip's
+  /// own _weekOffsetFromToday. Null (the default) reproduces the previous
+  /// behavior exactly — no arrows in normal mode.
+  final ValueChanged<DateTime>? onWeekChanged;
+
   @override
   State<AppointmentCalendarView> createState() => _AppointmentCalendarViewState();
 }
 
 class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
-  static const _startHour = 9;
+  static const _startHour = 8;
   static const _endHour = 19;
   static const _hourHeight = 56.0;
   static const _hourColumnWidth = 44.0;
@@ -81,11 +95,17 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
     final selected = _dateOnly(widget.selectedDate);
     final weekDates = _weekDates();
     final hourCount = _endHour - _startHour;
-    final selectedDayHasAppointments = widget.appointments.any((a) => _dateOnly(a.start) == selected);
+    // Whether ANY day in the currently visible week has an appointment —
+    // not just the selected day. Previously this only checked the selected
+    // day, which collapsed the entire week's grid to the empty state
+    // whenever that one specific day had nothing, even if another day in
+    // the same visible week (e.g. a different date the mechanic hasn't
+    // explicitly selected) had real appointments.
+    final weekHasAppointments = widget.appointments.any((a) => weekDates.contains(_dateOnly(a.start)));
     // In slot-selection mode every hour is potentially selectable, even on
     // an otherwise-empty day, so the grid must render instead of falling
     // back to the "no appointments" empty state.
-    final showGrid = selectedDayHasAppointments || widget.onSlotSelected != null;
+    final showGrid = weekHasAppointments || widget.onSlotSelected != null;
     final isSlotSelectionMode = widget.onSlotSelected != null;
 
     return SingleChildScrollView(
@@ -123,14 +143,16 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
                       // on both sides, so the arrows sit outside the strip
                       // — never overlapping the first/last date and never
                       // touching the screen edge — and stay symmetrical.
-                      if (isSlotSelectionMode) ...[
+                      if (isSlotSelectionMode || widget.onWeekChanged != null) ...[
                         const SizedBox(width: 16),
                         SizedBox(
                           height: _DayHeaderCell.height,
                           child: Center(
                             child: _WeekNavButton(
                               icon: Icons.chevron_left,
-                              onPressed: _weekOffsetFromToday > 0 ? _goToPreviousWeek : null,
+                              onPressed: isSlotSelectionMode
+                                  ? (_weekOffsetFromToday > 0 ? _goToPreviousWeek : null)
+                                  : () => widget.onWeekChanged?.call(selected.subtract(const Duration(days: 7))),
                             ),
                           ),
                         ),
@@ -186,12 +208,17 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
                           ),
                         ),
                       ),
-                      if (isSlotSelectionMode) ...[
+                      if (isSlotSelectionMode || widget.onWeekChanged != null) ...[
                         const SizedBox(width: 16),
                         SizedBox(
                           height: _DayHeaderCell.height,
                           child: Center(
-                            child: _WeekNavButton(icon: Icons.chevron_right, onPressed: _goToNextWeek),
+                            child: _WeekNavButton(
+                              icon: Icons.chevron_right,
+                              onPressed: isSlotSelectionMode
+                                  ? _goToNextWeek
+                                  : () => widget.onWeekChanged?.call(selected.add(const Duration(days: 7))),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -200,17 +227,54 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
                   )
                 : Column(
                     children: [
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final date in weekDates)
-                              SizedBox(
-                                width: _dayColumnWidth,
-                                child: _DayHeaderCell(date: date, isSelected: date == selected),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Same arrow pattern as the showGrid branch above
+                          // (isSlotSelectionMode is never true here — that
+                          // mode always has showGrid == true — so this only
+                          // needs the onWeekChanged check).
+                          if (widget.onWeekChanged != null) ...[
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              height: _DayHeaderCell.height,
+                              child: Center(
+                                child: _WeekNavButton(
+                                  icon: Icons.chevron_left,
+                                  onPressed: () => widget.onWeekChanged?.call(selected.subtract(const Duration(days: 7))),
+                                ),
                               ),
+                            ),
+                            const SizedBox(width: 16),
                           ],
-                        ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  for (final date in weekDates)
+                                    SizedBox(
+                                      width: _dayColumnWidth,
+                                      child: _DayHeaderCell(date: date, isSelected: date == selected),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (widget.onWeekChanged != null) ...[
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              height: _DayHeaderCell.height,
+                              child: Center(
+                                child: _WeekNavButton(
+                                  icon: Icons.chevron_right,
+                                  onPressed: () => widget.onWeekChanged?.call(selected.add(const Duration(days: 7))),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                          ],
+                        ],
                       ),
                       SizedBox(
                         height: hourCount * _hourHeight,
@@ -460,6 +524,9 @@ extension _StatusBarColor on AppointmentStatus {
     // MechanicAppointmentsScreen._loadAppointments) — but the switch must
     // stay exhaustive.
     AppointmentStatus.declined => AppColors.emergency,
+    // Also never reaches the calendar — a negotiation in progress isn't a
+    // confirmed appointment yet (see AppointmentStatus.timeProposed).
+    AppointmentStatus.timeProposed => Colors.purple.shade400,
   };
 }
 
@@ -528,7 +595,7 @@ class _AppointmentBlock extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${appointment.vehicleBrand} ${appointment.vehicleModel}',
+                      appointment.vehicleModel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, height: 1.25, color: AppColors.textSecondary),

@@ -1,15 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../../utils/identity.dart';
+import '../../utils/turkish_date.dart';
 import '../../widgets/booking/section_label.dart';
 import '../../widgets/common/premium_surface.dart';
+import '../appointments/data/appointment.dart';
+import '../appointments/data/appointment_repository.dart';
 import '../appointments/mechanic_request_details_page.dart';
 import '../notifications/mechanic_notifications_screen.dart';
 
-/// First functional version of the mechanic module's "Home" tab —
-/// notification bell (mock badge), a compact "Important Updates" card, and
-/// a "Pending Requests" list of mock request cards. All data here is
-/// hardcoded; no backend/API/business logic is wired up yet.
+/// Mechanic module's "Home" tab — notification bell (mock badge), a compact
+/// "Important Updates" card, and a "Pending Requests" list. The pending
+/// requests list is backed by the same real `randevular` data source as
+/// MechanicAppointmentsScreen's "Yeni Talepler" tab (see
+/// AppointmentRepository.watchPendingAppointments) — not a second/duplicate
+/// query, the exact same repository method, resolved via the same
+/// resolveMyBusinessId() mechanism. The "Important Updates" card is a
+/// separate, still-hardcoded section, untouched here.
 ///
 /// Workflow rule: this screen shows ONLY actionable work items (pending
 /// appointment requests awaiting a decision) as collapsed previews — a
@@ -31,26 +41,57 @@ class MechanicHomeScreen extends StatefulWidget {
 }
 
 class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
-  static const _requests = [
-    _MockRequest(
-      customerName: 'Ahmet Yılmaz',
-      vehicleModel: 'Renault Clio',
-      vehicleInfo: 'Renault Clio · 34 ABC 123',
-      service: 'Yağ Değişimi',
-      note: 'Aracımda ayrıca hafif bir fren sesi var, kontrol edebilir misiniz?',
-      preferredDate: '22 Temmuz, Çarşamba',
-      preferredTime: '10:00 – 12:00',
-    ),
-    _MockRequest(
-      customerName: 'Elif Kaya',
-      vehicleModel: 'Fiat Egea',
-      vehicleInfo: 'Fiat Egea · 06 XYZ 456',
-      service: 'Fren Bakımı',
-      note: 'Öğleden sonra müsaitim, sabah saatleri bana uygun değil.',
-      preferredDate: '23 Temmuz, Perşembe',
-      preferredTime: 'İlk Müsait Saat',
-    ),
-  ];
+  final _appointmentRepository = AppointmentRepository();
+  StreamSubscription<List<Appointment>>? _pendingRequestsSubscription;
+  List<Appointment> _pendingRequests = [];
+  var _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPendingRequests();
+  }
+
+  @override
+  void dispose() {
+    _pendingRequestsSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Same businessId resolution + live-subscription pattern already used by
+  // MechanicAppointmentsScreen._loadAppointments for "Yeni Talepler" — reuses
+  // the exact same AppointmentRepository.watchPendingAppointments stream, not
+  // a second query. A signed-out account, or one without a resolvable
+  // businessId, sees an empty list rather than risking another business's
+  // requests (same safe default used elsewhere in the mechanic module).
+  Future<void> _loadPendingRequests() async {
+    final myBusinessId = await resolveMyBusinessId();
+    if (myBusinessId == null) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    _pendingRequestsSubscription?.cancel();
+    _pendingRequestsSubscription = _appointmentRepository.watchPendingAppointments(myBusinessId).listen(
+      (pendingRequests) {
+        if (!mounted) return;
+        setState(() {
+          // Newest submitted request first — watchPendingAppointments has
+          // no orderBy (see AppointmentRepository), so this is sorted
+          // client-side by createdAt (request creation time), not by the
+          // requested appointment date/time.
+          _pendingRequests = pendingRequests..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          _isLoading = false;
+        });
+      },
+      onError: (Object error) {
+        debugPrint('MECHANIC HOME PENDING REQUESTS ERROR: $error');
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+      },
+    );
+  }
 
   void _openNotifications() {
     Navigator.of(context).push(
@@ -58,13 +99,28 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
     );
   }
 
-  // TODO: MechanicRequestDetailsPage currently always shows the same
-  // hardcoded (Ahmet Yılmaz) mock data regardless of which request card
-  // was tapped — it doesn't accept the tapped request yet. Wire real data
-  // passing once the page is parameterized.
-  void _openRequestDetails() {
+  void _openRequestDetails(Appointment appointment) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const MechanicRequestDetailsPage()),
+      MaterialPageRoute(builder: (_) => MechanicRequestDetailsPage(appointment: appointment)),
+    );
+  }
+
+  static const _noTimeSentinel = TimeOfDay(hour: 0, minute: 0);
+
+  static String _formatTimeOfDay(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+  // Maps a real Appointment onto the same display fields _RequestCard
+  // already renders — no card/layout changes, only what feeds it.
+  _RequestCardData _toRequestCardData(Appointment appointment) {
+    final hasRealTime = appointment.appointmentTime != _noTimeSentinel;
+    return _RequestCardData(
+      vehicleModel: appointment.vehicleModel,
+      service: appointment.serviceType,
+      preferredDate: formatFullDate(appointment.appointmentDate),
+      preferredTime: hasRealTime
+          ? _formatTimeOfDay(appointment.appointmentTime)
+          : (appointment.preferredTimeRangeLabel.isEmpty ? 'İlk Müsait Saat' : appointment.preferredTimeRangeLabel),
     );
   }
 
@@ -81,13 +137,21 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
               children: [
                 const SectionLabel(text: 'Bekleyen Talepler'),
                 const SizedBox(height: AppSpacing.md),
-                for (var i = 0; i < _requests.length; i++) ...[
-                  _RequestCard(
-                    request: _requests[i],
-                    onTap: _openRequestDetails,
-                  ),
-                  if (i < _requests.length - 1) const SizedBox(height: AppSpacing.xl),
-                ],
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_pendingRequests.isEmpty)
+                  const _EmptyPendingRequestsState()
+                else
+                  for (var i = 0; i < _pendingRequests.length; i++) ...[
+                    _RequestCard(
+                      request: _toRequestCardData(_pendingRequests[i]),
+                      onTap: () => _openRequestDetails(_pendingRequests[i]),
+                    ),
+                    if (i < _pendingRequests.length - 1) const SizedBox(height: AppSpacing.xl),
+                  ],
                 const SizedBox(height: AppSpacing.xxl),
                 const _ImportantUpdatesCard(
                   message: 'Ahmet Yılmaz, önerdiğiniz randevu saatini kabul etti.',
@@ -212,22 +276,45 @@ class _ImportantUpdatesCard extends StatelessWidget {
   }
 }
 
-class _MockRequest {
-  const _MockRequest({
-    required this.customerName,
+/// Shown in place of the request-card list when the signed-in mechanic
+/// currently has zero pending requests — replaces the old mock cards for
+/// that case instead of leaving the section looking broken/empty.
+class _EmptyPendingRequestsState extends StatelessWidget {
+  const _EmptyPendingRequestsState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.event_note_outlined, size: 48, color: AppColors.textSecondary),
+            const SizedBox(height: 12),
+            const Text(
+              'Bekleyen talebiniz yok.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Display fields _RequestCard needs — populated from a real Appointment
+/// (see _MechanicHomeScreenState._toRequestCardData); no longer mock-only.
+class _RequestCardData {
+  const _RequestCardData({
     required this.vehicleModel,
-    required this.vehicleInfo,
     required this.service,
-    required this.note,
     required this.preferredDate,
     required this.preferredTime,
   });
 
-  final String customerName;
   final String vehicleModel;
-  final String vehicleInfo;
   final String service;
-  final String note;
   final String preferredDate;
   final String preferredTime;
 }
@@ -239,7 +326,7 @@ class _MockRequest {
 class _RequestCard extends StatelessWidget {
   const _RequestCard({required this.request, required this.onTap});
 
-  final _MockRequest request;
+  final _RequestCardData request;
   final VoidCallback onTap;
 
   @override
@@ -279,11 +366,23 @@ class _RequestCard extends StatelessWidget {
             children: [
               const Icon(Icons.event, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 4),
-              Text(request.preferredDate, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Flexible(
+                child: Text(
+                  request.preferredDate,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ),
               const SizedBox(width: 12),
               const Icon(Icons.schedule, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 4),
-              Text(request.preferredTime, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Flexible(
+                child: Text(
+                  request.preferredTime,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ),
             ],
           ),
         ],

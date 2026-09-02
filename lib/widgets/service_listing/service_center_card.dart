@@ -4,10 +4,13 @@ import '../../models/mechanic.dart';
 import '../../screens/appointments/customer_conversation_page.dart';
 import '../../screens/booking/appointment_request_page.dart';
 import '../../screens/service_listing/reviews_page.dart';
+import '../../mechanic/appointments/data/appointment_repository.dart';
+import '../../mechanic/profile/data/mechanic_profile_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/chat_id.dart';
 import '../common/premium_surface.dart';
 import '../trust/trust_info_sheet.dart';
+import '../verified_jobs_badge.dart';
 
 /// Premium horizontal service-center card for the shared Service Listing
 /// screen — a shop photo (placeholder illustration, no real asset exists)
@@ -17,9 +20,16 @@ import '../trust/trust_info_sheet.dart';
 /// repeat-customer rate (see [Mechanic.trustScore]); price is deliberately
 /// not shown here.
 class ServiceCenterCard extends StatelessWidget {
-  const ServiceCenterCard({super.key, required this.mechanic});
+  const ServiceCenterCard({super.key, required this.mechanic, required this.serviceName});
 
   final Mechanic mechanic;
+
+  /// The specific service the customer picked upstream (e.g. "Fren
+  /// Balatası Değişimi", from ServiceListingPage's own serviceName — see
+  /// BrakeSystemCategoryPage and friends) — passed to AppointmentRequestPage
+  /// so the actual requested service is booked, not the mechanic's general
+  /// specialty label shown elsewhere on this card.
+  final String serviceName;
 
   static const _actionsPadding = EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm + 2, AppSpacing.lg, AppSpacing.lg);
   static const _buttonSpacing = AppSpacing.sm + 2;
@@ -56,7 +66,7 @@ class ServiceCenterCard extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Text(
-                      mechanic.specialty,
+                      mechanic.specialtyLabel,
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       style: const TextStyle(fontSize: 16, color: Color(0xFF4A4A4A)),
@@ -91,7 +101,7 @@ class ServiceCenterCard extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => AppointmentRequestPage(mechanic: mechanic, serviceLabel: mechanic.specialty),
+                        builder: (_) => AppointmentRequestPage(mechanic: mechanic, serviceLabel: serviceName),
                       ),
                     ),
                     icon: const Icon(Icons.calendar_month_outlined, size: 17),
@@ -253,10 +263,12 @@ class _CenterInfo extends StatelessWidget {
 
   final Mechanic mechanic;
 
+  // No distance suffix: real mechanicAccounts have no real geolocation data
+  // yet (see Mechanic.distanceLabel) — showing just the city avoids
+  // presenting a fabricated distance as real.
   String get _locationLabel {
     final segments = mechanic.address.split(',');
-    final city = segments.last.trim();
-    return '$city · ${mechanic.distanceLabel}';
+    return segments.last.trim();
   }
 
   @override
@@ -297,36 +309,68 @@ class _CenterInfo extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        InkWell(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => ReviewsPage(mechanic: mechanic)),
-          ),
-          borderRadius: BorderRadius.circular(20),
-          child: _TrustChip(
-            icon: Icons.star_rounded,
-            color: Colors.amber.shade800,
-            label: '${mechanic.rating.toStringAsFixed(1)} (${mechanic.reviewCount} yorum)',
-          ),
+        FutureBuilder<({double averageRating, int ratedCount})>(
+          future: AppointmentRepository().fetchRatingSummary(mechanicChatId(mechanic.name)),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox.shrink();
+            }
+            final summary = snapshot.data;
+            if (snapshot.hasError || summary == null || summary.ratedCount == 0) {
+              return const _TrustChip(
+                icon: Icons.star_border_rounded,
+                color: AppColors.textSecondary,
+                label: 'Henüz değerlendirme yok',
+              );
+            }
+            return InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ReviewsPage(mechanic: mechanic)),
+              ),
+              borderRadius: BorderRadius.circular(20),
+              child: _TrustChip(
+                icon: Icons.star_rounded,
+                color: Colors.amber.shade800,
+                label: '${summary.averageRating.toStringAsFixed(1)} (${summary.ratedCount} değerlendirme)',
+              ),
+            );
+          },
         ),
         const SizedBox(height: 11),
-        InkWell(
-          onTap: () => showTrustInfoSheet(
-            context,
-            icon: Icons.repeat_rounded,
-            accentColor: AppColors.primaryDark,
-            title: 'Tekrar Tercih Oranı',
-            description:
-                'Bu oran, bir önceki ziyaretinden sonra müşterilerin başka bir hizmet için bu servis '
-                'sağlayıcısına tekrar dönme yüzdesini gösterir. Yüksek bir oran, daha güçlü bir müşteri '
-                'memnuniyeti ve güveni olduğunu gösterir.',
-            highlight: 'Müşterilerin %${mechanic.repeatCustomerRate}\'i bu hizmeti tekrar tercih etti.',
-          ),
-          borderRadius: BorderRadius.circular(20),
-          child: _TrustChip(
-            icon: Icons.repeat_rounded,
-            color: AppColors.primaryDark,
-            label: '%${mechanic.repeatCustomerRate} Tekrar Tercih',
-          ),
+        FutureBuilder<int?>(
+          future: MechanicProfileRepository().fetchRepeatCustomerRate(mechanicChatId(mechanic.name)),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox.shrink();
+            }
+            final rate = snapshot.hasError ? null : snapshot.data;
+            if (rate == null) {
+              return const _TrustChip(
+                icon: Icons.repeat_rounded,
+                color: AppColors.textSecondary,
+                label: 'Tekrar tercih verisi yok',
+              );
+            }
+            return InkWell(
+              onTap: () => showTrustInfoSheet(
+                context,
+                icon: Icons.repeat_rounded,
+                accentColor: AppColors.primaryDark,
+                title: 'Tekrar Tercih Oranı',
+                description:
+                    'Bu oran, bir önceki ziyaretinden sonra müşterilerin başka bir hizmet için bu servis '
+                    'sağlayıcısına tekrar dönme yüzdesini gösterir. Yüksek bir oran, daha güçlü bir müşteri '
+                    'memnuniyeti ve güveni olduğunu gösterir.',
+                highlight: 'Müşterilerin %$rate\'i bu hizmeti tekrar tercih etti.',
+              ),
+              borderRadius: BorderRadius.circular(20),
+              child: _TrustChip(
+                icon: Icons.repeat_rounded,
+                color: AppColors.primaryDark,
+                label: '%$rate Tekrar Tercih',
+              ),
+            );
+          },
         ),
         const SizedBox(height: 11),
         InkWell(
@@ -347,6 +391,8 @@ class _CenterInfo extends StatelessWidget {
             label: mechanic.isVerified ? 'Doğrulanmış Servis' : 'Doğrulanmamış Servis',
           ),
         ),
+        const SizedBox(height: 11),
+        VerifiedJobsBadge(mechanicId: mechanicChatId(mechanic.name)),
       ],
     );
   }

@@ -1,11 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/mock_data.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/chat_id.dart';
+import '../../utils/firebase_instances.dart';
 import '../../widgets/common/premium_surface.dart';
+import '../../widgets/verified_jobs_badge.dart';
 import 'data/mechanic_profile.dart';
 import 'data/mechanic_profile_repository.dart';
 
@@ -38,7 +39,7 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
   }
 
   Future<void> _load() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = firebaseAuthInstance.currentUser?.uid;
     if (uid == null) {
       setState(() => _loading = false);
       return;
@@ -143,6 +144,11 @@ class _ProfileBody extends StatelessWidget {
                   if (isVerified)
                     const Icon(Icons.verified_rounded, color: AppColors.turquoise, size: 20),
                 ],
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: VerifiedJobsBadge(mechanicId: profile.businessId),
               ),
               if (rating != null) ...[
                 const SizedBox(height: 6),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/category.dart';
 import '../models/mechanic.dart';
@@ -24,10 +24,12 @@ class MockData {
     ServiceCategory(label: 'Tüm Hizmetler', subtitle: 'Tüm kategorileri gör', icon: Icons.more_horiz),
   ];
 
-  // Categories shown only on the "Tüm Kategoriler" page — everything from
-  // [categories] (minus the "Tüm Hizmetler" entry point tile itself, which
-  // wouldn't make sense listed inside the page it links to) plus additional
-  // categories that don't fit in the Home screen's compact teaser list.
+  // The complete Araç Tamiri sub-service taxonomy — every real category,
+  // with no separate "teaser" subset left behind a tap-through. Shown
+  // directly on VehicleRepairCategoryPage (via CategoryGrid) and reused
+  // as-is for the shared Ekspertiz/Sigorta "Tüm Kategoriler" pages
+  // (EkspertizPage/SigortaPage), parameterized with their own taxonomies
+  // instead of this one.
   static const allServiceCategories = [
     ServiceCategory(label: 'Periyodik Bakım', subtitle: 'Genel kontrol', icon: Icons.event_repeat),
     ServiceCategory(label: 'Yağ Değişimi', subtitle: 'Yağ & filtre', icon: Icons.oil_barrel),
@@ -35,11 +37,42 @@ class MockData {
     ServiceCategory(label: 'Motor', subtitle: 'Motor arızası', icon: Icons.settings),
     ServiceCategory(label: 'Akü & Elektrik', subtitle: 'Şarj sistemi', icon: Icons.battery_charging_full),
     ServiceCategory(label: 'Lastik & Jant', subtitle: 'Değişim & balans', icon: Icons.tire_repair),
+    ServiceCategory(label: 'Şanzıman ve Debriyaj', subtitle: 'Vites & aktarma', icon: Icons.sync_alt),
     ServiceCategory(label: 'Klima', subtitle: 'Klima bakımı', icon: Icons.ac_unit),
     ServiceCategory(label: 'Süspansiyon & Direksiyon', subtitle: 'Amortisör & denge', icon: Icons.height),
     ServiceCategory(label: 'Kaporta & Boya', subtitle: 'Gövde & boya', icon: Icons.format_paint),
     ServiceCategory(label: 'Cam & Aydınlatma', subtitle: 'Cam & far', icon: Icons.lightbulb_outline),
     ServiceCategory(label: 'Egzoz Sistemi', subtitle: 'Egzoz sistemi', icon: Icons.air),
+  ];
+
+  // Sub-service taxonomy for the Ekspertiz/Sigorta category grids — real
+  // navigation labels, not mock business data, matching [categories]'s own
+  // role: what real mechanicAccounts.hizmetler entries get filtered against.
+  static const ekspertizCategories = [
+    ServiceCategory(
+      label: 'Araç Alım Ekspertizi',
+      subtitle: 'İkinci el alım kontrolü',
+      icon: Icons.assignment_turned_in_outlined,
+    ),
+    ServiceCategory(label: 'Hasar Tespiti', subtitle: 'Kaza & hasar analizi', icon: Icons.report_problem_outlined),
+    ServiceCategory(
+      label: 'Boya-Kaporta Kontrolü',
+      subtitle: 'Boya & gövde muayenesi',
+      icon: Icons.format_paint_outlined,
+    ),
+    ServiceCategory(
+      label: 'Motor & Şanzıman Kontrolü',
+      subtitle: 'Mekanik durum tespiti',
+      icon: Icons.settings_outlined,
+    ),
+    ServiceCategory(label: 'Genel Ekspertiz Raporu', subtitle: 'Kapsamlı araç raporu', icon: Icons.description_outlined),
+  ];
+
+  static const sigortaCategories = [
+    ServiceCategory(label: 'Trafik Sigortası', subtitle: 'Zorunlu trafik poliçesi', icon: Icons.local_police_outlined),
+    ServiceCategory(label: 'Kasko', subtitle: 'Araç hasar güvencesi', icon: Icons.shield_outlined),
+    ServiceCategory(label: 'Ferdi Kaza', subtitle: 'Kişisel kaza sigortası', icon: Icons.personal_injury_outlined),
+    ServiceCategory(label: 'Yol Yardım Paketi', subtitle: '7/24 yol desteği', icon: Icons.support_agent_outlined),
   ];
 
   static const popularMechanics = [
@@ -54,7 +87,6 @@ class MockData {
       priceMax: 650,
       isVerified: true,
       repeatCustomerRate: 88,
-      onTimeRate: 96,
       workingHours: 'Pzt - Cmt: 08:00 - 19:00',
       phone: '0212 345 12 34',
       address: 'Sanayi Sitesi 2. Blok No:8, Konya',
@@ -70,7 +102,6 @@ class MockData {
       priceMax: 900,
       isVerified: true,
       repeatCustomerRate: 79,
-      onTimeRate: 91,
       workingHours: 'Pzt - Cmt: 08:30 - 18:30',
       phone: '0212 556 22 10',
       address: 'Organize Sanayi Bölgesi 5. Cadde No:21, Konya',
@@ -86,7 +117,6 @@ class MockData {
       priceMax: 380,
       isVerified: true,
       repeatCustomerRate: 84,
-      onTimeRate: 94,
       workingHours: 'Her gün: 09:00 - 20:00',
       phone: '0212 667 45 09',
       address: 'Fatih Mah. Lastikçiler Sok. No:5, Konya',
@@ -102,7 +132,6 @@ class MockData {
       priceMax: 320,
       isVerified: true,
       repeatCustomerRate: 71,
-      onTimeRate: 89,
       workingHours: 'Pzt - Cmt: 09:00 - 18:00',
       phone: '0212 778 90 12',
       address: 'Yenişehir Mah. Elektrikçiler Cad. No:34, Konya',
@@ -121,7 +150,6 @@ class MockData {
       priceMax: 750,
       isVerified: true,
       repeatCustomerRate: 91,
-      onTimeRate: 97,
       workingHours: 'Pzt - Cmt: 08:00 - 19:00',
       phone: '0212 234 56 78',
       address: 'Merkez Mah. Sanayi Cad. No:14, Konya',
@@ -137,7 +165,6 @@ class MockData {
       priceMax: 550,
       isVerified: true,
       repeatCustomerRate: 87,
-      onTimeRate: 95,
       workingHours: 'Pzt - Cmt: 08:30 - 18:30',
       phone: '0212 890 11 22',
       address: 'Karatay Sanayi Sitesi C Blok No:9, Konya',
@@ -151,10 +178,8 @@ class MockData {
       distanceValue: 0.6,
       priceMin: 250,
       priceMax: 420,
-      isOpen: false,
       isVerified: true,
       repeatCustomerRate: 90,
-      onTimeRate: 93,
       workingHours: 'Pzt - Cmt: 08:00 - 18:00, Pazar Kapalı',
       phone: '0212 345 67 89',
       address: 'Selçuklu Mah. Yağcılar Sok. No:3, Konya',
@@ -170,7 +195,6 @@ class MockData {
       priceMax: 360,
       isVerified: true,
       repeatCustomerRate: 82,
-      onTimeRate: 90,
       workingHours: 'Her gün: 08:00 - 20:00',
       phone: '0212 456 78 90',
       address: 'Meram Sanayi Sitesi No:41, Konya',
@@ -189,7 +213,6 @@ class MockData {
       priceMax: 300,
       isVerified: true,
       repeatCustomerRate: 76,
-      onTimeRate: 88,
       workingHours: 'Pzt - Cmt: 09:00 - 19:00',
       phone: '0212 123 45 67',
       address: 'Beyhekim Mah. Akücüler Sok. No:11, Konya',
@@ -204,7 +227,6 @@ class MockData {
       priceMin: 600,
       priceMax: 1100,
       repeatCustomerRate: 68,
-      onTimeRate: 82,
       workingHours: 'Pzt - Cmt: 09:00 - 18:00',
       phone: '0212 999 88 77',
       address: 'Organize Sanayi Bölgesi 12. Cadde No:2, Konya',
@@ -218,9 +240,7 @@ class MockData {
       distanceValue: 1.9,
       priceMin: 220,
       priceMax: 400,
-      isOpen: false,
       repeatCustomerRate: 65,
-      onTimeRate: 79,
       workingHours: 'Pzt - Cmt: 09:00 - 18:00',
       phone: '0212 111 22 33',
       address: 'Fetih Mah. Jantçılar Cad. No:7, Konya',
@@ -236,7 +256,6 @@ class MockData {
       priceMax: 390,
       isVerified: true,
       repeatCustomerRate: 80,
-      onTimeRate: 87,
       workingHours: 'Her gün: 08:00 - 19:00',
       phone: '0212 222 33 44',
       address: 'Aziziye Mah. Yağlama Sok. No:19, Konya',

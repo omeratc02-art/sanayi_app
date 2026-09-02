@@ -17,6 +17,15 @@ class AppColors {
   static const Color emergency = Color(0xFFE53935);
   static const Color emergencyDark = Color(0xFFB71C1C);
 
+  // Same reasoning as emergency above, extended to the homepage's 3 main
+  // service-category cards (see ServiceCategoryCard) — each color is
+  // reserved for its one category, not general branding, so they stay a
+  // clear visual index rather than diluting the turquoise-only accent
+  // everywhere else.
+  static const Color vehicleRepair = Color(0xFF0F172A);
+  static const Color inspection = Color(0xFF2563EB);
+  static const Color insurance = Color(0xFF16A34A);
+
   static const Color surface = Color(0xFFFFFFFF);
   static const Color background = Color(0xFFF7FAFC);
   static const Color textPrimary = Color(0xFF1A1A1A);

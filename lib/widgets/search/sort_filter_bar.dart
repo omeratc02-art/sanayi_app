@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 
-enum SortMode { rating, distance, price }
+// No SortMode.distance: real mechanicAccounts have no real geolocation data
+// yet (a separate future task) — sorting by a fabricated distance would be
+// exactly the kind of mock-presented-as-real data this flow moved away from.
+enum SortMode { rating, price }
 
 extension SortModeLabel on SortMode {
   String get label => switch (this) {
     SortMode.rating => 'Puan',
-    SortMode.distance => 'Mesafe',
     SortMode.price => 'Fiyat',
   };
 }

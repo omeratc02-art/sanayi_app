@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../utils/firebase_instances.dart';
 import 'chat_message.dart';
 
 /// Reads/writes chat messages at `chats/{chatId}/messages`. The UI never
 /// talks to Firestore directly — everything goes through here.
 class ChatRepository {
-  ChatRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+  ChatRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? firestoreInstance;
 
   final FirebaseFirestore _firestore;
 
@@ -36,6 +40,13 @@ class ChatRepository {
       createdAt: DateTime.now(),
       isRead: false,
     );
+    // Only set for a genuine customer send (same mechanicName != null signal
+    // used below) — this is always the caller's own signed-in Auth profile,
+    // never looked up for another user, since that's not possible client-side.
+    // Empty/whitespace-only names (guests, accounts predating this field)
+    // are left unset rather than writing a blank string.
+    final customerDisplayName = mechanicName != null ? firebaseAuthInstance.currentUser?.displayName?.trim() : null;
+
     final batch = _firestore.batch();
     batch.set(
       _firestore.collection('chats').doc(chatId),
@@ -52,6 +63,8 @@ class ChatRepository {
         // message, unlike senderId, which can be the same Firebase UID on
         // both sides in the dev/test flow (no per-role sign-out exists).
         'lastMessageSenderRole': mechanicName != null ? 'customer' : 'mechanic',
+        if (customerDisplayName != null && customerDisplayName.isNotEmpty)
+          'customerDisplayName': customerDisplayName,
       },
       SetOptions(merge: true),
     );
@@ -80,9 +93,96 @@ class ChatRepository {
                   lastMessageSenderId: data['lastMessageSenderId'] as String? ?? '',
                   lastMessageSenderRole: data['lastMessageSenderRole'] as String? ?? '',
                   lastMessageAt: lastMessageAt is Timestamp ? lastMessageAt.toDate() : null,
+                  customerDisplayName: data['customerDisplayName'] as String?,
                 );
               })
               .toList(),
         );
+  }
+
+  /// Marks every unread message in [chatId] not sent by [currentSenderId]
+  /// as read — the single write path for ChatMessage.isRead. Called by
+  /// both CustomerConversationPage and MechanicConversationPage when the
+  /// signed-in user actually views a conversation; every unread-count
+  /// reader (the Mesajlar-tab badge, NotificationsPage's message cards,
+  /// the bell badge) reads the same field this sets, so there is nowhere
+  /// else isRead is ever written.
+  Future<void> markMessagesRead({required String chatId, required String currentSenderId}) async {
+    final snapshot = await _messagesRef(chatId).where('isRead', isEqualTo: false).get();
+    final unreadFromOther = snapshot.docs.where((doc) => doc.data()['senderId'] != currentSenderId).toList();
+    if (unreadFromOther.isEmpty) return;
+
+    final batch = _firestore.batch();
+    for (final doc in unreadFromOther) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
+  }
+
+  /// Real-time list of chats that currently have at least one unread
+  /// message from the other party, for [currentSenderId] — the single
+  /// data source behind the Mesajlar-tab badge, NotificationsPage's
+  /// message-type cards, and the bell badge total, so the three can never
+  /// disagree. Hand-rolled combine-latest (this project has no rxdart
+  /// dependency): subscribes to [watchChats] for the chat list, then fans
+  /// out one [watchMessages] subscription per chat — the same per-chat
+  /// unread check _ConversationRow already does — re-emitting the
+  /// filtered result whenever any of them changes, and tearing down
+  /// subscriptions for chats that disappear.
+  Stream<List<ChatSummary>> watchUnreadChats(String currentSenderId) {
+    late final StreamController<List<ChatSummary>> controller;
+    StreamSubscription<List<ChatSummary>>? chatsSubscription;
+    final messageSubscriptions = <String, StreamSubscription<List<ChatMessage>>>{};
+    final latestChatById = <String, ChatSummary>{};
+    final unreadChatIds = <String>{};
+
+    void emit() {
+      final result = unreadChatIds
+          .where(latestChatById.containsKey)
+          .map((id) => latestChatById[id]!)
+          .toList()
+        ..sort((a, b) => (b.lastMessageAt ?? DateTime(0)).compareTo(a.lastMessageAt ?? DateTime(0)));
+      controller.add(result);
+    }
+
+    controller = StreamController<List<ChatSummary>>.broadcast(
+      onListen: () {
+        chatsSubscription = watchChats().listen((chats) {
+          final currentChatIds = chats.map((chat) => chat.chatId).toSet();
+          latestChatById
+            ..clear()
+            ..addEntries(chats.map((chat) => MapEntry(chat.chatId, chat)));
+
+          for (final staleChatId in messageSubscriptions.keys.toList()) {
+            if (currentChatIds.contains(staleChatId)) continue;
+            messageSubscriptions.remove(staleChatId)?.cancel();
+            unreadChatIds.remove(staleChatId);
+          }
+
+          for (final chat in chats) {
+            if (messageSubscriptions.containsKey(chat.chatId)) continue;
+            messageSubscriptions[chat.chatId] = watchMessages(chat.chatId).listen((messages) {
+              final hasUnread = messages.any((m) => !m.isRead && m.senderId != currentSenderId);
+              if (hasUnread) {
+                unreadChatIds.add(chat.chatId);
+              } else {
+                unreadChatIds.remove(chat.chatId);
+              }
+              emit();
+            });
+          }
+          emit();
+        });
+      },
+      onCancel: () {
+        chatsSubscription?.cancel();
+        for (final subscription in messageSubscriptions.values) {
+          subscription.cancel();
+        }
+        messageSubscriptions.clear();
+      },
+    );
+
+    return controller.stream;
   }
 }

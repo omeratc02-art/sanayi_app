@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../models/appointment_request.dart' show AppointmentRequestStatus;
 import '../../theme/app_theme.dart';
 import '../../utils/identity.dart';
 import '../../widgets/common/premium_surface.dart';
 import 'appointment_calendar_view.dart';
 import 'data/appointment.dart';
 import 'data/appointment_repository.dart';
-import 'mechanic_request_details_page.dart';
 
 const _weekdayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const _monthNames = [
@@ -38,6 +37,7 @@ String _formatPreferredTimeRange(TimeOfDay start, Duration duration) {
   final end = TimeOfDay(hour: (endMinutes ~/ 60) % 24, minute: endMinutes % 60);
   return '${_formatTimeOfDay(start)} – ${_formatTimeOfDay(end)}';
 }
+
 
 // Day + month + year only (no weekday) — the confirmation dialog's summary
 // layout, unlike _formatRequestedDate above which includes the weekday.
@@ -75,11 +75,16 @@ class _SuggestInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 18, color: const Color(0xFF6B7280)),
         const SizedBox(width: 12),
-        Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF374151))),
+        Flexible(
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Color(0xFF374151)),
+          ),
+        ),
       ],
     );
   }
@@ -167,10 +172,9 @@ class _SuggestionSentBannerState extends State<_SuggestionSentBanner> with Singl
 /// (New Requests) / Tüm Randevular (All Appointments) — with "Yeni
 /// Talepler" selected by default. The former "Bugün" (Today), "Yaklaşan"
 /// (Upcoming), and "Geçmiş" (History) tabs were merged into the single
-/// "Tüm Randevular" calendar-agenda tab (see AppointmentCalendarView). All
-/// data here is hardcoded — no backend/business logic wired up yet,
-/// consistent with the rest of the mechanic module (see
-/// MechanicHomeScreen).
+/// "Tüm Randevular" calendar-agenda tab (see AppointmentCalendarView).
+/// Both tabs are backed by the real `randevular` collection (see
+/// data/appointment_repository.dart) — no dummy/hardcoded appointment data.
 class MechanicAppointmentsScreen extends StatefulWidget {
   const MechanicAppointmentsScreen({super.key});
 
@@ -182,11 +186,10 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
     with SingleTickerProviderStateMixin {
   DateTime _selectedDate = DateTime.now();
   late final TabController _tabController = TabController(length: 2, vsync: this);
-  // Dummy data shows immediately, before the Firestore fetch below
-  // resolves — real appointments (see _loadAppointments) are merged in on
-  // top of it once loaded, rather than replacing it, so it still acts as a
-  // fallback if that fetch fails (e.g. no network).
-  List<Appointment> _appointments = buildDummyAppointments();
+  // Populated from Firestore in _loadAppointments — no dummy fallback, so
+  // the calendar genuinely shows nothing rather than fake appointments
+  // while the fetch is in flight or if it fails.
+  List<Appointment> _appointments = [];
   final _appointmentRepository = AppointmentRepository();
 
   // Non-null while "Başka Saat Öner" is active for this request — the
@@ -204,6 +207,15 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
   // this screen.
   StreamSubscription<List<Appointment>>? _pendingAppointmentsSubscription;
 
+  // Same root cause, same fix, for "Tüm Randevular": _appointments used to
+  // be a single fetchAppointments() call in initState, so an appointment
+  // accepted anywhere in the app after this screen first loaded (this
+  // screen's own "Kabul Et", or MechanicRequestDetailsPage's "Talebi Kabul
+  // Et") never showed up here — MechanicHomePage keeps this screen mounted
+  // via IndexedStack for the whole app session, so that first load was
+  // effectively permanent staleness, not a one-time cost.
+  StreamSubscription<List<Appointment>>? _appointmentsSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -219,28 +231,28 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
   // already used by MechanicNotificationsScreen).
   Future<void> _loadAppointments() async {
     final myBusinessId = await resolveMyBusinessId();
+    // A signed-out account, or one without a resolvable businessId, sees
+    // none rather than risking another business's requests/appointments
+    // (same safe-default already used by MechanicNotificationsScreen).
+    if (!mounted || myBusinessId == null) return;
 
-    final List<Appointment> fetched;
-    try {
-      fetched = await _appointmentRepository.fetchAppointments();
-    } catch (_) {
-      return;
-    }
+    // Only this mechanic's own accepted appointments belong on the
+    // calendar — declined and pending (awaiting-decision) ones are
+    // decisions in progress, not scheduled services. Server-side filtered
+    // by businessId, same as watchPendingAppointments below.
+    _appointmentsSubscription?.cancel();
+    _appointmentsSubscription = _appointmentRepository.watchAppointmentsForBusiness(myBusinessId).listen(
+      (appointments) {
+        if (!mounted) return;
+        setState(() {
+          _appointments = appointments.where((appointment) => appointment.status == AppointmentStatus.accepted).toList();
+        });
+      },
+      onError: (Object error) {
+        debugPrint('APPOINTMENTS LISTENER ERROR: $error');
+      },
+    );
 
-    if (!mounted) return;
-    setState(() {
-      // Only confirmed appointments belong on the calendar — declined and
-      // pending (awaiting-decision) ones are decisions in progress, not
-      // scheduled services.
-      final confirmed = fetched.where((appointment) => appointment.status == AppointmentStatus.accepted);
-      final byId = {for (final appointment in _appointments) appointment.appointmentId: appointment};
-      for (final appointment in confirmed) {
-        byId[appointment.appointmentId] = appointment;
-      }
-      _appointments = byId.values.toList();
-    });
-
-    if (myBusinessId == null) return;
     // Server-side filtered, same businessId + status == pending condition
     // as before, now a live stream instead of a single fetch — a new
     // request, or one the mechanic already acted on, updates this list
@@ -266,24 +278,33 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
   // to null here, matching _PendingRequest's existing "no time yet" case.
   static const _noTimeSentinel = TimeOfDay(hour: 0, minute: 0);
 
-  _PendingRequest _toPendingRequest(Appointment appointment) => _PendingRequest(
+  _PendingRequest _toPendingRequest(Appointment appointment) {
+    // TEMP DEBUG — remove after root-causing the service-label mismatch.
+    debugPrint(
+      'TRACE _toPendingRequest id=${appointment.appointmentId} serviceType=${appointment.serviceType}',
+    );
+    return _PendingRequest(
     appointmentId: appointment.appointmentId,
     businessId: appointment.businessId,
     customerId: appointment.customerId,
     customerName: appointment.customerName,
     customerPhone: appointment.customerPhone,
-    vehicleBrand: appointment.vehicleBrand,
     vehicleModel: appointment.vehicleModel,
     licensePlate: appointment.licensePlate,
     service: appointment.serviceType,
     problem: appointment.customerNote,
+    preferredTimeRangeLabel: appointment.preferredTimeRangeLabel,
     appointmentDate: appointment.appointmentDate,
     appointmentTime: appointment.appointmentTime == _noTimeSentinel ? null : appointment.appointmentTime,
     estimatedDuration: appointment.estimatedDuration,
     distance: appointment.distance,
     priceRange: '',
     createdAt: appointment.createdAt,
+    sonTeklifEden: appointment.sonTeklifEden,
+    teklifEdilenTarih: appointment.teklifEdilenTarih,
+    teklifEdilenSaat: appointment.teklifEdilenSaat,
   );
+  }
 
   // Mirrors _acceptRequest's confirmation-dialog + Firestore-write shape,
   // but for the opposite outcome: persists a declined record (reusing the
@@ -326,7 +347,6 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
       customerId: request.customerId,
       customerName: request.customerName,
       customerPhone: request.customerPhone,
-      vehicleBrand: request.vehicleBrand,
       vehicleModel: request.vehicleModel,
       licensePlate: request.licensePlate,
       serviceType: request.service,
@@ -340,6 +360,7 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
       status: AppointmentStatus.declined,
       createdAt: DateTime.now(),
       distance: request.distance,
+      preferredTimeRangeLabel: request.preferredTimeRangeLabel,
     );
 
     try {
@@ -362,6 +383,7 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
   @override
   void dispose() {
     _pendingAppointmentsSubscription?.cancel();
+    _appointmentsSubscription?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -380,6 +402,14 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
   }
 
   void _acceptRequest(_PendingRequest request) {
+    // A customer counter-proposal (see AppointmentRepository.
+    // _needsMechanicAttention) must be summarized and accepted from
+    // teklifEdilenTarih/teklifEdilenSaat, not request.appointmentTime/
+    // preferredTimeRangeLabel — those stay whatever they were before the
+    // negotiation started (see Appointment.teklifEdilenTarih doc) and
+    // accepting them here would silently ignore what the customer actually
+    // proposed.
+    final isCounterProposal = request.isCustomerCounterProposal;
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -389,18 +419,28 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _summaryLine('Müşteri', request.customerName),
-            _summaryLine('Araç', '${request.vehicleBrand} ${request.vehicleModel}'),
+            _summaryLine('Araç', request.vehicleModel),
             _summaryLine('Hizmet', request.service),
-            _summaryLine('Tarih', _formatDateWithYear(request.appointmentDate)),
+            _summaryLine(
+              'Tarih',
+              _formatDateWithYear(isCounterProposal ? request.teklifEdilenTarih! : request.appointmentDate),
+            ),
             // The appointment time must come from either the customer's own
-            // selection or a mechanic-proposed alternative the customer
-            // accepted — never a made-up value. Neither exists yet for a
-            // request whose appointmentTime is still null (e.g. the
+            // selection, a mechanic-proposed alternative the customer
+            // accepted, or (isCounterProposal) the customer's own
+            // counter-proposal — never a made-up value. Neither exists yet
+            // for a request whose appointmentTime is still null (e.g. the
             // customer asked for "İlk Müsait Saat" instead of picking a
             // time) — see _PendingRequest.appointmentTime doc.
             _summaryLine(
               'Saat',
-              request.appointmentTime != null ? _formatTimeOfDay(request.appointmentTime!) : 'Henüz belirlenmedi',
+              isCounterProposal
+                  ? _formatTimeOfDay(request.teklifEdilenSaat!)
+                  : switch (request.appointmentTime) {
+                      final time? => _formatTimeOfDay(time),
+                      null when request.preferredTimeRangeLabel.isNotEmpty => request.preferredTimeRangeLabel,
+                      null => 'Henüz belirlenmedi',
+                    },
             ),
             const SizedBox(height: AppSpacing.md),
             const Text('Onayladığınızda müşteriye bildirim gönderilecek ve randevu oluşturulacaktır.'),
@@ -416,18 +456,42 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.turquoise, foregroundColor: Colors.white),
               onPressed: () {
-                final time = request.appointmentTime;
-                if (time == null) {
+                if (isCounterProposal) {
+                  // Same acceptTimeProposal() path MechanicRequestDetailsPage's
+                  // "Kabul Et" already uses for this exact negotiation state.
                   Navigator.of(dialogContext).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Bu talep için henüz onaylanmış bir saat yok. Bir saat seçilmeden randevu onaylanamaz.'),
-                    ),
-                  );
+                  _acceptTimeProposal(request);
+                  return;
+                }
+                final time = request.appointmentTime;
+                if (time != null) {
+                  // A real time already exists (set via "Başka Saat Öner"),
+                  // so accepting it uses exactly its own already-stored
+                  // estimatedDuration — this path is unchanged.
+                  Navigator.of(dialogContext).pop();
+                  _confirmAppointment(request, time);
+                  return;
+                }
+                // No exact time yet — accept the customer's own already-
+                // selected preferred window directly (no second customer
+                // confirmation for the same window), preserving its full
+                // span via (start, duration) rather than collapsing it to
+                // a single point. "İlk Müsait Saat"/empty/malformed labels
+                // don't parse, so they correctly fall through to the
+                // existing "needs Başka Saat Öner" error below instead of
+                // inventing a time.
+                final parsedRange = parsePreferredTimeRange(request.preferredTimeRangeLabel);
+                if (parsedRange != null) {
+                  Navigator.of(dialogContext).pop();
+                  _confirmAppointment(request, parsedRange.start, duration: parsedRange.duration);
                   return;
                 }
                 Navigator.of(dialogContext).pop();
-                _confirmAppointment(request, time);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Bu talep için henüz onaylanmış bir saat yok. Bir saat seçilmeden randevu onaylanamaz.'),
+                  ),
+                );
               },
               child: const Text('Randevuyu Onayla'),
             ),
@@ -442,7 +506,14 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
   // shows the existing success dialog / advances the local list + tab once
   // that write actually succeeds — a failed write shows an error instead,
   // with nothing added locally and no success dialog shown.
-  Future<void> _confirmAppointment(_PendingRequest request, TimeOfDay time) async {
+  //
+  // [duration] overrides request.estimatedDuration only for the "accept the
+  // customer's own preferred window directly" path (see _acceptRequest),
+  // where it's the actual (end - start) span of that window rather than the
+  // otherwise-always-60-minute default a fresh request is submitted with.
+  // Omitted (null) for the existing "Başka Saat Öner" -> accept path, which
+  // keeps using request.estimatedDuration exactly as before.
+  Future<void> _confirmAppointment(_PendingRequest request, TimeOfDay time, {Duration? duration}) async {
     final appointment = Appointment(
       // Overwrites the same Firestore document the request was read from
       // (see _toPendingRequest), transitioning it pending -> accepted,
@@ -452,17 +523,17 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
       customerId: request.customerId,
       customerName: request.customerName,
       customerPhone: request.customerPhone,
-      vehicleBrand: request.vehicleBrand,
       vehicleModel: request.vehicleModel,
       licensePlate: request.licensePlate,
       serviceType: request.service,
       appointmentDate: request.appointmentDate,
       appointmentTime: time,
-      estimatedDuration: request.estimatedDuration,
+      estimatedDuration: duration ?? request.estimatedDuration,
       customerNote: request.problem,
       status: AppointmentStatus.accepted,
       createdAt: DateTime.now(),
       distance: request.distance,
+      preferredTimeRangeLabel: request.preferredTimeRangeLabel,
     );
 
     try {
@@ -479,6 +550,36 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
     setState(() {
       _pendingRequests.remove(request);
       _appointments = [..._appointments, appointment];
+    });
+    _showAppointmentConfirmedDialog();
+  }
+
+  // Finalizes a customer's counter-proposal (request.isCustomerCounterProposal)
+  // — the same acceptTimeProposal() path MechanicRequestDetailsPage's
+  // "Kabul Et" already uses for this exact state, instead of
+  // _confirmAppointment/saveAppointment, which would silently accept the
+  // stale request.appointmentTime/preferredTimeRangeLabel rather than what
+  // the customer actually proposed (teklifEdilenTarih/teklifEdilenSaat).
+  // _appointments isn't updated manually here — the live
+  // watchAppointmentsForBusiness subscription (see initState) picks up the
+  // change on its own, same as the calendar's propose flow already relies on.
+  Future<void> _acceptTimeProposal(_PendingRequest request) async {
+    final date = request.teklifEdilenTarih;
+    final time = request.teklifEdilenSaat;
+    if (date == null || time == null) return;
+    try {
+      await _appointmentRepository.acceptTimeProposal(request.appointmentId, date: date, time: time);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Randevu onaylanamadı: $error')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _pendingRequests.remove(request);
     });
     _showAppointmentConfirmedDialog();
   }
@@ -552,7 +653,7 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
                 const SizedBox(height: 12),
                 _SuggestInfoRow(
                   icon: Icons.directions_car_outlined,
-                  text: '${request.vehicleBrand} ${request.vehicleModel}',
+                  text: request.vehicleModel,
                 ),
                 const SizedBox(height: 12),
                 _SuggestInfoRow(icon: Icons.build_outlined, text: request.service),
@@ -562,25 +663,29 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
             const Divider(thickness: 1, color: Color(0xFFE5E7EB)),
             const SizedBox(height: 16),
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('📅', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
                 const SizedBox(width: 8),
-                Text(
-                  _formatFullDate(slotStart),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
+                Flexible(
+                  child: Text(
+                    _formatFullDate(slotStart),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 const Text('🕒', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
                 const SizedBox(width: 8),
-                Text(
-                  _formatTimeOfDay(TimeOfDay(hour: slotStart.hour, minute: slotStart.minute)),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
+                Flexible(
+                  child: Text(
+                    _formatTimeOfDay(TimeOfDay(hour: slotStart.hour, minute: slotStart.minute)),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
+                  ),
                 ),
               ],
             ),
@@ -612,40 +717,22 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
                       errorMessage = null;
                     });
 
-                    // Not a confirmed appointment — a pending counter-proposal
-                    // awaiting the customer's response. Overwrites the SAME
-                    // Firestore document the request was read from (see
-                    // _toPendingRequest), exactly like Accept/Decline do —
-                    // previously this minted a brand-new appointmentId (and
-                    // omitted businessId), creating an orphaned second
-                    // document instead of updating the customer's original
-                    // request. saveAppointment() is a full .set(), so every
-                    // existing field is restated here rather than omitted.
-                    final proposal = Appointment(
-                      appointmentId: request.appointmentId,
-                      businessId: request.businessId,
-                      customerId: request.customerId,
-                      customerName: request.customerName,
-                      customerPhone: request.customerPhone,
-                      vehicleBrand: request.vehicleBrand,
-                      vehicleModel: request.vehicleModel,
-                      licensePlate: request.licensePlate,
-                      serviceType: request.service,
-                      appointmentDate: DateTime(slotStart.year, slotStart.month, slotStart.day),
-                      appointmentTime: TimeOfDay(hour: slotStart.hour, minute: slotStart.minute),
-                      estimatedDuration: request.estimatedDuration,
-                      customerNote: request.problem,
-                      status: AppointmentStatus.pending,
-                      // Preserves the original request's real submission
-                      // time — this is a full .set(), so using
-                      // DateTime.now() here would have clobbered it with
-                      // "now" on every counter-proposal.
-                      createdAt: request.createdAt,
-                      distance: request.distance,
-                    );
-
+                    // Real negotiation proposal — same path
+                    // MechanicRequestDetailsPage's own "Başka Saat Öner" now
+                    // uses (see AppointmentRepository.proposeNewTime), not a
+                    // direct overwrite of randevuTarihi/randevu_zamani. A
+                    // narrow partial update: durum, sonTeklifEden, and the
+                    // teklif fields change; the request's current
+                    // date/time (still the sentinel/preferred window at
+                    // this point) is left alone, same as that other entry
+                    // point.
                     try {
-                      await _appointmentRepository.saveAppointment(proposal);
+                      await _appointmentRepository.proposeNewTime(
+                        request.appointmentId,
+                        date: DateTime(slotStart.year, slotStart.month, slotStart.day),
+                        time: TimeOfDay(hour: slotStart.hour, minute: slotStart.minute),
+                        proposedBy: 'usta',
+                      );
                     } catch (error) {
                       setDialogState(() {
                         isSending = false;
@@ -656,9 +743,15 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
 
                     if (!mounted) return;
                     Navigator.of(dialogContext).pop();
+                    // Proposing removes this request from "Yeni Talepler"
+                    // immediately, same snappy-UI convention Accept/Decline
+                    // already use — it's no longer actionable for the
+                    // mechanic (sonTeklifEden is now 'usta'), the same
+                    // "needs mechanic attention" rule
+                    // AppointmentRepository.watchPendingAppointments applies
+                    // itself once the next live snapshot arrives.
                     setState(() {
-                      request.status = AppointmentRequestStatus.providerProposed;
-                      request.proposedDateTime = slotStart;
+                      _pendingRequests.remove(request);
                       _suggestingTimeFor = null;
                     });
                     _showSuggestionSentOverlay();
@@ -835,7 +928,7 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
                       children: [
                         _summaryLine('Müşteri', request.customerName),
                         const SizedBox(height: 4),
-                        _summaryLine('Araç', '${request.vehicleBrand} ${request.vehicleModel}'),
+                        _summaryLine('Araç', request.vehicleModel),
                         const SizedBox(height: 4),
                         _summaryLine('Hizmet', request.service),
                       ],
@@ -848,6 +941,7 @@ class _MechanicAppointmentsScreenState extends State<MechanicAppointmentsScreen>
                   selectedDate: _selectedDate,
                   appointments: _appointments,
                   onSlotSelected: _suggestingTimeFor != null ? _handleSlotSelected : null,
+                  onWeekChanged: _suggestingTimeFor != null ? null : (date) => setState(() => _selectedDate = date),
                 ),
               ),
             ],
@@ -865,17 +959,20 @@ class _PendingRequest {
     required this.customerId,
     required this.customerName,
     required this.customerPhone,
-    required this.vehicleBrand,
     required this.vehicleModel,
     required this.licensePlate,
     required this.service,
     required this.problem,
+    required this.preferredTimeRangeLabel,
     required this.appointmentDate,
     required this.appointmentTime,
     required this.estimatedDuration,
     required this.distance,
     required this.priceRange,
     required this.createdAt,
+    this.sonTeklifEden,
+    this.teklifEdilenTarih,
+    this.teklifEdilenSaat,
   });
 
   // The Firestore document this request maps to — reused (not
@@ -887,11 +984,17 @@ class _PendingRequest {
   final String customerId;
   final String customerName;
   final String customerPhone;
-  final String vehicleBrand;
   final String vehicleModel;
   final String licensePlate;
   final String service;
   final String problem;
+
+  /// The customer's originally requested arrival window (e.g. "15:00 –
+  /// 17:00", or "İlk Müsait Saat") — see Appointment.preferredTimeRangeLabel.
+  /// Distinct from [appointmentTime]: this never changes once the customer
+  /// submits the request, regardless of what the mechanic later proposes
+  /// or accepts.
+  final String preferredTimeRangeLabel;
   final DateTime appointmentDate;
 
   /// The customer's selected time, or a mechanic-proposed alternative the
@@ -911,18 +1014,19 @@ class _PendingRequest {
   /// every full-document .set().
   final DateTime createdAt;
 
-  /// Reuses the same status model the customer-facing preferred-window
-  /// requests already use (see models/appointment_request.dart) instead of
-  /// inventing a parallel one — providerProposed means the mechanic has
-  /// sent a counter-proposal (see [proposedDateTime]) that's awaiting the
-  /// customer's response; MechanicAppointmentsScreen never sets it to
-  /// confirmed itself (that only happens via the separate Accept flow).
-  AppointmentRequestStatus status = AppointmentRequestStatus.pendingProvider;
+  /// Negotiation fields (see Appointment.sonTeklifEden/teklifEdilenTarih/
+  /// teklifEdilenSaat) — only meaningful together. Null unless this request
+  /// is on "Yeni Talepler" because the customer just countered a proposal
+  /// (see AppointmentRepository._needsMechanicAttention), in which case
+  /// [isCustomerCounterProposal] is true and Kabul Et must accept exactly
+  /// this date/time via acceptTimeProposal, not whatever [appointmentTime]/
+  /// [preferredTimeRangeLabel] already holds.
+  final String? sonTeklifEden;
+  final DateTime? teklifEdilenTarih;
+  final TimeOfDay? teklifEdilenSaat;
 
-  /// Set once the mechanic sends a counter-proposal via "Başka Saat Öner"
-  /// (see MechanicAppointmentsScreen._handleSlotSelected) — combines date +
-  /// time into one instant, same shape as Appointment.start.
-  DateTime? proposedDateTime;
+  bool get isCustomerCounterProposal =>
+      sonTeklifEden == 'musteri' && teklifEdilenTarih != null && teklifEdilenSaat != null;
 }
 
 class _NewRequestCard extends StatelessWidget {
@@ -940,6 +1044,8 @@ class _NewRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // TEMP DEBUG — remove after root-causing the service-label mismatch.
+    debugPrint('TRACE _NewRequestCard.build id=${request.appointmentId} service=${request.service}');
     return PremiumSurface(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 16),
       borderRadius: AppRadius.md,
@@ -960,7 +1066,7 @@ class _NewRequestCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${request.vehicleBrand} ${request.vehicleModel}',
+                      request.vehicleModel,
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 2),
@@ -985,6 +1091,12 @@ class _NewRequestCard extends StatelessWidget {
                   children: [
                     _InfoRow(icon: Icons.person_outline, label: 'Müşteri', value: request.customerName),
                     const SizedBox(height: 10),
+                    _InfoRow(
+                      icon: Icons.phone_outlined,
+                      label: 'Telefon',
+                      value: request.customerPhone.isEmpty ? 'Belirtilmedi' : request.customerPhone,
+                    ),
+                    const SizedBox(height: 10),
                     _InfoRow(icon: Icons.location_on_outlined, label: 'Mesafe', value: request.distance),
                   ],
                 ),
@@ -996,23 +1108,25 @@ class _NewRequestCard extends StatelessWidget {
                   children: [
                     _InfoRow(icon: Icons.event, label: 'Tarih', value: _formatRequestedDate(request.appointmentDate)),
                     const SizedBox(height: 10),
-                    if (request.status == AppointmentRequestStatus.providerProposed &&
-                        request.proposedDateTime != null)
+                    if (request.appointmentTime case final time?)
+                      // The mechanic has already set a specific time via
+                      // "Başka Saat Öner" — the request is still pending
+                      // (only Accept moves it to confirmed), so this reads
+                      // as a proposal, not a confirmation.
                       _InfoRow(
                         icon: Icons.schedule,
                         label: 'Önerilen Saat',
-                        value:
-                            '${_formatRequestedDate(request.proposedDateTime!)}, '
-                            '${_formatTimeOfDay(TimeOfDay.fromDateTime(request.proposedDateTime!))}',
+                        value: _formatPreferredTimeRange(time, request.estimatedDuration),
                       )
                     else
+                      // Fresh request — nothing proposed yet, so this is
+                      // exactly what the customer originally selected (a
+                      // preferred window, or "İlk Müsait Saat"), never a
+                      // confirmed or specific time.
                       _InfoRow(
                         icon: Icons.schedule,
-                        label: 'Saat',
-                        value: switch (request.appointmentTime) {
-                          final time? => _formatPreferredTimeRange(time, request.estimatedDuration),
-                          null => 'İlk Müsait Saat',
-                        },
+                        label: 'Tercih Edilen Saat Aralığı',
+                        value: request.preferredTimeRangeLabel,
                       ),
                     const SizedBox(height: 10),
                     _InfoRow(icon: Icons.payments_outlined, label: 'Tahmini Fiyat', value: request.priceRange),
@@ -1021,11 +1135,33 @@ class _NewRequestCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          _InfoRow(icon: Icons.description_outlined, label: 'Sorun', value: request.problem, maxLines: 2),
+          if (request.problem.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _InfoRow(icon: Icons.description_outlined, label: 'Sorun', value: request.problem, maxLines: 2),
+          ],
+          if (request.isCustomerCounterProposal) ...[
+            const SizedBox(height: 10),
+            _InfoRow(
+              icon: Icons.compare_arrows_rounded,
+              label: 'Müşterinin Önerdiği Saat',
+              value:
+                  '${_formatRequestedDate(request.teklifEdilenTarih!)} • ${_formatTimeOfDay(request.teklifEdilenSaat!)}',
+            ),
+          ],
           const SizedBox(height: 14),
           const Divider(height: 1),
           const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: request.customerPhone.isEmpty
+                  ? null
+                  : () => launchUrl(Uri(scheme: 'tel', path: request.customerPhone.replaceAll(' ', ''))),
+              icon: const Icon(Icons.call_rounded, size: 17),
+              label: const Text('Ara'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
@@ -1079,298 +1215,14 @@ class _TodayAppointment {
   final String estimatedDuration;
 }
 
-/// Earlier "Today" tab design — one large card per appointment. Kept
-/// available for future reuse (not part of the active Today tab UI, which
-/// is now _TimelineRow below).
-// ignore: unused_element
-class _TodayAppointmentCard extends StatelessWidget {
-  const _TodayAppointmentCard({required this.appointment});
-
-  final _TodayAppointment appointment;
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumSurface(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 16),
-      borderRadius: AppRadius.md,
-      border: Border.all(color: AppColors.divider, width: 1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(Icons.directions_car_rounded, size: 20, color: AppColors.textPrimary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          appointment.vehicleModel,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm + 2),
-                        const Icon(Icons.schedule, size: 14, color: AppColors.textSecondary),
-                        const SizedBox(width: 8),
-                        Text(
-                          appointment.time,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      appointment.licensePlate,
-                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _ServiceBadge(label: appointment.service),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _InfoRow(icon: Icons.person_outline, label: 'Müşteri', value: appointment.customerName),
-                    const SizedBox(height: 10),
-                    _InfoRow(icon: Icons.location_on_outlined, label: 'Mesafe', value: appointment.distance),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _InfoRow(
-                      icon: Icons.hourglass_top_rounded,
-                      label: 'Tahmini Süre',
-                      value: appointment.estimatedDuration,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _InfoRow(icon: Icons.description_outlined, label: 'Not', value: appointment.note, maxLines: 2),
-          const SizedBox(height: 14),
-          const Divider(height: 1),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 17),
-                  label: const Text('Mesaj Gönder'),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.call_rounded, size: 17),
-                  label: const Text('Müşteriyi Ara'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// One slot of the daily schedule — a time range that's either occupied
 /// (an accepted appointment) or open. Used by the active _DailyScheduleRow
-/// design below, and also by the reserved _TimeSlotRow (an earlier design
-/// kept for future reuse).
+/// design below.
 class _TimeSlot {
   const _TimeSlot({required this.timeRange, this.appointment});
 
   final String timeRange;
   final _TodayAppointment? appointment;
-}
-
-// ignore: unused_element
-class _TimeSlotRow extends StatelessWidget {
-  const _TimeSlotRow({required this.slot});
-
-  final _TimeSlot slot;
-
-  void _openDetails(BuildContext context, _TodayAppointment appointment) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _AppointmentDetailsSheet(appointment: appointment),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final appointment = slot.appointment;
-    return InkWell(
-      onTap: appointment == null ? () {} : () => _openDetails(context, appointment),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              slot.timeRange,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary),
-            ),
-            const SizedBox(height: 6),
-            if (appointment == null)
-              const Text(
-                'Müsait',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              )
-            else ...[
-              Row(
-                children: [
-                  const Icon(Icons.directions_car_rounded, size: 16, color: AppColors.textPrimary),
-                  const SizedBox(width: 6),
-                  Text(
-                    appointment.vehicleModel,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                appointment.customerName,
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 8),
-              _ServiceBadge(label: appointment.service),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Full appointment details for a tapped occupied slot in the earlier
-/// _TimeSlotRow design — same header, badge, and info-row treatment as
-/// the rest of the screen, in a rounded-top Material bottom sheet. Kept
-/// available for future reuse.
-// ignore: unused_element
-class _AppointmentDetailsSheet extends StatelessWidget {
-  const _AppointmentDetailsSheet({required this.appointment});
-
-  final _TodayAppointment appointment;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Icon(Icons.directions_car_rounded, size: 20, color: AppColors.textPrimary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        appointment.vehicleModel,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        appointment.licensePlate,
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _ServiceBadge(label: appointment.service),
-            const SizedBox(height: 14),
-            _InfoRow(icon: Icons.person_outline, label: 'Müşteri', value: appointment.customerName),
-            const SizedBox(height: 10),
-            _InfoRow(icon: Icons.location_on_outlined, label: 'Mesafe', value: appointment.distance),
-            const SizedBox(height: 10),
-            _InfoRow(icon: Icons.hourglass_top_rounded, label: 'Tahmini Süre', value: appointment.estimatedDuration),
-            const SizedBox(height: 10),
-            _InfoRow(icon: Icons.description_outlined, label: 'Not', value: appointment.note),
-            const SizedBox(height: AppSpacing.xl),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 17),
-                    label: const Text('Mesaj Gönder'),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.call_rounded, size: 17),
-                    label: const Text('Müşteriyi Ara'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// One row of a chronological daily schedule — the time column stays fixed
@@ -1486,9 +1338,11 @@ class _TimelineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const MechanicRequestDetailsPage()),
-      ),
+      // Reserved/unused row (see class doc) — no longer has a way to
+      // construct MechanicRequestDetailsPage's now-required Appointment
+      // from a _TodayAppointment, so this is a no-op rather than a broken
+      // navigation call (same treatment as _DailyScheduleRow below).
+      onTap: () {},
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

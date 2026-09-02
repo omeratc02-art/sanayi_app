@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../data/mock_data.dart';
+import '../../data/mechanic_directory_repository.dart';
 import '../../mechanic/appointments/data/chat_message.dart';
 import '../../mechanic/appointments/data/chat_repository.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/identity.dart';
+import '../booking/appointment_request_page.dart';
+import '../mechanic_detail/mechanic_detail_page.dart';
 
 /// Customer-side conversation screen — the counterpart to
 /// MechanicConversationPage. Reads/writes the exact same Firestore
@@ -34,8 +36,15 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
   String get _customerSenderId => resolveCustomerId();
 
   final _repository = ChatRepository();
+  final _directoryRepository = MechanicDirectoryRepository();
   final _replyController = TextEditingController();
   final _scrollController = ScrollController();
+
+  // Cached across both the "Randevu Al" action and tapping the mechanic's
+  // name — chatId already is mechanicAccounts.businessId (see
+  // mechanicChatId), so one real fetch covers both, no MockData fallback.
+  Mechanic? _resolvedMechanic;
+  bool _isResolvingMechanic = false;
 
   // TODO: No real second participant signal yet — wire this up to a genuine
   // "mechanic is typing" signal (e.g. a Firestore presence field) once one
@@ -44,6 +53,84 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
   // ignore: prefer_final_fields
   bool _isMechanicTyping = false;
   int _lastMessageCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _markMessagesRead();
+    // Eager, not just on-demand: the AppBar's verified badge (see build())
+    // needs this as soon as possible, same cached _resolvedMechanic the
+    // "Randevu Al" action and the tappable name below already use — not a
+    // second fetch path.
+    _resolveMechanic();
+  }
+
+  // Marks the mechanic's unread messages in this chat as read — called on
+  // open, and again below whenever a new message arrives while the screen
+  // stays open (so an incoming message doesn't leave the badge stuck).
+  // Single write path: ChatRepository.markMessagesRead is also what
+  // MechanicConversationPage calls on its side.
+  void _markMessagesRead() {
+    _repository.markMessagesRead(chatId: widget.chatId, currentSenderId: _customerSenderId);
+  }
+
+  // Fetches the real mechanicAccounts record for this conversation's other
+  // party (chatId == businessId), caching it so tapping both "Randevu Al"
+  // and the mechanic's name in one visit only ever fetches once. Returns
+  // null on no-such-business or a Firestore error — callers show their own
+  // error feedback rather than silently doing nothing.
+  Future<Mechanic?> _resolveMechanic() async {
+    if (_resolvedMechanic != null) return _resolvedMechanic;
+    try {
+      final mechanic = await _directoryRepository.fetchByBusinessId(widget.chatId);
+      if (mounted && mechanic != null) setState(() => _resolvedMechanic = mechanic);
+      return mechanic;
+    } catch (error) {
+      debugPrint('MECHANIC LOOKUP ERROR (${widget.chatId}): $error');
+      return null;
+    }
+  }
+
+  void _showMechanicLookupError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Usta bilgileri alınamadı. Lütfen tekrar deneyin.')),
+    );
+  }
+
+  Future<void> _handleBookAppointment() async {
+    if (_isResolvingMechanic) return;
+    setState(() => _isResolvingMechanic = true);
+    final mechanic = await _resolveMechanic();
+    if (!mounted) return;
+    setState(() => _isResolvingMechanic = false);
+
+    if (mechanic == null) {
+      _showMechanicLookupError();
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AppointmentRequestPage(mechanic: mechanic, serviceLabel: mechanic.specialtyLabel),
+      ),
+    );
+  }
+
+  Future<void> _handleOpenMechanicDetail() async {
+    if (_isResolvingMechanic) return;
+    setState(() => _isResolvingMechanic = true);
+    final mechanic = await _resolveMechanic();
+    if (!mounted) return;
+    setState(() => _isResolvingMechanic = false);
+
+    if (mechanic == null) {
+      _showMechanicLookupError();
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MechanicDetailPage(mechanic: mechanic)),
+    );
+  }
 
   @override
   void dispose() {
@@ -65,18 +152,6 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
   // and matches how every other timestamp in a chat bubble UI reads.
   static String _formatMessageTime(DateTime createdAt) =>
       '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
-
-  /// Nothing in the chat data itself (chatId/mechanicName) carries a
-  /// verified flag or avatar — cross-referencing the existing mock
-  /// mechanic directory by name (the same directory these conversations
-  /// were already seeded from in AppointmentRequestCard/ServiceCenterCard)
-  /// recovers it without any data-model change.
-  static Mechanic? _findMechanicByName(String name) {
-    for (final mechanic in MockData.allMechanics) {
-      if (mechanic.name == name) return mechanic;
-    }
-    return null;
-  }
 
   Future<void> _handleSend() async {
     final text = _replyController.text.trim();
@@ -100,56 +175,84 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isVerified = _findMechanicByName(widget.mechanicName)?.isVerified ?? false;
+    // Real mechanicAccounts.isVerified, not MockData — false while
+    // _resolvedMechanic is still loading, null (no matching business), or
+    // genuinely unverified; all three collapse to "hide the badge" below,
+    // rather than flashing a placeholder before the real value is known.
+    final isVerified = _resolvedMechanic?.isVerified ?? false;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         titleSpacing: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+        title: InkWell(
+          // Opens the real MechanicDetailPage — see _handleOpenMechanicDetail
+          // (fetches by businessId, no MockData involved, cached alongside
+          // "Randevu Al" below).
+          onTap: _handleOpenMechanicDetail,
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.car_repair, color: AppColors.primary, size: 18),
               ),
-              child: const Icon(Icons.car_repair, color: AppColors.primary, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          widget.mechanicName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            widget.mechanicName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          ),
                         ),
-                      ),
-                      if (isVerified) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified, size: 15, color: AppColors.primary),
+                        if (isVerified) ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.verified, size: 15, color: AppColors.primary),
+                        ],
                       ],
-                    ],
-                  ),
-                  if (isVerified)
-                    const Text(
-                      'Doğrulanmış Usta',
-                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.primary),
                     ),
-                ],
+                    if (isVerified)
+                      const Text(
+                        'Doğrulanmış Usta',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.primary),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(
+              child: _isResolvingMechanic
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : TextButton.icon(
+                      onPressed: _handleBookAppointment,
+                      icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                      label: const Text('Randevu Al'),
+                    ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -166,6 +269,7 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
                 if (messages.length != _lastMessageCount) {
                   _lastMessageCount = messages.length;
                   _scrollToLatest();
+                  _markMessagesRead();
                 }
 
                 return ListView.separated(

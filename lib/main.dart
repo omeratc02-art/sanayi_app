@@ -1,7 +1,9 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'auth/social_auth.dart';
 import 'dev/dev_mode_launcher.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
@@ -12,6 +14,14 @@ void main() async {
   // that file) — this will throw/fail to connect until real Firebase
   // project credentials are generated via `flutterfire configure`.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: const AndroidPlayIntegrityProvider(),
+    providerApple: const AppleAppAttestProvider(),
+    providerWeb: ReCaptchaEnterpriseProvider('6LcvaaAtAAAAAJjqAqHXht9BRbJXxwZ34790veCu'),
+  );
+  // Must complete before any GoogleSignIn.instance call — both LoginPage
+  // and MechanicLoginPage rely on this having already run.
+  await initializeGoogleSignIn();
   runApp(const SanayiApp());
 }
 

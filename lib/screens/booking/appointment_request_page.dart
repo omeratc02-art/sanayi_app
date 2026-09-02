@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/appointment_request_store.dart';
 import '../../data/booking_history.dart';
@@ -7,6 +8,47 @@ import '../../theme/app_theme.dart';
 import '../../utils/turkish_date.dart';
 import '../../widgets/booking/date_strip.dart';
 import '../../widgets/booking/section_label.dart';
+
+const _kvkkDisclosureText = '''
+KVKK Aydınlatma Metni
+
+Randevu Talebi Kapsamında Kişisel Verilerin İşlenmesi
+
+[İşletme adı], 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında veri sorumlusu sıfatıyla, randevu talebiniz sırasında paylaştığınız aşağıdaki kişisel verileri işlemektedir:
+
+- Ad soyad
+- Telefon numarası
+- Araç bilgileri (marka, model, plaka)
+- Randevu tarih/saat tercihi ve hizmet talebi
+
+İşleme Amacı: Bu veriler yalnızca randevu talebinizin oluşturulması, ilgili servis sağlayıcı (usta/işletme) ile eşleştirilmesi ve randevu süreciyle ilgili sizinle iletişime geçilmesi amacıyla işlenir ve randevu aldığınız işletmeyle paylaşılır.
+
+Veri Güvenliği: Verileriniz, yetkisiz erişime karşı makul teknik ve idari önlemlerle korunur.
+
+Haklarınız: KVKK'nın 11. maddesi uyarınca, verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini talep etme haklarına sahipsiniz. Taleplerinizi [iletişim kanalı] üzerinden iletebilirsiniz.
+''';
+
+/// Live "5XX XXX XX XX" masking as the user types — groups after the 3rd,
+/// 6th, and 8th digit, caps at 10 raw digits (extra keystrokes are dropped).
+class _TurkishPhoneInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final capped = digits.length > 10 ? digits.substring(0, 10) : digits;
+
+    final buffer = StringBuffer();
+    for (var i = 0; i < capped.length; i++) {
+      if (i == 3 || i == 6 || i == 8) buffer.write(' ');
+      buffer.write(capped[i]);
+    }
+    final formatted = buffer.toString();
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 /// Premium "appointment request" flow reached from every "Randevu Al"
 /// button in the app. The customer isn't booking a fixed slot — they're
@@ -31,6 +73,8 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
   final _notesController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _vehicleController = TextEditingController();
+  final _plateController = TextEditingController();
   late final List<DateTime> _dates;
   late DateTime _selectedDate;
   String? _selectedWindow;
@@ -50,6 +94,8 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
     _notesController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
+    _vehicleController.dispose();
+    _plateController.dispose();
     super.dispose();
   }
 
@@ -60,16 +106,59 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
     });
   }
 
-  void _handleSubmit() {
+  void _showKvkkDisclosure(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('KVKK Aydınlatma Metni'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Text(
+              _kvkkDisclosureText,
+              style: const TextStyle(fontSize: 13, height: 1.5, color: AppColors.textPrimary),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Awaits the Firestore write (see AppointmentRequestStore.submit) so the
+  // success dialog below only ever shows once the request has actually been
+  // persisted — a failed write now shows an error SnackBar instead, with no
+  // success dialog and no navigation back.
+  Future<void> _handleSubmit() async {
     BookingHistory.markCompleted(widget.mechanic.name);
 
-    AppointmentRequestStore.instance.submit(
-      mechanicName: widget.mechanic.name,
-      date: _selectedDate,
-      preferredWindowLabel: _selectedWindow!,
-      serviceLabel: widget.serviceLabel,
-    );
+    try {
+      await AppointmentRequestStore.instance.submit(
+        mechanicName: widget.mechanic.name,
+        date: _selectedDate,
+        preferredWindowLabel: _selectedWindow!,
+        serviceLabel: widget.serviceLabel,
+        note: _notesController.text.trim(),
+        vehicleLabel: _vehicleController.text.trim(),
+        licensePlate: _plateController.text.trim(),
+        customerName: _nameController.text.trim(),
+        customerPhone: _phoneController.text.replaceAll(' ', ''),
+        kvkkAccepted: _kvkkAccepted,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Randevu talebi gönderilemedi. Lütfen tekrar deneyin.')),
+      );
+      return;
+    }
 
+    if (!mounted) return;
     showDialog<void>(
       context: context,
       builder: (_) => _RequestSubmittedDialog(
@@ -157,6 +246,23 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
                   'iş yoğunluğuna göre kesin varış saatini onaylayacaktır.',
             ),
             const SizedBox(height: 22),
+            const SectionLabel(text: 'Araç Bilgileri'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _vehicleController,
+              // Rebuilds so the submit button's enabled state (below)
+              // reacts live to this field, the same way _selectedWindow
+              // already does via setState elsewhere on this page.
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(labelText: 'Marka ve Model', hintText: 'Örn. Renault Clio 2018'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _plateController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(labelText: 'Plaka'),
+            ),
+            const SizedBox(height: 22),
             const SectionLabel(text: 'İletişim Bilgileri'),
             const SizedBox(height: 10),
             TextField(
@@ -167,28 +273,38 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Telefon Numarası'),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                _TurkishPhoneInputFormatter(),
+              ],
+              // Rebuilds so the submit button's enabled state (below) reacts
+              // live to this field, same as _vehicleController above.
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(labelText: 'Telefon Numarası', hintText: '5XX XXX XX XX'),
             ),
             const SizedBox(height: 12),
-            InkWell(
-              onTap: () => setState(() => _kvkkAccepted = !_kvkkAccepted),
-              borderRadius: BorderRadius.circular(8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Checkbox(
-                    value: _kvkkAccepted,
-                    tristate: false,
-                    onChanged: (value) => setState(() => _kvkkAccepted = value ?? false),
-                  ),
-                  const Expanded(
-                    child: Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: _kvkkAccepted,
+                  tristate: false,
+                  onChanged: (value) => setState(() => _kvkkAccepted = value ?? false),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showKvkkDisclosure(context),
+                    child: const Text(
                       "KVKK Aydınlatma Metni'ni okudum ve kabul ediyorum.",
-                      style: TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.turquoise,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             const SizedBox(height: 22),
             const SectionLabel(text: 'Notlar (opsiyonel)'),
@@ -203,7 +319,15 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _SubmitBar(onSubmit: _selectedWindow == null ? null : _handleSubmit),
+      bottomNavigationBar: _SubmitBar(
+        onSubmit:
+            (_selectedWindow == null ||
+                _vehicleController.text.trim().isEmpty ||
+                !_kvkkAccepted ||
+                _phoneController.text.replaceAll(' ', '').length != 10)
+            ? null
+            : _handleSubmit,
+      ),
     );
   }
 }

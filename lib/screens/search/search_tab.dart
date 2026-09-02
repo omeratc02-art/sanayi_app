@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/mock_data.dart';
+import '../../data/mechanic_directory_repository.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/search/category_filter_bar.dart';
@@ -9,6 +9,10 @@ import '../../widgets/search/mechanic_list_tile.dart';
 import '../../widgets/search/sort_filter_bar.dart';
 import '../mechanic_detail/mechanic_detail_page.dart';
 
+/// The bottom-nav "Ara" tab — always scoped to hizmetTürü 'tamir' (the only
+/// category this tab is reachable from today; see MainShell). Real
+/// mechanicAccounts data now, not MockData: fetched once per tab instance,
+/// then filtered/sorted client-side exactly like the MockData version did.
 class SearchTab extends StatefulWidget {
   const SearchTab({super.key, this.initialCategory});
 
@@ -20,6 +24,7 @@ class SearchTab extends StatefulWidget {
 
 class _SearchTabState extends State<SearchTab> {
   final _controller = TextEditingController();
+  late final Future<List<Mechanic>> _future;
   String _query = '';
   String? _selectedCategory;
   SortMode _sortMode = SortMode.rating;
@@ -29,6 +34,7 @@ class _SearchTabState extends State<SearchTab> {
   void initState() {
     super.initState();
     _selectedCategory = widget.initialCategory;
+    _future = MechanicDirectoryRepository().fetchByHizmetTuru('tamir');
   }
 
   @override
@@ -37,15 +43,15 @@ class _SearchTabState extends State<SearchTab> {
     super.dispose();
   }
 
-  List<Mechanic> get _results {
+  List<Mechanic> _filteredResults(List<Mechanic> mechanics) {
     final query = _query.trim().toLowerCase();
-    final results = MockData.allMechanics.where((mechanic) {
+    final results = mechanics.where((mechanic) {
       final matchesQuery =
           query.isEmpty ||
           mechanic.name.toLowerCase().contains(query) ||
           mechanic.specialty.toLowerCase().contains(query);
-      final matchesCategory = _selectedCategory == null || mechanic.categories.contains(_selectedCategory);
-      final matchesOpen = !_openOnly || mechanic.isOpen;
+      final matchesCategory = _selectedCategory == null || mechanic.hizmetler.contains(_selectedCategory);
+      final matchesOpen = !_openOnly || (mechanic.isOpen ?? false);
       return matchesQuery && matchesCategory && matchesOpen;
     }).toList();
 
@@ -53,10 +59,13 @@ class _SearchTabState extends State<SearchTab> {
       switch (_sortMode) {
         case SortMode.rating:
           return b.rating.compareTo(a.rating);
-        case SortMode.distance:
-          return a.distanceValue.compareTo(b.distanceValue);
         case SortMode.price:
-          return a.priceMin.compareTo(b.priceMin);
+          final aPrice = a.priceMin;
+          final bPrice = b.priceMin;
+          if (aPrice == null && bPrice == null) return 0;
+          if (aPrice == null) return 1;
+          if (bPrice == null) return -1;
+          return aPrice.compareTo(bPrice);
       }
     });
     return results;
@@ -64,8 +73,6 @@ class _SearchTabState extends State<SearchTab> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
-
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,26 +119,42 @@ class _SearchTabState extends State<SearchTab> {
               onOpenOnlyChanged: (value) => setState(() => _openOnly = value),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-            child: Text(
-              '${results.length} usta bulundu',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-          ),
           Expanded(
-            child: results.isEmpty
-                ? const EmptySearchState()
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: results.length,
-                    itemBuilder: (context, index) => MechanicListTile(
-                      mechanic: results[index],
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => MechanicDetailPage(mechanic: results[index])),
+            child: FutureBuilder<List<Mechanic>>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final results = _filteredResults(snapshot.data ?? const []);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                      child: Text(
+                        '${results.length} usta bulundu',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                       ),
                     ),
-                  ),
+                    Expanded(
+                      child: results.isEmpty
+                          ? const EmptySearchState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                              itemCount: results.length,
+                              itemBuilder: (context, index) => MechanicListTile(
+                                mechanic: results[index],
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => MechanicDetailPage(mechanic: results[index])),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),

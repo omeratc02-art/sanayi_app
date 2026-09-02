@@ -63,21 +63,18 @@ class _MechanicNotificationsScreenState extends State<MechanicNotificationsScree
     return AppointmentRepository().fetchPendingAppointments(businessId);
   }
 
-  // This app has no multi-customer system yet — MechanicConversationPage
-  // and every other mechanic-side screen already hardcode this same one
-  // customer identity for the shared demo conversation, so real
-  // "new message" notifications reuse it too rather than inventing a
-  // second one.
-  static const _customerName = 'Ahmet Yılmaz';
+  // The customer's real Firebase Auth displayName, written by them at send
+  // time (see ChatRepository.sendMessage/ChatSummary.customerDisplayName —
+  // never looked up for another user, since that's not possible
+  // client-side). Null for guests, or accounts whose displayName was never
+  // set (e.g. registered before this field existed) — falls back to a
+  // neutral label rather than a made-up or hardcoded name.
+  static String _customerLabel(ChatSummary chat) {
+    final name = chat.customerDisplayName?.trim();
+    return name == null || name.isEmpty ? 'Müşteri' : name;
+  }
 
   static const _notifications = [
-    _MockNotification(
-      icon: Icons.help_outline_rounded,
-      title: 'Ahmet Yılmaz size bir soru gönderdi.',
-      time: '2 dk önce',
-      isRead: false,
-      type: _NotificationType.customerQuestion,
-    ),
     _MockNotification(
       icon: Icons.event_available_outlined,
       title: 'Mehmet Kaya, önerdiğiniz randevu saatini kabul etti.',
@@ -117,9 +114,13 @@ class _MechanicNotificationsScreenState extends State<MechanicNotificationsScree
   void _handleNotificationTap(BuildContext context, _MockNotification notification) {
     switch (notification.type) {
       case _NotificationType.customerQuestion:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const MechanicConversationPage(chatId: 'ahmet-yilmaz-yag-degisimi')),
-        );
+        // The only real customerQuestion-typed notification (the
+        // Firestore-driven "awaitingReply" tile below) wires its own onTap
+        // directly with the real chat.chatId and never reaches this
+        // dispatcher — this case has no remaining caller now that the
+        // static mock "Ahmet Yılmaz size bir soru gönderdi." entry (which
+        // used to route here to a hardcoded demo chatId) has been removed.
+        Navigator.of(context).pop();
       case _NotificationType.newAppointmentRequest:
         // TODO: Open the Request Details page for the new request.
         Navigator.of(context).pop();
@@ -225,7 +226,7 @@ class _MechanicNotificationsScreenState extends State<MechanicNotificationsScree
                   _NotificationTile(
                     notification: _MockNotification(
                       icon: Icons.chat_bubble_outline_rounded,
-                      title: '$_customerName size yeni bir mesaj gönderdi.',
+                      title: '${_customerLabel(chat)} size yeni bir mesaj gönderdi.',
                       time: _formatChatTime(chat.lastMessageAt),
                       isRead: false,
                       type: _NotificationType.customerQuestion,

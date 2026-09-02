@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../data/appointment_request_store.dart';
+import '../../mechanic/appointments/data/chat_message.dart';
+import '../../mechanic/appointments/data/chat_repository.dart';
+import '../../utils/identity.dart';
 import '../appointments/appointments_tab.dart';
 import '../appointments/customer_conversation_list_page.dart';
 import '../categories/ac_climate_category_page.dart';
-import '../categories/all_categories_page.dart';
 import '../categories/battery_electrical_category_page.dart';
 import '../categories/body_paint_category_page.dart';
 import '../categories/brake_system_category_page.dart';
@@ -20,8 +24,11 @@ import '../categories/tire_wheel_category_page.dart';
 import '../categories/transmission_clutch_category_page.dart';
 import '../search/search_tab.dart';
 import '../service_listing/service_listing_page.dart';
+import 'customer_profile_tab.dart';
+import 'ekspertiz_page.dart';
 import 'home_tab.dart';
-import 'placeholder_tab.dart';
+import 'sigorta_page.dart';
+import 'vehicle_repair_category_page.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -34,15 +41,26 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   String? _searchCategory;
 
+  StreamSubscription<List<ChatSummary>>? _unreadChatsSubscription;
+  List<ChatSummary> _unreadChats = [];
+
   @override
   void initState() {
     super.initState();
     AppointmentRequestStore.instance.addListener(_onAppointmentsChanged);
+
+    // Single subscription for both the Mesajlar tab badge below and the
+    // bell badge total (passed down into HomeTab/GreetingBar) — see
+    // ChatRepository.watchUnreadChats.
+    _unreadChatsSubscription = ChatRepository().watchUnreadChats(resolveCustomerId()).listen((chats) {
+      setState(() => _unreadChats = chats);
+    });
   }
 
   @override
   void dispose() {
     AppointmentRequestStore.instance.removeListener(_onAppointmentsChanged);
+    _unreadChatsSubscription?.cancel();
     super.dispose();
   }
 
@@ -53,36 +71,6 @@ class _MainShellState extends State<MainShell> {
       _searchCategory = category;
       _selectedIndex = 1;
     });
-  }
-
-  void _openAllCategories() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AllCategoriesPage(
-          onCategorySelected: (category) {
-            Navigator.of(context).pop();
-            // Only a few categories have dedicated pages reachable from
-            // this list (they aren't on the Home screen's row); every
-            // other category here keeps its existing search behavior.
-            if (category == 'Klima') {
-              _openServiceCategory((onSelected) => AcClimateCategoryPage(onServiceSelected: onSelected));
-            } else if (category == 'Süspansiyon & Direksiyon') {
-              _openServiceCategory(
-                (onSelected) => SuspensionSteeringCategoryPage(onServiceSelected: onSelected),
-              );
-            } else if (category == 'Kaporta & Boya') {
-              _openServiceCategory((onSelected) => BodyPaintCategoryPage(onServiceSelected: onSelected));
-            } else if (category == 'Cam & Aydınlatma') {
-              _openServiceCategory((onSelected) => GlassLightingCategoryPage(onServiceSelected: onSelected));
-            } else if (category == 'Egzoz Sistemi') {
-              _openServiceCategory((onSelected) => ExhaustSystemCategoryPage(onServiceSelected: onSelected));
-            } else {
-              _openSearch(category: category);
-            }
-          },
-        ),
-      ),
-    );
   }
 
   void _openPeriodicMaintenance() {
@@ -109,8 +97,54 @@ class _MainShellState extends State<MainShell> {
       MaterialPageRoute(
         builder: (_) => pageBuilder(
           (service) => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => ServiceListingPage(serviceName: service)),
+            MaterialPageRoute(builder: (_) => ServiceListingPage(serviceName: service, hizmetTuru: 'tamir')),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Pushes the Araç Tamiri landing page — the same
+  /// sub-category-label-to-page dispatch that used to run directly off
+  /// HomeTab's onCategoryTap, moved here unchanged (see
+  /// VehicleRepairCategoryPage's own doc comment).
+  void _openVehicleRepair() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VehicleRepairCategoryPage(
+          onCategoryTap: (category) {
+            if (category == 'Periyodik Bakım') {
+              _openPeriodicMaintenance();
+            } else if (category == 'Yağ Değişimi') {
+              _openServiceCategory((onSelected) => OilChangeCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Fren Sistemi') {
+              _openServiceCategory((onSelected) => BrakeSystemCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Motor') {
+              _openServiceCategory((onSelected) => MotorCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Akü & Elektrik') {
+              _openServiceCategory((onSelected) => BatteryElectricalCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Lastik & Jant') {
+              _openServiceCategory((onSelected) => TireWheelCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Şanzıman ve Debriyaj') {
+              _openServiceCategory(
+                (onSelected) => TransmissionClutchCategoryPage(onServiceSelected: onSelected),
+              );
+            } else if (category == 'Klima') {
+              _openServiceCategory((onSelected) => AcClimateCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Süspansiyon & Direksiyon') {
+              _openServiceCategory(
+                (onSelected) => SuspensionSteeringCategoryPage(onServiceSelected: onSelected),
+              );
+            } else if (category == 'Kaporta & Boya') {
+              _openServiceCategory((onSelected) => BodyPaintCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Cam & Aydınlatma') {
+              _openServiceCategory((onSelected) => GlassLightingCategoryPage(onServiceSelected: onSelected));
+            } else if (category == 'Egzoz Sistemi') {
+              _openServiceCategory((onSelected) => ExhaustSystemCategoryPage(onServiceSelected: onSelected));
+            } else {
+              _openSearch(category: category);
+            }
+          },
         ),
       ),
     );
@@ -120,30 +154,16 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final tabs = [
       HomeTab(
+        unreadMessageCount: _unreadChats.length,
         onCategoryTap: (category) {
-          if (category == 'Tüm Hizmetler') {
-            _openAllCategories();
-          } else if (category == 'Periyodik Bakım') {
-            _openPeriodicMaintenance();
-          } else if (category == 'Yağ Değişimi') {
-            _openServiceCategory((onSelected) => OilChangeCategoryPage(onServiceSelected: onSelected));
-          } else if (category == 'Fren Sistemi') {
-            _openServiceCategory((onSelected) => BrakeSystemCategoryPage(onServiceSelected: onSelected));
-          } else if (category == 'Motor') {
-            _openServiceCategory((onSelected) => MotorCategoryPage(onServiceSelected: onSelected));
-          } else if (category == 'Akü & Elektrik') {
-            _openServiceCategory((onSelected) => BatteryElectricalCategoryPage(onServiceSelected: onSelected));
-          } else if (category == 'Lastik & Jant') {
-            _openServiceCategory((onSelected) => TireWheelCategoryPage(onServiceSelected: onSelected));
-          } else if (category == 'Şanzıman ve Debriyaj') {
-            _openServiceCategory(
-              (onSelected) => TransmissionClutchCategoryPage(onServiceSelected: onSelected),
-            );
-          } else {
-            _openSearch(category: category);
+          if (category == 'Araç Tamiri') {
+            _openVehicleRepair();
+          } else if (category == 'Ekspertiz') {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EkspertizPage()));
+          } else if (category == 'Sigorta') {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SigortaPage()));
           }
         },
-        onSeeAllCategories: _openAllCategories,
       ),
       SearchTab(key: ValueKey(_searchCategory), initialCategory: _searchCategory),
       const AppointmentsTab(),
@@ -151,7 +171,7 @@ class _MainShellState extends State<MainShell> {
       // opens CustomerConversationPage (unchanged) — see
       // CustomerConversationListPage.
       const CustomerConversationListPage(),
-      const PlaceholderTab(icon: Icons.person_outline, label: 'Profil'),
+      const CustomerProfileTab(),
     ];
 
     return Scaffold(
@@ -181,9 +201,17 @@ class _MainShellState extends State<MainShell> {
             ),
             label: 'Randevularım',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: _unreadChats.isNotEmpty,
+              label: Text('${_unreadChats.length}'),
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: _unreadChats.isNotEmpty,
+              label: Text('${_unreadChats.length}'),
+              child: const Icon(Icons.chat_bubble),
+            ),
             label: 'Mesajlar',
           ),
           const NavigationDestination(

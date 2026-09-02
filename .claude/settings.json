@@ -118,7 +118,14 @@
       "Bash(node \"/c/Users/casper/AppData/Local/Temp/claude/c--Users-casper-Documents-sanayi-app/3dc22463-3e0a-44ed-9031-0aa068b5c50c/scratchpad/firestore_get.js\" \"mechanicAccounts/Q1FykIEnTOYGFDTAu4WqeXZjLhq1\")",
       "Bash(node \"/c/Users/casper/AppData/Local/Temp/claude/c--Users-casper-Documents-sanayi-app/3dc22463-3e0a-44ed-9031-0aa068b5c50c/scratchpad/firestore_get.js\" \"chats/guven-oto-bakim\")",
       "Bash(node \"/c/Users/casper/AppData/Local/Temp/claude/c--Users-casper-Documents-sanayi-app/3dc22463-3e0a-44ed-9031-0aa068b5c50c/scratchpad/firestore_patch.js\")",
-      "Bash(node \"/c/Users/casper/AppData/Local/Temp/claude/c--Users-casper-Documents-sanayi-app/3dc22463-3e0a-44ed-9031-0aa068b5c50c/scratchpad/get_rules.js\")"
+      "Bash(node \"/c/Users/casper/AppData/Local/Temp/claude/c--Users-casper-Documents-sanayi-app/3dc22463-3e0a-44ed-9031-0aa068b5c50c/scratchpad/get_rules.js\")",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='dart.exe'\" | Where-Object { $_.CommandLine -match '\"run\"|run -d' } | Select-Object ProcessId, CommandLine | Format-List)",
+      "PowerShell(& \"C:\\\\src\\\\flutter\\\\bin\\\\flutter.bat\" run -d chrome --web-port=9812 2>&1 | Tee-Object -FilePath \"$env:TEMP\\\\flutter_run_final_check.log\")",
+      "Read(//c/Users/casper/AppData/Local/Temp/**)",
+      "Bash(C:/src/flutter/bin/flutter.bat build *)",
+      "PowerShell(Stop-Process -Id 2252 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 3336 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Id 2252,3336 -ErrorAction SilentlyContinue)"
     ],
     "additionalDirectories": [
       "C:\\Users\\casper\\AppData\\Local\\Temp\\claude\\c--Users-casper-Documents-sanayi-app\\3dc22463-3e0a-44ed-9031-0aa068b5c50c\\scratchpad",

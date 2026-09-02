@@ -31,8 +31,16 @@
 
   <title>sanayi_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Google Sign-In (web): the OAuth client id from Firebase Console's
+       Google provider config — read by google_sign_in_web at init. -->
+  <meta name="google-signin-client_id" content="258200808152-utq5inecdjmajigumge1qtpd6gkecrqe.apps.googleusercontent.com">
 </head>
 <body>
+  <!-- Host element for Firebase Auth's phone-auth reCAPTCHA verifier on web
+       (see RecaptchaVerifier usage in the phone sign-in flow). -->
+  <div id="recaptcha-container"></div>
+
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
