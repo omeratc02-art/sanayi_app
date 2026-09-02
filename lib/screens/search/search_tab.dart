@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/mechanic_directory_repository.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/common/skeleton_loader.dart';
 import '../../widgets/search/category_filter_bar.dart';
 import '../../widgets/search/empty_search_state.dart';
 import '../../widgets/search/mechanic_list_tile.dart';
@@ -124,7 +125,7 @@ class _SearchTabState extends State<SearchTab> {
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const MechanicListSkeleton();
                 }
                 final results = _filteredResults(snapshot.data ?? const []);
                 return Column(

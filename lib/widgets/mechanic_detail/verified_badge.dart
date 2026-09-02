@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+
 class VerifiedBadge extends StatelessWidget {
   const VerifiedBadge({super.key});
 
@@ -8,20 +10,20 @@ class VerifiedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
+        color: AppColors.verifiedBackground,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified, color: Colors.blue[700], size: 15),
-          const SizedBox(width: 4),
+          Icon(Icons.verified, color: AppColors.verified, size: 15),
+          SizedBox(width: 4),
           Text(
             'Onaylı Usta',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue[700]),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.verified),
           ),
-          const SizedBox(width: 4),
-          Icon(Icons.info_outline_rounded, size: 14, color: Colors.blue[700]?.withValues(alpha: 0.7)),
+          SizedBox(width: 4),
+          Icon(Icons.info_outline_rounded, size: 14, color: Color(0xB34338CA)),
         ],
       ),
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+
 /// Prominent trust signal shown on its own row on mechanic cards — deliberately
 /// distinct from the small "Onaylı Usta" chip on the detail page, since here it
 /// needs to read as a standalone reason to trust the mechanic, not a minor tag.
@@ -17,7 +19,7 @@ class VerifiedTrustBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final verifiedColor = Colors.green[700]!;
+    const verifiedColor = AppColors.verified;
 
     return Container(
       width: double.infinity,

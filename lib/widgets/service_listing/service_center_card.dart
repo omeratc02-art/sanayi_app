@@ -191,7 +191,7 @@ class _TrustScoreBadge extends StatelessWidget {
 
   static const _borderRadius = 13.0;
 
-  Color get _statusColor => isVerified ? Colors.green.shade700 : AppColors.textSecondary;
+  Color get _statusColor => isVerified ? AppColors.verified : AppColors.textSecondary;
 
   String get _letterGrade {
     if (score >= 95) return 'A+';
@@ -330,7 +330,7 @@ class _CenterInfo extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               child: _TrustChip(
                 icon: Icons.star_rounded,
-                color: Colors.amber.shade800,
+                color: AppColors.rating,
                 label: '${summary.averageRating.toStringAsFixed(1)} (${summary.ratedCount} değerlendirme)',
               ),
             );
@@ -377,7 +377,7 @@ class _CenterInfo extends StatelessWidget {
           onTap: () => showTrustInfoSheet(
             context,
             icon: mechanic.isVerified ? Icons.verified_rounded : Icons.remove_circle_outline_rounded,
-            accentColor: mechanic.isVerified ? Colors.green.shade700 : AppColors.textSecondary,
+            accentColor: mechanic.isVerified ? AppColors.verified : AppColors.textSecondary,
             title: 'Doğrulanmış Servis',
             description:
                 'Bu işletme, doğrulama sürecimizi başarıyla tamamlamıştır. İşletme bilgileri doğrulanmış '
@@ -387,7 +387,7 @@ class _CenterInfo extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: _TrustChip(
             icon: mechanic.isVerified ? Icons.verified_rounded : Icons.remove_circle_outline_rounded,
-            color: mechanic.isVerified ? Colors.green.shade700 : AppColors.textSecondary,
+            color: mechanic.isVerified ? AppColors.verified : AppColors.textSecondary,
             label: mechanic.isVerified ? 'Doğrulanmış Servis' : 'Doğrulanmamış Servis',
           ),
         ),

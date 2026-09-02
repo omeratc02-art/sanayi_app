@@ -27,10 +27,65 @@ class AppColors {
   static const Color insurance = Color(0xFF16A34A);
 
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFFF7FAFC);
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color divider = Color(0xFFEAF0F4);
+  // Refined neutral scale (approved visual-identity direction) — a
+  // navy-tinted near-black and blue-gray instead of flat grays, so the
+  // neutrals read as chosen rather than inherited. Kept under the existing
+  // names (textPrimary/textSecondary/divider/background) rather than
+  // renamed, so every existing call site across the app picks up the
+  // refinement automatically with no per-file changes.
+  static const Color background = Color(0xFFF6F9FC);
+  static const Color textPrimary = Color(0xFF0F1B2B);
+  static const Color textSecondary = Color(0xFF5B6B7C);
+  static const Color divider = Color(0xFFE4EAF0);
+
+  // Semantic state colors — deliberately distinct from every brand/category
+  // color above (including [insurance]'s green and [emergency]'s red) so
+  // "open/closed", "rating", and "verified" each carry exactly one meaning
+  // and never collide. Never used for general branding.
+  static const Color open = Color(0xFF15803D);
+  static const Color openBackground = Color(0xFFE7F5EC);
+  static const Color closed = Color(0xFF92400E);
+  static const Color closedBackground = Color(0xFFFBEEE0);
+  static const Color rating = Color(0xFFEAB308);
+  static const Color ratingBackground = Color(0xFFFEF7DC);
+  static const Color verified = Color(0xFF4338CA);
+  static const Color verifiedBackground = Color(0xFFECECFB);
+}
+
+/// Named type scale (approved visual-identity direction) — four disciplined
+/// roles on the app's single existing font family (see
+/// [AppTheme.fontFamily]), rather than a second typeface. Every
+/// new/redesigned widget should pull a role from here instead of writing
+/// its own ad hoc TextStyle.
+class AppTextStyles {
+  AppTextStyles._();
+
+  static const headline = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.3,
+    color: AppColors.textPrimary,
+  );
+
+  static const cardTitle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+  );
+
+  static const body = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    height: 1.4,
+    color: AppColors.textSecondary,
+  );
+
+  static const caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.2,
+    color: AppColors.textSecondary,
+  );
 }
 
 /// 4pt-based spacing scale — every new/redesigned widget should pull from

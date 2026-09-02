@@ -13,17 +13,19 @@ class EmptySearchState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, size: 56, color: AppColors.textSecondary),
-            const SizedBox(height: 12),
-            const Text(
-              'Sonuç bulunamadı',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: AppColors.divider, shape: BoxShape.circle),
+              child: const Icon(Icons.search_off_rounded, size: 30, color: AppColors.textSecondary),
             ),
+            const SizedBox(height: AppSpacing.lg),
+            const Text('Sonuç bulunamadı', style: AppTextStyles.cardTitle),
             const SizedBox(height: 4),
             const Text(
               'Farklı bir kategori veya arama terimi deneyin.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: AppTextStyles.body,
             ),
           ],
         ),
