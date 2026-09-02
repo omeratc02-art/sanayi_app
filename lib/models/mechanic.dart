@@ -104,14 +104,4 @@ class Mechanic {
   /// null means unknown (no working hours entered), which callers should
   /// render as a hidden/omitted indicator, never as a default true/false.
   bool? get isOpen => isOpenNow(workingHours);
-
-  /// Composite trust score (0-100) shown on the Service Listing screen —
-  /// deliberately based only on verification status, customer rating, and
-  /// repeat-customer rate, not price, distance, or anything else.
-  int get trustScore {
-    final ratingScore = (rating / 5) * 60;
-    final repeatScore = (repeatCustomerRate / 100) * 30;
-    final verifiedScore = isVerified ? 10 : 0;
-    return (ratingScore + repeatScore + verifiedScore).round().clamp(0, 100);
-  }
 }

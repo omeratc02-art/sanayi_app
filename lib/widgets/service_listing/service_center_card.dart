@@ -17,12 +17,12 @@ import '../verified_jobs_badge.dart';
 /// on the left, business identity and trust signals on the right, and two
 /// full-width primary actions below. Price is deliberately not shown here.
 ///
-/// No trust-score badge: [Mechanic.trustScore] is still used to sort
-/// results (see ServiceListingPage), but isn't rendered on the card itself
-/// — it's a hand-weighted formula, not something backed by a real metric,
-/// so showing it as a scored badge overstated its authority next to the
-/// real Firestore-backed signals below (rating, repeat-customer rate,
-/// verification).
+/// No trust-score badge: it used to show a hand-weighted formula that
+/// wasn't backed by any real metric, overstating its authority next to
+/// the real Firestore-backed signals below (rating, repeat-customer rate,
+/// verification). ServiceListingPage now sorts results by real rating
+/// data instead, so nothing on this card depends on that formula any
+/// more.
 class ServiceCenterCard extends StatelessWidget {
   const ServiceCenterCard({super.key, required this.mechanic, required this.serviceName});
 
