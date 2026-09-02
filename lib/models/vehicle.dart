@@ -1,8 +1,10 @@
+/// A distinct (model, plate) pair derived from the customer's own past
+/// appointment history — see MyVehiclesSection's own doc comment for why
+/// there's no dedicated, user-managed vehicle store this reads from
+/// instead.
 class Vehicle {
-  final String name;
-  final int year;
+  final String modelLabel;
+  final String licensePlate;
 
-  const Vehicle({required this.name, required this.year});
-
-  String get label => '$name ($year)';
+  const Vehicle({required this.modelLabel, required this.licensePlate});
 }

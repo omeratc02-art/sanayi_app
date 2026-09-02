@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../../data/appointment_request_store.dart';
 import '../../data/booking_history.dart';
+import '../../data/pending_booking_vehicle.dart';
+import '../../mechanic/appointments/data/appointment_repository.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/firebase_instances.dart';
 import '../../utils/turkish_date.dart';
 import '../../widgets/booking/date_strip.dart';
 import '../../widgets/booking/section_label.dart';
@@ -87,6 +90,79 @@ class _AppointmentRequestPageState extends State<AppointmentRequestPage> {
     final startOfToday = DateTime(today.year, today.month, today.day);
     _dates = List.generate(14, (i) => startOfToday.add(Duration(days: i)));
     _selectedDate = _dates.first;
+
+    // "Araçlarım" -> vehicle tap (see MyVehiclesSection/PendingBookingVehicle)
+    // — a real vehicle the customer has actually booked with before, not a
+    // made-up default. Every field stays editable either way.
+    final pendingVehicle = PendingBookingVehicle.consume();
+    if (pendingVehicle != null) {
+      _vehicleController.text = pendingVehicle.vehicleLabel;
+      _plateController.text = pendingVehicle.licensePlate;
+    }
+
+    // Real customer profile sources, in order: Firebase Auth (reliable for
+    // name; phone only for customers who signed in via phone/OTP — see
+    // resolveCustomerId's own doc comment on why other providers leave it
+    // null), then — only for whichever of the two is still empty — the
+    // most recent past booking's own müşteriAdı/müşteriTelefonu. Never a
+    // fabricated value; a field with no real source anywhere stays blank.
+    final displayName = firebaseAuthInstance.currentUser?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) _nameController.text = displayName;
+    final authPhone = firebaseAuthInstance.currentUser?.phoneNumber;
+    if (authPhone != null && authPhone.trim().isNotEmpty) {
+      _phoneController.text = _formatPhoneDisplay(_localPhoneDigits(authPhone));
+    }
+    if (_nameController.text.isEmpty || _phoneController.text.isEmpty) {
+      _prefillFromPastBooking();
+    }
+  }
+
+  // Firebase Auth's phoneNumber is E.164 (e.g. "+905551234567") — this
+  // form's own field expects the same bare-10-digit-no-country-code shape
+  // _TurkishPhoneInputFormatter produces (e.g. "5551234567"), so a raw
+  // pass-through would both display wrong and fail the submit-enabled
+  // length check below. Also normalizes a stored past-booking phone the
+  // same way, in case it ever has stray formatting.
+  static String _localPhoneDigits(String raw) {
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.length > 10 ? digits.substring(digits.length - 10) : digits;
+  }
+
+  // Mirrors _TurkishPhoneInputFormatter's own grouping (see LoginPage) so a
+  // pre-filled number reads the same as one the customer typed themselves.
+  static String _formatPhoneDisplay(String digits) {
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i == 3 || i == 6 || i == 8) buffer.write(' ');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+
+  // Best-effort fallback when Firebase Auth has no displayName/phoneNumber
+  // for this account (e.g. a non-phone sign-in method that never set
+  // phoneNumber) — only ever fills whichever field is still empty, never
+  // overwrites the synchronous Firebase Auth pre-fill above.
+  Future<void> _prefillFromPastBooking() async {
+    final uid = firebaseAuthInstance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final appointments = await AppointmentRepository().watchCustomerAppointments(uid).first;
+      if (!mounted || appointments.isEmpty) return;
+      final mostRecent = appointments.reduce(
+        (a, b) => a.createdAt.isAfter(b.createdAt) ? a : b,
+      );
+      setState(() {
+        if (_nameController.text.isEmpty && mostRecent.customerName.trim().isNotEmpty) {
+          _nameController.text = mostRecent.customerName.trim();
+        }
+        if (_phoneController.text.isEmpty && mostRecent.customerPhone.trim().isNotEmpty) {
+          _phoneController.text = _formatPhoneDisplay(_localPhoneDigits(mostRecent.customerPhone));
+        }
+      });
+    } catch (error) {
+      debugPrint('BOOKING FORM PREFILL LOOKUP ERROR: $error');
+    }
   }
 
   @override

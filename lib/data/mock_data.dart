@@ -4,7 +4,6 @@ import '../models/category.dart';
 import '../models/mechanic.dart';
 import '../models/review.dart';
 import '../models/time_slot.dart';
-import '../models/vehicle.dart';
 
 class MockData {
   MockData._();
@@ -263,11 +262,6 @@ class MockData {
   ];
 
   static const allMechanics = [...popularMechanics, ...topRatedMechanics, ...otherMechanics];
-
-  static const userVehicles = [
-    Vehicle(name: 'Peugeot 208', year: 2017),
-    Vehicle(name: 'Volkswagen Jetta', year: 2013),
-  ];
 
   // Shared across every mechanic/service center — there's no per-business
   // review data in this mock dataset, matching how [allMechanics] itself is

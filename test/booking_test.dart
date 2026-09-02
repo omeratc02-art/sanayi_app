@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
+import 'package:sanayi_app/data/pending_booking_vehicle.dart';
 import 'package:sanayi_app/main.dart';
+import 'package:sanayi_app/models/mechanic.dart';
 import 'package:sanayi_app/screens/booking/appointment_request_page.dart';
 import 'package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart';
 import 'package:sanayi_app/screens/search/search_tab.dart';
@@ -147,4 +149,55 @@ void main() {
     expect(find.byType(AppointmentRequestPage), findsNothing);
     expect(find.byType(MechanicDetailPage), findsOneWidget);
   });
+
+  testWidgets(
+    'AppointmentRequestPage pre-fills vehicle/plate from a pending Araçlarım selection, '
+    'and name/phone from the signed-in customer profile',
+    (WidgetTester tester) async {
+      firebaseAuthInstance = MockFirebaseAuth(
+        mockUser: MockUser(
+          uid: 'test-user-id',
+          email: 'test@example.com',
+          isEmailVerified: true,
+          displayName: 'Ayşe Yılmaz',
+          phoneNumber: '+905551234567',
+        ),
+        // true (not the usual false) — this test pumps AppointmentRequestPage
+        // directly, bypassing the login UI other tests here drive through,
+        // so currentUser needs to already be signed in for initState's
+        // Firebase Auth pre-fill to see it at all.
+        signedIn: true,
+      );
+
+      // Same call MyVehiclesSection makes right before reusing the "Araç
+      // Tamiri" entry point — set directly here since this test pumps
+      // AppointmentRequestPage on its own, without the full "Araçlarım" ->
+      // sub-service -> mechanic navigation chain (already covered by
+      // my_vehicles_test.dart and the category/search tests).
+      PendingBookingVehicle.set(vehicleLabel: 'Renault Clio 2018', licensePlate: '34 ABC 123');
+
+      const mechanic = Mechanic(
+        name: 'Hızlı Lastikçi',
+        rating: 4.7,
+        reviewCount: 96,
+        phone: '0212 667 45 09',
+        address: 'Fatih Mah. Lastikçiler Sok. No:5, Konya',
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(home: AppointmentRequestPage(mechanic: mechanic, serviceLabel: 'Lastik Değişimi')),
+      );
+      await tester.pumpAndSettle();
+
+      // Vehicle/plate from the pending Araçlarım selection.
+      expect(find.text('Renault Clio 2018'), findsOneWidget);
+      expect(find.text('34 ABC 123'), findsOneWidget);
+
+      // Name from Firebase Auth displayName, phone from Firebase Auth
+      // phoneNumber — converted from E.164 ("+905551234567") to this
+      // form's own bare/grouped local format, not a raw pass-through.
+      expect(find.text('Ayşe Yılmaz'), findsOneWidget);
+      expect(find.text('555 123 45 67'), findsOneWidget);
+    },
+  );
 }

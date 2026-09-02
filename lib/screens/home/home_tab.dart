@@ -84,10 +84,10 @@ class HomeTab extends StatelessWidget {
             ),
           ),
           // 3. "Araçlarım" (My Vehicles).
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
               padding: _sectionPadding,
-              child: MyVehiclesSection(),
+              child: MyVehiclesSection(onCategoryTap: onCategoryTap),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
