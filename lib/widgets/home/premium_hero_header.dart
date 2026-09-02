@@ -15,7 +15,7 @@ class PremiumHeroHeader extends StatelessWidget {
   static const _illustrationSpacing = AppSpacing.md;
   static const _titleSpacing = AppSpacing.sm;
   static const _titleFontSize = 18.0;
-  static const _subtitleFontSize = 12.0;
+  static const _subtitleFontSize = 13.5;
   static const _decorIconSize = 110.0;
   static const _decorIconAlpha = 0.10;
 
@@ -55,7 +55,11 @@ class PremiumHeroHeader extends StatelessWidget {
           Padding(
             padding: _padding,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              // start, not center — top-aligns the icon with the title
+              // (see _HeroIllustration's own topLeft/badge flip below;
+              // this alone isn't enough, since the illustration used to be
+              // bottom-aligned inside its own box).
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _HeroIllustration(),
                 const SizedBox(width: _illustrationSpacing),
@@ -79,7 +83,8 @@ class PremiumHeroHeader extends StatelessWidget {
                         _subtitle,
                         style: TextStyle(
                           fontSize: _subtitleFontSize,
-                          color: Colors.white.withValues(alpha: 0.88),
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.96),
                           height: 1.4,
                         ),
                       ),
@@ -112,7 +117,7 @@ class _HeroIllustration extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Align(
-            alignment: Alignment.bottomLeft,
+            alignment: Alignment.topLeft,
             child: Container(
               width: _circleSize,
               height: _circleSize,
@@ -124,7 +129,7 @@ class _HeroIllustration extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 0,
+            bottom: 0,
             right: 0,
             child: Container(
               width: _badgeSize,
