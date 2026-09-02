@@ -14,11 +14,15 @@ import '../verified_jobs_badge.dart';
 
 /// Premium horizontal service-center card for the shared Service Listing
 /// screen — a shop photo (placeholder illustration, no real asset exists)
-/// on the left carrying a large color-coded Trust Score, business identity
-/// and trust signals on the right, and two full-width primary actions
-/// below. The score is built only from verification, rating, and
-/// repeat-customer rate (see [Mechanic.trustScore]); price is deliberately
-/// not shown here.
+/// on the left, business identity and trust signals on the right, and two
+/// full-width primary actions below. Price is deliberately not shown here.
+///
+/// No trust-score badge: [Mechanic.trustScore] is still used to sort
+/// results (see ServiceListingPage), but isn't rendered on the card itself
+/// — it's a hand-weighted formula, not something backed by a real metric,
+/// so showing it as a scored badge overstated its authority next to the
+/// real Firestore-backed signals below (rating, repeat-customer rate,
+/// verification).
 class ServiceCenterCard extends StatelessWidget {
   const ServiceCenterCard({super.key, required this.mechanic, required this.serviceName});
 
@@ -174,111 +178,6 @@ class _ShopPhotoFallback extends StatelessWidget {
   }
 }
 
-/// Capsule badge shown inline next to the service name at the top of
-/// [_CenterInfo]. Shield icon, large score, small label, and a
-/// letter-grade + verification line underneath. Styled in an
-/// Apple/Stripe/Linear/Notion register: a neutral hairline border and a
-/// barely-there shadow do the framing. The one accent color is tied to
-/// actual verification status (green = verified, the same meaning
-/// [VerifiedTrustBadge] and the verification chip below already use on
-/// this card) rather than an arbitrary brand color, so the badge itself
-/// communicates trust at a glance instead of just decorating it.
-class _TrustScoreBadge extends StatelessWidget {
-  const _TrustScoreBadge({required this.score, required this.isVerified});
-
-  final int score;
-  final bool isVerified;
-
-  static const _borderRadius = 13.0;
-
-  Color get _statusColor => isVerified ? AppColors.verified : AppColors.textSecondary;
-
-  String get _letterGrade {
-    if (score >= 95) return 'A+';
-    if (score >= 90) return 'A';
-    if (score >= 85) return 'A-';
-    if (score >= 75) return 'B+';
-    if (score >= 65) return 'B';
-    return 'C';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_borderRadius),
-        border: Border.all(color: AppColors.divider, width: 1),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isVerified ? Icons.verified_rounded : Icons.shield_outlined, size: 14, color: _statusColor),
-          const SizedBox(width: 4),
-          // Flexible, not a bare Column — once the badge itself is capped
-          // by the outer Row's flex: 2, this is what lets the subtitle
-          // (its widest line by far) shrink/ellipsize within that cap
-          // instead of overflowing past the capsule's bounds.
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    // The score itself is the badge's single most
-                    // important number — always rendered in full, never
-                    // squeezed.
-                    Text(
-                      '$score',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1),
-                    ),
-                    const SizedBox(width: 3),
-                    // "GÜVEN" is the one label that can safely give way
-                    // if the badge is squeezed this tight — Flexible +
-                    // ellipsis lets it shrink instead of overflowing.
-                    Flexible(
-                      child: Text(
-                        'GÜVEN',
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 7,
-                          fontWeight: FontWeight.w700,
-                          color: _statusColor,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // The number + shield icon already carry the badge's
-                // main information, so this subtitle is secondary — a
-                // smaller size, plus maxLines/ellipsis so it degrades
-                // gracefully instead of overflowing when squeezed.
-                Text(
-                  '$_letterGrade ${isVerified ? 'Doğrulanmış Servis' : 'Doğrulanmamış Servis'}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Right-hand identity + trust column — name, specialty, location, then
 /// exactly the three requested trust signals (rating, repeat rate,
 /// verification) as compact chips. No price here by design.
@@ -302,30 +201,14 @@ class _CenterInfo extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // flex: 3 vs the badge's flex: 2 — maxLines: 2 alone still
-            // left the name squeezed to the badge's full natural width
-            // (driven mostly by its letter-grade subtitle), narrow enough
-            // to break realistic names mid-word. Giving the name the
-            // larger flex share, and capping+shrinking the badge below,
-            // fixes both sides of the same imbalance.
-            Flexible(
-              flex: 3,
-              child: Text(
-                mechanic.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5, color: AppColors.textPrimary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              flex: 2,
-              child: _TrustScoreBadge(score: mechanic.trustScore, isVerified: mechanic.isVerified),
-            ),
-          ],
+        // No sibling to share the row with any more (the trust-score
+        // badge that used to sit here is gone), so the name gets the
+        // full available width instead of a flex share of it.
+        Text(
+          mechanic.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5, color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.lg),
         Row(
