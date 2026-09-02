@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import 'category_illustrations.dart';
 import '../common/premium_surface.dart';
 
 /// Not a category — a standalone, high-urgency call to action. Title and
-/// subtitle lead, a faint oversized siren icon sits in the corner as a
-/// decorative illustration (no custom siren asset exists, so the closest
-/// Material icon substitutes for it), and the call-to-action is a distinct
-/// white pill button rather than a generic row — it should read as
-/// "press this" the way a real emergency button does.
+/// subtitle lead, a faint oversized hazard-triangle illustration
+/// (AcilYardimIllustration — see category_illustrations.dart) sits in the
+/// corner as decoration, and the call-to-action is a distinct white pill
+/// button rather than a generic row — it should read as "press this" the
+/// way a real emergency button does.
 class EmergencyHelpCard extends StatelessWidget {
   const EmergencyHelpCard({super.key, this.onTap});
 
@@ -47,7 +48,7 @@ class EmergencyHelpCard extends StatelessWidget {
             right: -14,
             child: Opacity(
               opacity: _illustrationAlpha,
-              child: const Icon(Icons.emergency_rounded, size: _illustrationSize, color: Colors.white),
+              child: const AcilYardimIllustration(size: _illustrationSize),
             ),
           ),
           SizedBox(

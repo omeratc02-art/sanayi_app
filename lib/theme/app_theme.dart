@@ -17,12 +17,16 @@ class AppColors {
   static const Color emergency = Color(0xFFE53935);
   static const Color emergencyDark = Color(0xFFB71C1C);
 
-  // Same reasoning as emergency above, extended to the homepage's 3 main
-  // service-category cards (see ServiceCategoryCard) — each color is
+  // Same reasoning as emergency above, extended to 2 of the homepage's 3
+  // main service-category cards (see ServiceCategoryCard) — each color is
   // reserved for its one category, not general branding, so they stay a
   // clear visual index rather than diluting the turquoise-only accent
-  // everywhere else.
-  static const Color vehicleRepair = Color(0xFF0F172A);
+  // everywhere else. Araç Tamiri's own card deliberately has no separate
+  // reserved color here — approved visual-identity direction retired its
+  // near-black navy (which read as a different tier from these two vivid
+  // colors) in favor of reusing [turquoise] directly, tying the app's
+  // primary category to the actual secondary brand color instead of a
+  // fourth one-off hex value.
   static const Color inspection = Color(0xFF2563EB);
   static const Color insurance = Color(0xFF16A34A);
 

@@ -11,15 +11,26 @@ import '../common/premium_surface.dart';
 class ServiceCategoryCard extends StatelessWidget {
   const ServiceCategoryCard({
     super.key,
-    required this.icon,
+    this.icon,
     this.overlayIcon,
+    this.illustration,
     required this.title,
     required this.subtitle,
     required this.color,
     this.onTap,
-  });
+  }) : assert(icon != null || illustration != null, 'ServiceCategoryCard needs an icon or an illustration');
 
-  final IconData icon;
+  /// Exactly one of [icon] or [illustration] must be provided. [icon] is
+  /// the original badge treatment (a single glyph, optionally paired with
+  /// [overlayIcon]) — still used by Araç Tamiri. [illustration] is the
+  /// approved flat CustomPainter illustration (see
+  /// widgets/home/category_illustrations.dart) used by Ekspertiz/Sigorta,
+  /// rendered in a differently-styled badge (rounded square, not circle —
+  /// see build()) since it carries its own internal detail/contrast.
+  final IconData? icon;
+
+  /// Self-contained replacement for [icon] — see [illustration] above.
+  final Widget? illustration;
 
   /// Small badge icon overlapping [icon]'s bottom-right corner — e.g. a
   /// wrench over the car icon for Araç Tamiri, making "repair" explicit
@@ -66,8 +77,14 @@ class ServiceCategoryCard extends StatelessWidget {
                 width: _iconBadgeSize,
                 height: _iconBadgeSize,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), shape: BoxShape.circle),
-                child: Icon(icon, color: Colors.white, size: _iconSize),
+                decoration: illustration != null
+                    ? BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.24),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                      )
+                    : BoxDecoration(color: Colors.white.withValues(alpha: 0.16), shape: BoxShape.circle),
+                child: illustration ?? Icon(icon, color: Colors.white, size: _iconSize),
               ),
               if (overlayIcon != null)
                 Positioned(

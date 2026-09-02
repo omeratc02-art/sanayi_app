@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../config/feature_flags.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/home/category_illustrations.dart';
 import '../../widgets/home/emergency_help_card.dart';
 import '../../widgets/home/greeting_bar.dart';
 import '../../widgets/home/hero_emergency_cluster.dart';
@@ -114,15 +115,20 @@ class _MainServiceCategories extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = [
       ServiceCategoryCard(
+        // Deliberately keeps the original icon+overlay badge (not a custom
+        // illustration) — approved and reverted during visual-identity
+        // design review. Color moved off the old reserved navy onto
+        // AppColors.turquoise so this card reads at the same tier as
+        // Ekspertiz/Sigorta below (see AppColors.inspection's doc comment).
         icon: Icons.directions_car_filled,
         overlayIcon: Icons.build,
         title: 'Araç Tamiri',
         subtitle: 'Arızadan bakıma tüm tamir hizmetleri',
-        color: AppColors.vehicleRepair,
+        color: AppColors.turquoise,
         onTap: () => onCategoryTap?.call('Araç Tamiri'),
       ),
       ServiceCategoryCard(
-        icon: Icons.fact_check,
+        illustration: const EkspertizIllustration(),
         title: 'Ekspertiz',
         subtitle: 'Araç alım, satım ve hasar kontrol hizmetleri',
         color: AppColors.inspection,
@@ -135,7 +141,7 @@ class _MainServiceCategories extends StatelessWidget {
       // with no separate spacing/sizing case needed.
       if (kSigortaEnabled)
         ServiceCategoryCard(
-          icon: Icons.gpp_good,
+          illustration: const SigortaIllustration(),
           title: 'Sigorta',
           subtitle: 'Trafik, kasko ve tüm sigorta ihtiyaçlarınız',
           color: AppColors.insurance,
