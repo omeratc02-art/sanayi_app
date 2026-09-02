@@ -205,7 +205,7 @@ class _TrustScoreBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(_borderRadius),
@@ -217,37 +217,61 @@ class _TrustScoreBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isVerified ? Icons.verified_rounded : Icons.shield_outlined, size: 16, color: _statusColor),
-          const SizedBox(width: 5),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '$score',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1),
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    'GÜVEN',
-                    style: TextStyle(
-                      fontSize: 7,
-                      fontWeight: FontWeight.w700,
-                      color: _statusColor,
-                      letterSpacing: 0.4,
+          Icon(isVerified ? Icons.verified_rounded : Icons.shield_outlined, size: 14, color: _statusColor),
+          const SizedBox(width: 4),
+          // Flexible, not a bare Column — once the badge itself is capped
+          // by the outer Row's flex: 2, this is what lets the subtitle
+          // (its widest line by far) shrink/ellipsize within that cap
+          // instead of overflowing past the capsule's bounds.
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    // The score itself is the badge's single most
+                    // important number — always rendered in full, never
+                    // squeezed.
+                    Text(
+                      '$score',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1),
                     ),
-                  ),
-                ],
-              ),
-              Text(
-                '$_letterGrade ${isVerified ? 'Doğrulanmış Servis' : 'Doğrulanmamış Servis'}',
-                style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-              ),
-            ],
+                    const SizedBox(width: 3),
+                    // "GÜVEN" is the one label that can safely give way
+                    // if the badge is squeezed this tight — Flexible +
+                    // ellipsis lets it shrink instead of overflowing.
+                    Flexible(
+                      child: Text(
+                        'GÜVEN',
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 7,
+                          fontWeight: FontWeight.w700,
+                          color: _statusColor,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                // The number + shield icon already carry the badge's
+                // main information, so this subtitle is secondary — a
+                // smaller size, plus maxLines/ellipsis so it degrades
+                // gracefully instead of overflowing when squeezed.
+                Text(
+                  '$_letterGrade ${isVerified ? 'Doğrulanmış Servis' : 'Doğrulanmamış Servis'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -281,16 +305,26 @@ class _CenterInfo extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // flex: 3 vs the badge's flex: 2 — maxLines: 2 alone still
+            // left the name squeezed to the badge's full natural width
+            // (driven mostly by its letter-grade subtitle), narrow enough
+            // to break realistic names mid-word. Giving the name the
+            // larger flex share, and capping+shrinking the badge below,
+            // fixes both sides of the same imbalance.
             Flexible(
+              flex: 3,
               child: Text(
                 mechanic.name,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5, color: AppColors.textPrimary),
               ),
             ),
-            const SizedBox(width: 14),
-            _TrustScoreBadge(score: mechanic.trustScore, isVerified: mechanic.isVerified),
+            const SizedBox(width: 8),
+            Flexible(
+              flex: 2,
+              child: _TrustScoreBadge(score: mechanic.trustScore, isVerified: mechanic.isVerified),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.lg),
