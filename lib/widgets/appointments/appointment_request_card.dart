@@ -39,6 +39,7 @@ class AppointmentRequestCard extends StatelessWidget {
                     builder: (_) => CustomerConversationPage(
                       chatId: mechanicChatId(request.mechanicName),
                       mechanicName: request.mechanicName,
+                      serviceContext: request.serviceLabel,
                     ),
                   ),
                 ),

@@ -93,6 +93,7 @@ class ServiceCenterCard extends StatelessWidget {
                         builder: (_) => CustomerConversationPage(
                           chatId: mechanicChatId(mechanic.name),
                           mechanicName: mechanic.name,
+                          serviceContext: serviceName,
                         ),
                       ),
                     ),

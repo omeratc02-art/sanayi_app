@@ -15,7 +15,12 @@ import '../mechanic_detail/mechanic_detail_page.dart';
 /// `chats/{chatId}/messages` thread via the shared [ChatRepository] and
 /// [ChatMessage] model, so both sides see each other's messages live.
 class CustomerConversationPage extends StatefulWidget {
-  const CustomerConversationPage({super.key, required this.chatId, required this.mechanicName});
+  const CustomerConversationPage({
+    super.key,
+    required this.chatId,
+    required this.mechanicName,
+    this.serviceContext,
+  });
 
   final String chatId;
 
@@ -25,8 +30,35 @@ class CustomerConversationPage extends StatefulWidget {
   /// the app bar header (see _CustomerConversationPageState.build).
   final String mechanicName;
 
+  /// The specific service this conversation was opened about, if any (e.g.
+  /// "10.000–20.000 km Bakımı" from ServiceCenterCard's own serviceName, or
+  /// AppointmentRequest.serviceLabel) — real, correctly-cased service names
+  /// already threaded through those flows, not the broad
+  /// Mechanic.hizmetTuru/hizmetler categories. Only used to phrase one of
+  /// the quick-reply chips below (see quickReplyQuestions); null at call
+  /// sites with no specific service in scope (e.g. the general
+  /// conversation list), which correctly falls back to the generic set.
+  final String? serviceContext;
+
   @override
   State<CustomerConversationPage> createState() => _CustomerConversationPageState();
+}
+
+/// The quick-reply chip questions shown above the reply bar. When
+/// [serviceContext] is given, the price question is phrased around that
+/// real service name instead of the generic version — the rest of the set
+/// stays generic either way, so the chip count never changes.
+List<String> quickReplyQuestions(String? serviceContext) {
+  final trimmed = serviceContext?.trim();
+  final priceQuestion = (trimmed == null || trimmed.isEmpty)
+      ? 'Fiyat bilgisi alabilir miyim?'
+      : '$trimmed için fiyatınız nedir?';
+  return [
+    priceQuestion,
+    'Bugün müsait misiniz?',
+    'İşlem ne kadar sürer?',
+    'Randevu almadan gelebilir miyim?',
+  ];
 }
 
 class _CustomerConversationPageState extends State<CustomerConversationPage> {
@@ -152,6 +184,15 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
   // and matches how every other timestamp in a chat bubble UI reads.
   static String _formatMessageTime(DateTime createdAt) =>
       '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
+
+  // Fills the reply field from a tapped quick-reply chip — never sends.
+  // Collapsing the selection to the end (not left at its default 0/0 after
+  // a raw .text assignment) is what makes this feel like a normal typed
+  // entry: the customer can start editing immediately from the end.
+  void _fillReply(String question) {
+    _replyController.text = question;
+    _replyController.selection = TextSelection.collapsed(offset: question.length);
+  }
 
   Future<void> _handleSend() async {
     final text = _replyController.text.trim();
@@ -290,6 +331,10 @@ class _CustomerConversationPageState extends State<CustomerConversationPage> {
             ),
           ),
           if (_isMechanicTyping) const _TypingIndicator(),
+          _QuickReplyChips(
+            questions: quickReplyQuestions(widget.serviceContext),
+            onSelect: _fillReply,
+          ),
           _ReplyBar(controller: _replyController, onSend: _handleSend),
         ],
       ),
@@ -471,6 +516,73 @@ class _OutgoingMessageBubble extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Horizontal row of tappable pre-written questions above the reply bar —
+/// tapping one fills [onSelect] with the question text, it never sends on
+/// its own (see _CustomerConversationPageState._fillReply). Always visible
+/// (not tied to the field being empty) so re-tapping a second question
+/// after already sending one is still a normal flow, not something the
+/// customer has to dismiss first.
+class _QuickReplyChips extends StatelessWidget {
+  const _QuickReplyChips({required this.questions, required this.onSelect});
+
+  final List<String> questions;
+  final ValueChanged<String> onSelect;
+
+  static const _padding = EdgeInsets.fromLTRB(16, 10, 16, 6);
+  static const _chipSpacing = AppSpacing.sm;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: _padding,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var i = 0; i < questions.length; i++) ...[
+              if (i > 0) const SizedBox(width: _chipSpacing),
+              _QuickReplyChip(text: questions[i], onTap: () => onSelect(questions[i])),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickReplyChip extends StatelessWidget {
+  const _QuickReplyChip({required this.text, required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
+
+  static const _borderRadius = 20.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(_borderRadius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_borderRadius),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(_borderRadius),
+            border: Border.all(color: AppColors.turquoise),
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.turquoise),
           ),
         ),
       ),
