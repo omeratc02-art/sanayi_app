@@ -39,11 +39,20 @@ class MechanicProfileRepository {
   /// the function hasn't run for this business yet (field not written) —
   /// either way there's no real rate to show, distinct from an actual
   /// computed 0%.
+  ///
+  /// Not `.limit(1)` — a claimed business briefly has two documents
+  /// sharing the same businessId (see
+  /// MechanicDirectoryRepository.fetchByBusinessId's doc comment for the
+  /// full reasoning); skipping archived matches here picks the real,
+  /// current document deterministically instead of an arbitrary one.
   Future<int?> fetchRepeatCustomerRate(String businessId) async {
-    final snapshot =
-        await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).limit(1).get();
-    if (snapshot.docs.isEmpty) return null;
-    final rate = snapshot.docs.first.data()['repeatCustomerRate'];
-    return rate is num ? rate.toInt() : null;
+    final snapshot = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['archived'] == true) continue;
+      final rate = data['repeatCustomerRate'];
+      return rate is num ? rate.toInt() : null;
+    }
+    return null;
   }
 }

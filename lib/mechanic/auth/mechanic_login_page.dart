@@ -59,6 +59,172 @@ Map<String, dynamic> _mechanicAccountData({
   };
 }
 
+/// One selectable entry in the business picker below — either a MockData
+/// catalog business (the existing "bootstrap a copy" behavior, 'tamir'
+/// only) or a real mechanicAccounts document uploaded via
+/// scripts/mechanic_upload (the new "claim it" behavior, any hizmetTürü —
+/// see [_ClaimableOption] and [_claimBusiness]).
+sealed class _BusinessOption {
+  const _BusinessOption(this.mechanic);
+  final Mechanic mechanic;
+}
+
+class _MockDataOption extends _BusinessOption {
+  const _MockDataOption(super.mechanic);
+
+  // _optionsForCurrentType (below) rebuilds this wrapper fresh on every
+  // call — including after the claimable-businesses fetch resolves and
+  // triggers a rebuild post-selection — so DropdownButtonFormField's
+  // identity-based "exactly one item equals the current value" check needs
+  // real equality here, not object identity, or a rebuild after a
+  // selection throws its "there should be exactly one item" assertion.
+  // MockData.allMechanics itself returns the same stable Mechanic
+  // instances on every access (already relied on by the pre-existing
+  // dropdown this replaces), so comparing by that identity is sufficient.
+  @override
+  bool operator ==(Object other) => other is _MockDataOption && identical(other.mechanic, mechanic);
+  @override
+  int get hashCode => mechanic.hashCode;
+}
+
+/// A real, script-uploaded mechanicAccounts document not yet claimed by any
+/// mechanic — identified by having a `claimedByUid` field that's still
+/// null (see fetchClaimableBusinesses's query; a real registered account
+/// never has this field at all, so it can never match that query). [docId]
+/// and [rawData] are kept alongside the parsed [Mechanic] — that model has
+/// no document-id field, and doesn't carry acilDurumHizmeti either, both of
+/// which [_claimBusiness] needs.
+class _ClaimableOption extends _BusinessOption {
+  const _ClaimableOption(super.mechanic, this.docId, this.rawData);
+  final String docId;
+  final Map<String, dynamic> rawData;
+
+  // Same reasoning as _MockDataOption.== above — docId is the stable
+  // identity here (rawData/mechanic are reconstructed per fetch, docId
+  // never changes for the same document).
+  @override
+  bool operator ==(Object other) => other is _ClaimableOption && other.docId == docId;
+  @override
+  int get hashCode => docId.hashCode;
+}
+
+/// Every not-yet-claimed script-uploaded business, across every
+/// hizmetTürü — the picker below filters this down to the currently
+/// selected hizmetTürü itself, so this fetch only needs to run once.
+///
+/// Filtered client-side, not via a `where('claimedByUid', isEqualTo:
+/// null)` query — that query form isn't universally supported (confirmed
+/// against fake_cloud_firestore, which throws), and a plain full read is
+/// no real cost against a collection this size (AdminRepository already
+/// does the same unfiltered read of this collection).
+Future<List<_ClaimableOption>> _fetchClaimableBusinesses() async {
+  final snapshot = await firestoreInstance.collection('mechanicAccounts').get();
+  return [
+    for (final doc in snapshot.docs)
+      if (doc.data().containsKey('claimedByUid') && doc.data()['claimedByUid'] == null)
+        _ClaimableOption(Mechanic.fromFirestore(doc.data()), doc.id, doc.data()),
+  ];
+}
+
+/// Thrown by [_claimBusiness] when live chat/appointment activity already
+/// exists under the business's slug — surfaced as this dialog's own error
+/// text exactly like any other registration failure. Never silently
+/// ignored, and the claim never proceeds when this is thrown.
+class ClaimConflictException implements Exception {
+  const ClaimConflictException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
+/// Claims a script-uploaded mechanicAccounts document for [uid] — creates a
+/// new, normal mechanicAccounts/{uid} document (the only shape the rest of
+/// the app understands; see resolveMyBusinessId) carrying over the real
+/// business fields from [option], and marks the old document
+/// claimed/archived so it stops appearing in customer-facing browse/search
+/// (see MechanicDirectoryRepository and MechanicProfileRepository's own
+/// `archived` filtering).
+///
+/// isVerified is deliberately NOT copied from the old document — every
+/// claim starts unverified and needs a real admin to re-approve it via
+/// AdminApprovalScreen, as a safeguard against someone falsely claiming a
+/// business that isn't actually theirs. claimedByUid is also deliberately
+/// not copied — a real registered account should never carry that field.
+///
+/// Re-checks live Firestore for chats/appointments under this business's
+/// slug immediately before writing anything, in case real activity has
+/// appeared since the picker was last loaded — throws
+/// [ClaimConflictException] and writes nothing at all if it finds any,
+/// rather than silently proceeding or overwriting.
+Future<void> _claimBusiness({required String uid, required String email, required _ClaimableOption option}) async {
+  final mechanic = option.mechanic;
+  final businessId = mechanicChatId(mechanic.name);
+
+  final chatDoc = await firestoreInstance.collection('chats').doc(businessId).get();
+  if (chatDoc.exists) {
+    throw ClaimConflictException(
+      '${mechanic.name} için zaten bir mesajlaşma kaydı bulunuyor. Lütfen destek ekibiyle iletişime geçin.',
+    );
+  }
+  final randevular = await firestoreInstance
+      .collection('randevular')
+      .where('işletme_kimliği', isEqualTo: businessId)
+      .limit(1)
+      .get();
+  if (randevular.docs.isNotEmpty) {
+    throw ClaimConflictException(
+      '${mechanic.name} için zaten randevu kayıtları bulunuyor. Lütfen destek ekibiyle iletişime geçin.',
+    );
+  }
+
+  final batch = firestoreInstance.batch();
+  batch.set(firestoreInstance.collection('mechanicAccounts').doc(uid), {
+    'name': mechanic.name,
+    'businessId': businessId,
+    'işletme_kimliği': businessId,
+    'email': email,
+    'role': 'mechanic',
+    'phone': mechanic.phone,
+    'address': mechanic.address,
+    'hizmetTürü': mechanic.hizmetTuru,
+    'hizmetler': mechanic.hizmetler,
+    'workingHours': mechanic.workingHours,
+    'acilDurumHizmeti': option.rawData['acilDurumHizmeti'],
+    'isVerified': false,
+  });
+  batch.update(firestoreInstance.collection('mechanicAccounts').doc(option.docId), {
+    'claimedByUid': uid,
+    'archived': true,
+  });
+  await batch.commit();
+}
+
+/// Small distinguishing marker for a [_ClaimableOption] dropdown item — a
+/// real business, not a MockData catalog entry — kept minimal (one icon)
+/// rather than a new visual language, since the rest of this picker is
+/// plain text-only today.
+class _BusinessOptionLabel extends StatelessWidget {
+  const _BusinessOptionLabel(this.option);
+
+  final _BusinessOption option;
+
+  @override
+  Widget build(BuildContext context) {
+    final option = this.option;
+    if (option is _ClaimableOption) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.storefront_outlined, size: 15, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Flexible(child: Text(option.mechanic.name, overflow: TextOverflow.ellipsis)),
+        ],
+      );
+    }
+    return Text(option.mechanic.name, overflow: TextOverflow.ellipsis);
+  }
+}
+
 /// Mechanic-side counterpart to the customer screens/auth/login_page.dart —
 /// same visual style and the same small email/password dialog pattern,
 /// duplicated locally rather than shared, so the customer LoginPage never
@@ -315,13 +481,16 @@ class _MechanicAuthDialogState extends State<_MechanicAuthDialog> {
   // offered here at all. Only meaningful while widget.isRegister.
   String _hizmetTuru = 'tamir';
 
-  // Which catalog business (see MockData.allMechanics) this account
-  // represents, when _hizmetTuru == 'tamir' — required so the account can
-  // be linked to a business by its stable id (see mechanicChatId), not by
-  // re-typing a name that has no guaranteed relationship to any real
-  // business. MockData has no Ekspertiz businesses, so 'ekspertiz'
-  // registrations use _businessNameController instead — see build().
-  Mechanic? _selectedBusiness;
+  // Which business (MockData catalog, or a real claimable Firestore
+  // document — see _BusinessOption) this account represents, when
+  // _hizmetTuru == 'tamir' or a claimable business exists for the current
+  // type — required so the account can be linked to a business by its
+  // stable id (see mechanicChatId), not by re-typing a name that has no
+  // guaranteed relationship to any real business. Neither MockData nor any
+  // claimable business may exist for a given type, so _businessNameController
+  // stays available as a manual fallback — see build().
+  _BusinessOption? _selectedOption;
+  List<_ClaimableOption> _claimableBusinesses = [];
   final _businessNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -330,11 +499,30 @@ class _MechanicAuthDialogState extends State<_MechanicAuthDialog> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.isRegister) {
+      // Fire-and-forget: an empty list until this resolves just means the
+      // claimable options aren't in the dropdown yet, not a broken dialog —
+      // matches how nothing else in this dialog blocks on this either.
+      _fetchClaimableBusinesses().then((businesses) {
+        if (mounted) setState(() => _claimableBusinesses = businesses);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _businessNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  List<_BusinessOption> get _optionsForCurrentType {
+    final claimable = _claimableBusinesses.where((c) => c.mechanic.hizmetTuru == _hizmetTuru);
+    final mockData = _hizmetTuru == 'tamir' ? MockData.allMechanics.map(_MockDataOption.new) : const <_MockDataOption>[];
+    return [...mockData, ...claimable];
   }
 
   String _messageForError(FirebaseAuthException error) {
@@ -363,11 +551,12 @@ class _MechanicAuthDialogState extends State<_MechanicAuthDialog> {
   }
 
   Future<void> _submit() async {
-    final selectedBusiness = _selectedBusiness;
+    final selectedOption = _selectedOption;
     final businessName = _businessNameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final hasBusiness = _hizmetTuru == 'tamir' ? selectedBusiness != null : businessName.isNotEmpty;
+    final hasBusiness =
+        _hizmetTuru == 'tamir' ? selectedOption != null : (selectedOption != null || businessName.isNotEmpty);
     if (email.isEmpty || password.isEmpty || (widget.isRegister && !hasBusiness)) {
       setState(() {
         _errorMessage = widget.isRegister
@@ -390,14 +579,19 @@ class _MechanicAuthDialogState extends State<_MechanicAuthDialog> {
         );
         final uid = credential.user!.uid;
         try {
-          await firestoreInstance.collection('mechanicAccounts').doc(uid).set(
-            _mechanicAccountData(
-              hizmetTuru: _hizmetTuru,
-              email: email,
-              selectedBusiness: selectedBusiness,
-              businessName: businessName,
-            ),
-          );
+          if (selectedOption is _ClaimableOption) {
+            await _claimBusiness(uid: uid, email: email, option: selectedOption);
+          } else {
+            final selectedBusiness = selectedOption is _MockDataOption ? selectedOption.mechanic : null;
+            await firestoreInstance.collection('mechanicAccounts').doc(uid).set(
+              _mechanicAccountData(
+                hizmetTuru: _hizmetTuru,
+                email: email,
+                selectedBusiness: selectedBusiness,
+                businessName: businessName,
+              ),
+            );
+          }
         } catch (error) {
           // The Firebase Auth account was already created at this point —
           // don't pretend registration fully succeeded if the mechanic
@@ -453,32 +647,34 @@ class _MechanicAuthDialogState extends State<_MechanicAuthDialog> {
                 _hizmetTuru = selection.first;
                 // Cross-type state left over from switching back and forth
                 // shouldn't silently ride along into the write.
-                _selectedBusiness = null;
+                _selectedOption = null;
                 _businessNameController.clear();
               }),
             ),
             const SizedBox(height: 12),
-            if (_hizmetTuru == 'tamir')
-              DropdownButtonFormField<Mechanic>(
-                initialValue: _selectedBusiness,
+            if (_optionsForCurrentType.isNotEmpty)
+              DropdownButtonFormField<_BusinessOption>(
+                initialValue: _selectedOption,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Usta / İşletme Adı'),
                 items: [
-                  for (final business in MockData.allMechanics)
-                    DropdownMenuItem(
-                      value: business,
-                      child: Text(business.name, overflow: TextOverflow.ellipsis),
-                    ),
+                  for (final option in _optionsForCurrentType)
+                    DropdownMenuItem(value: option, child: _BusinessOptionLabel(option)),
                 ],
-                onChanged: (value) => setState(() => _selectedBusiness = value),
-              )
-            else
-              // No MockData catalog exists for Ekspertiz — a real,
-              // mechanic-typed name, not a pick from a fake list.
+                onChanged: (value) => setState(() => _selectedOption = value),
+              ),
+            // A manual fallback for any type without a MockData catalog —
+            // stays available even when claimable businesses are also
+            // shown above, since not every real business is in that list
+            // yet. 'tamir' never shows this: MockData always has entries
+            // there, matching this dialog's existing behavior.
+            if (_hizmetTuru != 'tamir') ...[
+              if (_optionsForCurrentType.isNotEmpty) const SizedBox(height: 12),
               TextField(
                 controller: _businessNameController,
                 decoration: const InputDecoration(labelText: 'İşletme Adı'),
               ),
+            ],
             const SizedBox(height: 12),
           ],
           TextField(
@@ -544,15 +740,32 @@ class _BusinessPickerDialog extends StatefulWidget {
 
 class _BusinessPickerDialogState extends State<_BusinessPickerDialog> {
   String _hizmetTuru = 'tamir';
-  Mechanic? _selectedBusiness;
+  _BusinessOption? _selectedOption;
+  List<_ClaimableOption> _claimableBusinesses = [];
   final _businessNameController = TextEditingController();
   var _isSubmitting = false;
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Always needed here (unlike _MechanicAuthDialogState, this dialog only
+    // ever shows for "pick your business," never sign-in).
+    _fetchClaimableBusinesses().then((businesses) {
+      if (mounted) setState(() => _claimableBusinesses = businesses);
+    });
+  }
+
+  @override
   void dispose() {
     _businessNameController.dispose();
     super.dispose();
+  }
+
+  List<_BusinessOption> get _optionsForCurrentType {
+    final claimable = _claimableBusinesses.where((c) => c.mechanic.hizmetTuru == _hizmetTuru);
+    final mockData = _hizmetTuru == 'tamir' ? MockData.allMechanics.map(_MockDataOption.new) : const <_MockDataOption>[];
+    return [...mockData, ...claimable];
   }
 
   Future<void> _cancel() async {
@@ -562,9 +775,10 @@ class _BusinessPickerDialogState extends State<_BusinessPickerDialog> {
   }
 
   Future<void> _submit() async {
-    final selectedBusiness = _selectedBusiness;
+    final selectedOption = _selectedOption;
     final businessName = _businessNameController.text.trim();
-    final hasBusiness = _hizmetTuru == 'tamir' ? selectedBusiness != null : businessName.isNotEmpty;
+    final hasBusiness =
+        _hizmetTuru == 'tamir' ? selectedOption != null : (selectedOption != null || businessName.isNotEmpty);
     if (!hasBusiness) {
       setState(() => _errorMessage = 'Lütfen usta/işletme adınızı seçin.');
       return;
@@ -576,16 +790,21 @@ class _BusinessPickerDialogState extends State<_BusinessPickerDialog> {
     });
 
     try {
-      // Same shared write as _MechanicAuthDialogState._submit's register
-      // path — see _mechanicAccountData's doc comment.
-      await firestoreInstance.collection('mechanicAccounts').doc(widget.uid).set(
-        _mechanicAccountData(
-          hizmetTuru: _hizmetTuru,
-          email: widget.email,
-          selectedBusiness: selectedBusiness,
-          businessName: businessName,
-        ),
-      );
+      if (selectedOption is _ClaimableOption) {
+        await _claimBusiness(uid: widget.uid, email: widget.email, option: selectedOption);
+      } else {
+        // Same shared write as _MechanicAuthDialogState._submit's register
+        // path — see _mechanicAccountData's doc comment.
+        final selectedBusiness = selectedOption is _MockDataOption ? selectedOption.mechanic : null;
+        await firestoreInstance.collection('mechanicAccounts').doc(widget.uid).set(
+          _mechanicAccountData(
+            hizmetTuru: _hizmetTuru,
+            email: widget.email,
+            selectedBusiness: selectedBusiness,
+            businessName: businessName,
+          ),
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
       widget.onSuccess();
@@ -614,27 +833,29 @@ class _BusinessPickerDialogState extends State<_BusinessPickerDialog> {
             selected: {_hizmetTuru},
             onSelectionChanged: (selection) => setState(() {
               _hizmetTuru = selection.first;
-              _selectedBusiness = null;
+              _selectedOption = null;
               _businessNameController.clear();
             }),
           ),
           const SizedBox(height: 12),
-          if (_hizmetTuru == 'tamir')
-            DropdownButtonFormField<Mechanic>(
-              initialValue: _selectedBusiness,
+          if (_optionsForCurrentType.isNotEmpty)
+            DropdownButtonFormField<_BusinessOption>(
+              initialValue: _selectedOption,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Usta / İşletme Adı'),
               items: [
-                for (final business in MockData.allMechanics)
-                  DropdownMenuItem(value: business, child: Text(business.name)),
+                for (final option in _optionsForCurrentType)
+                  DropdownMenuItem(value: option, child: _BusinessOptionLabel(option)),
               ],
-              onChanged: (value) => setState(() => _selectedBusiness = value),
-            )
-          else
+              onChanged: (value) => setState(() => _selectedOption = value),
+            ),
+          if (_hizmetTuru != 'tamir') ...[
+            if (_optionsForCurrentType.isNotEmpty) const SizedBox(height: 12),
             TextField(
               controller: _businessNameController,
               decoration: const InputDecoration(labelText: 'İşletme Adı'),
             ),
+          ],
           if (_errorMessage != null) ...[
             const SizedBox(height: 12),
             Text(_errorMessage!, style: TextStyle(color: Colors.red.shade700, fontSize: 12.5)),
