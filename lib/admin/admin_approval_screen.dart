@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/mechanic_directory_repository.dart';
+import '../screens/mechanic_detail/mechanic_detail_page.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common/premium_surface.dart';
 import 'data/admin_mechanic_row.dart';
@@ -22,11 +24,17 @@ enum _Gate { checking, denied, granted }
 
 class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   final _repository = AdminRepository();
+  // Same repository + fetchByBusinessId lookup CustomerConversationPage
+  // already uses to open MechanicDetailPage — reused here rather than
+  // inventing a second way to load mechanic detail data (see
+  // _openMechanicDetail below).
+  final _directoryRepository = MechanicDirectoryRepository();
 
   _Gate _gate = _Gate.checking;
   bool _isLoadingMechanics = false;
   List<AdminMechanicRow> _mechanics = [];
   String? _loadError;
+  bool _isOpeningDetail = false;
 
   // Default true — "Onay Bekleyenler" first, since that's the actual task
   // this screen exists for; "Tümü" is one tap away.
@@ -81,6 +89,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     setState(() {
       _mechanics[index] = AdminMechanicRow(
         id: previous.id,
+        businessId: previous.businessId,
         name: previous.name,
         hizmetTuru: previous.hizmetTuru,
         phone: previous.phone,
@@ -111,6 +120,28 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   List<AdminMechanicRow> get _visibleMechanics =>
       _showOnlyPending ? _mechanics.where((m) => !m.isVerified).toList() : _mechanics;
 
+  // Opens the exact same customer-facing MechanicDetailPage, loaded the
+  // exact same way CustomerConversationPage._resolveMechanic already does
+  // (fetchByBusinessId + a null-safe error snackbar) — this admin screen's
+  // AdminMechanicRow only carries a lean field subset for the list, not a
+  // full Mechanic, so the real Mechanic is fetched fresh here rather than
+  // fabricated from those few fields.
+  Future<void> _openMechanicDetail(AdminMechanicRow row) async {
+    if (_isOpeningDetail) return;
+    setState(() => _isOpeningDetail = true);
+    final mechanic = await _directoryRepository.fetchByBusinessId(row.businessId);
+    if (!mounted) return;
+    setState(() => _isOpeningDetail = false);
+
+    if (mechanic == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usta bilgileri alınamadı.')),
+      );
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MechanicDetailPage(mechanic: mechanic)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,6 +158,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
             onFilterChanged: (value) => setState(() => _showOnlyPending = value),
             onRetry: _loadMechanics,
             onToggleVerified: _setVerified,
+            onOpenDetail: _openMechanicDetail,
           ),
       },
     );
@@ -167,6 +199,7 @@ class _MechanicList extends StatelessWidget {
     required this.onFilterChanged,
     required this.onRetry,
     required this.onToggleVerified,
+    required this.onOpenDetail,
   });
 
   final bool isLoading;
@@ -176,6 +209,7 @@ class _MechanicList extends StatelessWidget {
   final ValueChanged<bool> onFilterChanged;
   final VoidCallback onRetry;
   final void Function(AdminMechanicRow mechanic, bool isVerified) onToggleVerified;
+  final ValueChanged<AdminMechanicRow> onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +249,7 @@ class _MechanicList extends StatelessWidget {
                             return _MechanicRow(
                               mechanic: mechanic,
                               onToggleVerified: (value) => onToggleVerified(mechanic, value),
+                              onTap: () => onOpenDetail(mechanic),
                             );
                           },
                         ),
@@ -260,60 +295,74 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _MechanicRow extends StatelessWidget {
-  const _MechanicRow({required this.mechanic, required this.onToggleVerified});
+  const _MechanicRow({required this.mechanic, required this.onToggleVerified, required this.onTap});
 
   final AdminMechanicRow mechanic;
   final ValueChanged<bool> onToggleVerified;
 
+  /// Opens MechanicDetailPage for this mechanic — wired below to only the
+  /// info column, never the Switch (see the comment on that Row), so this
+  /// never fires from a tap that was really meant to toggle verification.
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return PremiumSurface(
+      // No onTap here — PremiumSurface's own InkWell would cover the whole
+      // card including the Switch, and a tap on the Switch would then be
+      // ambiguous between two overlapping tap recognizers. Instead only the
+      // info column below (a Row sibling of the Switch, so its hit area
+      // never overlaps the Switch's own) is wrapped in its own InkWell.
       padding: const EdgeInsets.all(AppSpacing.lg),
       borderRadius: AppRadius.lg,
       border: Border.all(color: AppColors.divider),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mechanic.name.isEmpty ? '(İsim yok)' : mechanic.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  mechanic.hizmetTuru ?? 'Tür belirtilmemiş',
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                ),
-                if (mechanic.phone.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    mechanic.phone,
+                    mechanic.name.isEmpty ? '(İsim yok)' : mechanic.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    mechanic.hizmetTuru ?? 'Tür belirtilmemiş',
                     style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                   ),
-                ],
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      mechanic.isVerified ? Icons.verified_rounded : Icons.remove_circle_outline_rounded,
-                      size: 14,
-                      color: mechanic.isVerified ? AppColors.verified : AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
+                  if (mechanic.phone.isNotEmpty) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      mechanic.isVerified ? 'Onaylı' : 'Onaysız',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: mechanic.isVerified ? AppColors.verified : AppColors.textSecondary,
-                      ),
+                      mechanic.phone,
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                     ),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        mechanic.isVerified ? Icons.verified_rounded : Icons.remove_circle_outline_rounded,
+                        size: 14,
+                        color: mechanic.isVerified ? AppColors.verified : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        mechanic.isVerified ? 'Onaylı' : 'Onaysız',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: mechanic.isVerified ? AppColors.verified : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           Switch(

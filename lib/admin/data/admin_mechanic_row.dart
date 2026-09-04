@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminMechanicRow {
   const AdminMechanicRow({
     required this.id,
+    required this.businessId,
     required this.name,
     required this.hizmetTuru,
     required this.phone,
@@ -20,6 +21,16 @@ class AdminMechanicRow {
   /// auto-generated id for accounts created by an admin bulk-upload script.
   /// Either way, this is what AdminRepository.setMechanicVerified writes to.
   final String id;
+
+  /// The `businessId` field — NOT always equal to [id]. Real registrations
+  /// (mechanic_login_page.dart) key the document by the mechanic's Firebase
+  /// Auth UID but store a separately-derived businessId
+  /// (mechanicChatId(name)) as a field; only the bulk-upload script's rows
+  /// happen to set both to the same value. This is what
+  /// MechanicDirectoryRepository.fetchByBusinessId — the same lookup
+  /// CustomerConversationPage already uses to open MechanicDetailPage —
+  /// actually queries on, so it has to be kept distinct from [id].
+  final String businessId;
 
   final String name;
 
@@ -34,6 +45,7 @@ class AdminMechanicRow {
     final data = doc.data();
     return AdminMechanicRow(
       id: doc.id,
+      businessId: data['businessId'] as String? ?? '',
       name: data['name'] as String? ?? '',
       hizmetTuru: data['hizmetTürü'] as String?,
       phone: data['phone'] as String? ?? '',
