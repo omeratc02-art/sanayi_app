@@ -1,16 +1,28 @@
-// One-time admin script: bulk-uploads real mechanic business records into
-// the `mechanicAccounts` Firestore collection for project sanayi-omer-tr.
-// NOT part of the Flutter app — run manually from this folder:
+// Admin script: uploads real mechanic business records into the
+// `mechanicAccounts` Firestore collection for project sanayi-omer-tr.
+// NOT part of the Flutter app — reusable, not one-time: run again whenever
+// mechanics_to_add.json gets a new entry appended.
 //   npm install
 //   node upload_mechanics.js
 //
-// Field names (name/phone/address/hizmetTürü/hizmetler/businessId) match
-// exactly what the app itself reads — see lib/models/mechanic.dart's
-// Mechanic.fromFirestore and lib/data/mechanic_directory_repository.dart —
-// so these records display and query correctly the moment this runs, with
-// no follow-up data fix needed.
+// The mechanic list itself lives in mechanics_to_add.json, not here — to
+// add a mechanic found in the field, append an entry there (same shape as
+// the existing ones: name/phone/type/services/address/hours/emergency/gmail)
+// and rerun. Every run re-checks the whole file against Firestore and only
+// creates documents for entries not already present (see findDuplicate
+// below), so it's always safe to rerun after adding one new entry — it
+// will not duplicate or overwrite any of the existing records.
+//
+// Field names written to Firestore (name/phone/address/hizmetTürü/
+// hizmetler/businessId) match exactly what the app itself reads — see
+// lib/models/mechanic.dart's Mechanic.fromFirestore and
+// lib/data/mechanic_directory_repository.dart — so these records display
+// and query correctly the moment this runs, with no follow-up data fix
+// needed.
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const admin = require('firebase-admin');
 const serviceAccount = require('./serviceAccountKey.json');
 
@@ -21,20 +33,60 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-const mechanics = [
-  { name: "Gaziantep Tekno Ford Özel Servis", phone: "0542 405 27 17", type: "tamir", services: [], address: "Mavikent Mah. 135021 Nolu Sk. Sanayi Sitesi 47/A, Şahinbey/Gaziantep", hours: "Pazartesi-Pazar 24 saat açık", emergency: null, gmail: "" },
-  { name: "Yalçınkaya Oto Servis", phone: "0534 241 95 21", type: "tamir", services: [], address: "Küsget Sanayi Sitesi, 60011. Cd. No:115 B Blok 3, Şehitkamil/Gaziantep", hours: "Pzt-Cuma 24 saat, Cmt 07:00-21:30, Pzr 12:00-18:00", emergency: null, gmail: "" },
-  { name: "Deniz Oto Tamir", phone: "0545 512 75 59", type: "tamir", services: [], address: "Küsget Sanayi, 60011. Cd. No:119 B Blok 3, Şehitkamil/Gaziantep", hours: "Pzt-Cuma 08:00-19:00, Cmt 09:00-17:00, Pzr Kapalı", emergency: null, gmail: "" },
-  { name: "Hakan Oto Tamir & Şanzıman", phone: "0543 952 27 18", type: "tamir", services: [], address: "Küsget Sanayi, 60011. Cd. 1/D Sitesi 60053, Şehitkamil/Gaziantep", hours: "Pazartesi-Pazar 24 saat açık", emergency: null, gmail: "" },
-  { name: "Boran Oto Tamir Bakım Servis", phone: "0535 593 89 32", type: "tamir", services: [], address: "Sanayi Mah. Araban Yolu Cd. Palmiye Sanayi Sitesi 53/E, Şehitkamil/Gaziantep", hours: "Pazartesi-Pazar 24 saat açık", emergency: null, gmail: "" },
-  { name: "Yılmaz & Bağcı Oto Tamir", phone: "0551 663 02 14", type: "tamir", services: [], address: "Küsget Sanayi Sitesi 60003, Nolu Cd., Şehitkamil/Gaziantep", hours: "Pazartesi-Pazar 24 saat açık", emergency: null, gmail: "" },
-  { name: "Rüzgar Oto Tamir (Ahmet Usta)", phone: "", type: "tamir", services: [], address: "Aydınlar Oto Sanayi Sitesi D Blok No:24, Şehitkamil/Gaziantep", hours: "Pzt-Cuma 09:00-17:30, Cmt 09:00-14:00, Pzr Kapalı", emergency: null, gmail: "" },
-  { name: "Kaya Oto Tamir ve Elektrik", phone: "", type: "tamir", services: [], address: "Sanayi Sitesi, Şehitkamil/Gaziantep", hours: "", emergency: null, gmail: "" },
-  { name: "Ottoman Oto Expertiz Gaziantep", phone: "0532 503 32 06", type: "ekspertiz", services: [], address: "Aydınlar Mah. Şehit Ömer Halis Demir Blv. No:26, Şehitkamil/Gaziantep", hours: "Pazartesi-Pazar 24 saat açık", emergency: null, gmail: "" },
-  { name: "Pilot Garage Gaziantep İpekyolu", phone: "0540 579 00 27", type: "ekspertiz", services: [], address: "Eydibaba, Sani Konukoğlu Blv. No:47/C, Şehitkamil/Gaziantep", hours: "Pzt-Cuma 08:00-18:30, Cmt 08:00-18:00, Pzr 10:00-16:00", emergency: null, gmail: "" },
-  { name: "Rapor Garage Gaziantep", phone: "0554 114 71 62", type: "ekspertiz", services: [], address: "Mavikent, 135025 Nolu Cd. No:11/A, Şahinbey/Gaziantep", hours: "Pzt-Cuma 08:30-18:00, Cmt 08:30-17:00, Pzr Kapalı", emergency: null, gmail: "" },
-  { name: "Avrupa Oto Ekspertiz Gaziantep", phone: "0539 799 98 98", type: "ekspertiz", services: [], address: "Karacaahmet Mah. 38087 Cd. No:5, Şehitkamil/Gaziantep", hours: "Pazartesi-Pazar 08:00-19:00 (Pzr 08:00-17:00)", emergency: null, gmail: "" },
-];
+const mechanics = JSON.parse(fs.readFileSync(path.join(__dirname, 'mechanics_to_add.json'), 'utf8'));
+
+// Turkish phone numbers get typed in several equivalent forms across
+// entries (leading 0, leading +90, spaced or not) — comparing raw strings
+// would miss a real duplicate typed differently the second time. Reducing
+// to the bare 10-digit subscriber number (no country/trunk prefix) makes
+// the comparison format-independent. Blank stays blank: an empty phone
+// must never be treated as a match against another empty phone — several
+// of the existing 12 records have no phone on file, and none of them are
+// duplicates of each other.
+function normalizePhone(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length === 12 && digits.startsWith('90')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  return digits;
+}
+
+async function fetchExistingKeys() {
+  const snapshot = await db.collection('mechanicAccounts').get();
+  const phones = new Set();
+  const businessIds = new Set();
+  // Exact business name, but only for existing docs that have no phone on
+  // file — this is what phone/businessId dedup alone misses: two of the
+  // original 12 records (Rüzgar Oto Tamir, Kaya Oto Tamir ve Elektrik)
+  // were entered with no phone number, so a normalized-phone comparison
+  // can never recognize them and a rerun would otherwise re-create them as
+  // duplicates every time (confirmed the hard way against live Firestore,
+  // then cleaned up manually). Scoped to only the no-phone case so two
+  // different phoned businesses that happen to share a name string are
+  // never wrongly treated as the same one.
+  const namesWithoutPhone = new Set();
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const normalizedPhone = normalizePhone(data.phone);
+    if (normalizedPhone) {
+      phones.add(normalizedPhone);
+    } else if (data.name) {
+      namesWithoutPhone.add(data.name);
+    }
+    if (data.businessId) businessIds.add(data.businessId);
+  }
+  return { phones, businessIds, namesWithoutPhone };
+}
+
+// Null means "not a duplicate, safe to upload". A non-null string names
+// which field matched, for the skip log line.
+function findDuplicateReason(entry, existingPhones, existingBusinessIds, existingNamesWithoutPhone) {
+  if (entry.businessId && existingBusinessIds.has(entry.businessId)) return 'businessId';
+  const normalizedPhone = normalizePhone(entry.phone);
+  if (normalizedPhone && existingPhones.has(normalizedPhone)) return 'phone';
+  if (!normalizedPhone && entry.name && existingNamesWithoutPhone.has(entry.name)) return 'name (no phone on file)';
+  return null;
+}
 
 async function uploadMechanic(entry) {
   // A pre-generated ref, not add() + a follow-up update — lets businessId
@@ -59,14 +111,38 @@ async function uploadMechanic(entry) {
 }
 
 async function main() {
+  const {
+    phones: existingPhones,
+    businessIds: existingBusinessIds,
+    namesWithoutPhone: existingNamesWithoutPhone,
+  } = await fetchExistingKeys();
+
   let successCount = 0;
+  let skippedCount = 0;
   let failureCount = 0;
 
   for (const entry of mechanics) {
+    const duplicateReason = findDuplicateReason(entry, existingPhones, existingBusinessIds, existingNamesWithoutPhone);
+    if (duplicateReason) {
+      skippedCount += 1;
+      console.log(`SKIP ${entry.name}  ->  already exists (matched on ${duplicateReason})`);
+      continue;
+    }
+
     try {
       const id = await uploadMechanic(entry);
       successCount += 1;
       console.log(`OK   ${entry.name}  ->  mechanicAccounts/${id}`);
+      // So a second entry later in this same file matching this one (same
+      // phone, or same name when both are phone-less) is also caught as a
+      // duplicate, not just ones already in Firestore before this run
+      // started.
+      const normalizedPhone = normalizePhone(entry.phone);
+      if (normalizedPhone) {
+        existingPhones.add(normalizedPhone);
+      } else if (entry.name) {
+        existingNamesWithoutPhone.add(entry.name);
+      }
     } catch (error) {
       failureCount += 1;
       console.error(`FAIL ${entry.name}  ->  ${error.message}`);
@@ -74,7 +150,9 @@ async function main() {
   }
 
   console.log('');
-  console.log(`Done: ${successCount}/${mechanics.length} uploaded, ${failureCount} failed.`);
+  console.log(
+    `Done: ${successCount} uploaded, ${skippedCount} already existed (skipped), ${failureCount} failed, ${mechanics.length} total in mechanics_to_add.json.`,
+  );
 
   if (failureCount > 0) {
     process.exitCode = 1;
