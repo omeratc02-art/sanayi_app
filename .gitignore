@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Admin scripts — Firebase service account keys must never be committed.
+# Broad pattern, not just the one path, so any future admin script under
+# scripts/ that copies a key in the same way is covered automatically.
+**/serviceAccountKey.json
+scripts/**/node_modules/

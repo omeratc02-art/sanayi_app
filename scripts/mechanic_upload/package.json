@@ -1,0 +1,12 @@
+{
+  "name": "mechanic-upload",
+  "private": true,
+  "description": "One-time admin script: bulk-uploads mechanic records into the mechanicAccounts Firestore collection. Not part of the Flutter app.",
+  "type": "commonjs",
+  "scripts": {
+    "upload": "node upload_mechanics.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0"
+  }
+}
