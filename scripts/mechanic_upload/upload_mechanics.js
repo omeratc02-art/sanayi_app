@@ -19,12 +19,21 @@
 // lib/data/mechanic_directory_repository.dart — so these records display
 // and query correctly the moment this runs, with no follow-up data fix
 // needed.
+//
+// businessId is mechanicChatId(name) (see mechanic_chat_id.js), the same
+// name-slug convention real mechanic registrations use — NOT a raw
+// Firestore doc id. The first 13 records uploaded before this comment
+// used the raw doc id instead, which silently broke every customer-facing
+// lookup that expects the slug (MechanicDirectoryRepository.fetchByBusinessId,
+// chat/appointment routing); see fix_business_ids.js, the one-off
+// migration that corrected those 13 in place.
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 const serviceAccount = require('./serviceAccountKey.json');
+const { mechanicChatId } = require('./mechanic_chat_id.js');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -89,13 +98,16 @@ function findDuplicateReason(entry, existingPhones, existingBusinessIds, existin
 }
 
 async function uploadMechanic(entry) {
-  // A pre-generated ref, not add() + a follow-up update — lets businessId
-  // (and its işletme_kimliği duplicate) be written in the same single set()
-  // as everything else, instead of a second write per document.
+  // A pre-generated ref for the doc id (auto-generated, unrelated to
+  // businessId) — lets businessId/işletme_kimliği be written in the same
+  // single set() as everything else, instead of a second write per
+  // document. businessId itself is the name-slug, matching what every
+  // customer-facing lookup in the app expects (see the file header).
   const ref = db.collection('mechanicAccounts').doc();
+  const businessId = mechanicChatId(entry.name);
   await ref.set({
-    businessId: ref.id,
-    işletme_kimliği: ref.id,
+    businessId,
+    işletme_kimliği: businessId,
     name: entry.name,
     phone: entry.phone,
     hizmetTürü: entry.type,
