@@ -2,11 +2,12 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Chat + mechanic-account access is unchanged from the project's
-    // previous (fully open) rules — customers can message without signing
-    // in (see CustomerConversationPage's 'customer-demo' fallback), so
-    // these intentionally stay open. Only `appointments` below is newly
-    // restricted.
+    // Chat access is unchanged from the project's previous (fully open)
+    // rules — customers can message without signing in (see
+    // CustomerConversationPage's 'customer-demo' fallback), so this
+    // intentionally stays open. mechanicAccounts below is now narrowed
+    // slightly (isVerified specifically); `appointments`/`randevular`
+    // further down were restricted earlier.
     match /chats/{chatId} {
       allow read, write: if true;
 
@@ -16,7 +17,45 @@ service cloud.firestore {
     }
 
     match /mechanicAccounts/{uid} {
-      allow read, write: if true;
+      allow read: if true;
+
+      // Create/delete stay exactly as open as the old blanket `if true` —
+      // in particular, mechanic_login_page.dart's registration flow still
+      // sets isVerified on the initial doc (copied from a picked MockData
+      // catalog entry for 'tamir' businesses) exactly as before; that flow
+      // is deliberately left untouched, so it can't be this rule's job to
+      // gate a brand-new document's fields.
+      allow create: if true;
+      allow delete: if true;
+
+      // Updating any field other than isVerified is unchanged (still
+      // open). Changing isVerified specifically — the admin
+      // approve/unapprove action from AdminApprovalScreen — requires the
+      // caller's own UID to exist in `admins`. This is what stops both the
+      // mechanic account owner and any other authenticated user from
+      // flipping their own (or anyone else's) verified status after the
+      // fact; only the one-time value set at registration is exempt (see
+      // the `create` branch above).
+      allow update: if
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
+        || (
+          request.auth != null &&
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        );
+    }
+
+    // Gates access to admin-only app features (currently: AdminApprovalScreen's
+    // ability to set mechanicAccounts.isVerified — see the update rule above).
+    // Membership is managed entirely via Firebase Console for now; no client
+    // write path exists or is planned here.
+    match /admins/{uid} {
+      // `get`, not `list`: a signed-in user may check whether *their own*
+      // UID has an admins/{uid} doc (exactly what the settings-page 6-tap
+      // gesture and AdminApprovalScreen's own guard do), but can never
+      // enumerate or read anyone else's membership.
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list: if false;
+      allow write: if false;
     }
 
     // A new appointment request always starts as a 'pending' document —
