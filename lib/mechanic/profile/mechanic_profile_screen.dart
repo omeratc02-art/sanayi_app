@@ -6,7 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/chat_id.dart';
 import '../../utils/firebase_instances.dart';
 import '../../widgets/common/premium_surface.dart';
-import '../../widgets/verified_jobs_badge.dart';
+import '../appointments/data/appointment_repository.dart';
 import 'data/mechanic_profile.dart';
 import 'data/mechanic_profile_repository.dart';
 
@@ -146,9 +146,28 @@ class _ProfileBody extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: VerifiedJobsBadge(mechanicId: profile.businessId),
+              // Always visible, no threshold — unlike VerifiedJobsBadge
+              // (shown to customers on MechanicDetailPage, hidden below
+              // its own minThreshold: 10), this is the mechanic looking at
+              // their own numbers: a motivational progress signal, not a
+              // marketing badge shown to strangers, so 0 is a real,
+              // meaningful value here rather than something to hide.
+              FutureBuilder<int>(
+                future: AppointmentRepository().fetchVerifiedCompletedCount(profile.businessId),
+                builder: (context, snapshot) {
+                  final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                  final value = isLoading ? '...' : '${snapshot.data ?? 0}';
+                  return _InfoRow(icon: Icons.verified_outlined, label: 'Tamamlanan İş: $value');
+                },
+              ),
+              const SizedBox(height: 8),
+              FutureBuilder<int?>(
+                future: MechanicProfileRepository().fetchRepeatCustomerCount(profile.businessId),
+                builder: (context, snapshot) {
+                  final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                  final value = isLoading ? '...' : '${snapshot.data ?? 0}';
+                  return _InfoRow(icon: Icons.repeat_rounded, label: 'Tekrar Eden Müşteri: $value');
+                },
               ),
               if (rating != null) ...[
                 const SizedBox(height: 6),
