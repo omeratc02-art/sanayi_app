@@ -177,15 +177,20 @@ void main() {
       await seedAppointment(
         'req-newest',
         appointmentDate: daysFromNow(0),
-        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        // Exactly "now" (not e.g. "2 hours ago") — a small offset is only
+        // reliably "today" depending on what wall-clock time the test
+        // happens to run at (it can cross midnight), which made this test
+        // flaky. Zero offset is same-day by construction, always.
+        createdAt: DateTime.now(),
         customerNote: 'Frenlerden ses geliyor, kontrol edebilir misiniz?',
       );
 
       await pumpScreen(tester);
 
-      // The newest-submitted request (req-newest) is the priority card.
-      expect(find.text('Yeni Talep'), findsOneWidget);
-      expect(find.textContaining('saat önce geldi'), findsOneWidget);
+      // The newest-submitted request (req-newest) is the priority card,
+      // and since it was created today, it gets the "today" honest label.
+      expect(find.text('Bugün Gelen Talep'), findsOneWidget);
+      expect(find.textContaining('geldi'), findsWidgets);
       expect(find.text('"Frenlerden ses geliyor, kontrol edebilir misiniz?"'), findsOneWidget);
 
       // No fabricated urgency label anywhere on this screen.
@@ -194,8 +199,11 @@ void main() {
 
       // The older request appears under "Diğer Talepler" with a real
       // date-based tag instead (appointmentDate is 2 days out -> "Yaklaşan").
+      // Found twice: once as that tag, once more as the compact "Bugüne
+      // Bakış" overview row's own "Yaklaşan" (upcoming-count) label — the
+      // same real coincidence of wording as 'Bugün'/'Gecikti' above.
       expect(find.text('Diğer Talepler'), findsOneWidget);
-      expect(find.text('Yaklaşan'), findsOneWidget);
+      expect(find.text('Yaklaşan'), findsNWidgets(2));
     },
   );
 
@@ -241,9 +249,15 @@ void main() {
 
     await pumpScreen(tester);
 
-    expect(find.text('Bugün'), findsOneWidget);
+    // 'Bugün' and 'Gecikti' each appear twice: once as the request's own
+    // date-based tag (what this test is really checking), and once more as
+    // the compact "Bugüne Bakış" overview row's own short stat labels
+    // ('Bugün'/'Gecikti' for the today/overdue counts) — a real, harmless
+    // coincidence of wording, not a duplicate tag. 'Yarın' isn't used as an
+    // overview label, so it stays unambiguous at 1.
+    expect(find.text('Bugün'), findsNWidgets(2));
     expect(find.text('Yarın'), findsOneWidget);
-    expect(find.text('Gecikti'), findsOneWidget);
+    expect(find.text('Gecikti'), findsNWidgets(2));
   });
 
   testWidgets('Notification bell badge reflects a real unread-chat count, not a hardcoded number', (

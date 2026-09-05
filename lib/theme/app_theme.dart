@@ -55,17 +55,26 @@ class AppColors {
   static const Color verified = Color(0xFF4338CA);
   static const Color verifiedBackground = Color(0xFFECECFB);
 
-  // Schedule-status tags — the mechanic home screen's Bugün/Yarın/Gecikti
-  // tags on pending requests. Kept separate from [emergency] (reserved
-  // exclusively for the roadside-help card) and [open]/[closed] (business
-  // hours), so this status vocabulary doesn't borrow either's one reserved
-  // meaning. Never used for general branding.
-  static const Color scheduleOverdue = Color(0xFFDC2626);
-  static const Color scheduleOverdueBackground = Color(0xFFFDEBEA);
-  static const Color scheduleToday = Color(0xFF0369A1);
-  static const Color scheduleTodayBackground = Color(0xFFE3F2FB);
-  static const Color scheduleTomorrow = Color(0xFF7C3AED);
-  static const Color scheduleTomorrowBackground = Color(0xFFF1EAFE);
+  // Schedule-status tags — the mechanic home screen's Bugün/Yarın/Gecikti/
+  // Yaklaşan tags and each request card's subtle status accent (a thin left
+  // border + small badge, never a filled card background). Kept separate
+  // from [emergency] (reserved exclusively for the roadside-help card) and
+  // [open]/[closed] (business hours), so this restrained status vocabulary
+  // never reads as an alert — [scheduleOverdue] in particular is a muted,
+  // desaturated red, deliberately far from [emergency]'s bright one, since
+  // "delayed" is a normal workflow state here, not an emergency. Never used
+  // for general branding.
+  static const Color scheduleOverdue = Color(0xFFB54B4B);
+  static const Color scheduleOverdueBackground = Color(0xFFF7EAEA);
+  // Same hue as [turquoise] — "today" reuses the app's own teal/turquoise
+  // identity rather than a separate brand color.
+  static const Color scheduleToday = Color(0xFF14B8A6);
+  static const Color scheduleTodayBackground = Color(0xFFE1F5F3);
+  // Covers both "Yarın" and "Yaklaşan" — every non-today, non-overdue
+  // future date shares one soft-blue accent; the label text (not the
+  // color) is what distinguishes tomorrow from further-out dates.
+  static const Color scheduleUpcoming = Color(0xFF5B9BD5);
+  static const Color scheduleUpcomingBackground = Color(0xFFEAF2FB);
 }
 
 /// Named type scale (approved visual-identity direction) — four disciplined

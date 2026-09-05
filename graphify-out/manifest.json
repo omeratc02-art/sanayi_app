@@ -282,9 +282,9 @@
     "semantic_hash": "1fc94de1c981ff68f01b44789333cd0e"
   },
   "lib/mechanic/home/mechanic_home_screen.dart": {
-    "mtime": 1788645777.4777472,
-    "seen": 1788646006.309622,
-    "ast_hash": "7a1298e9d5d58b94a9dae661508143a2",
+    "mtime": 1788650534.6444707,
+    "seen": 1788650678.229695,
+    "ast_hash": "343ca427c3d8ab6398c9409f110412c9",
     "semantic_hash": ""
   },
   "lib/mechanic/notifications/mechanic_notifications_screen.dart": {
@@ -540,9 +540,9 @@
     "semantic_hash": "1aa731726933e5f2bc8e93763b3d5b5f"
   },
   "lib/theme/app_theme.dart": {
-    "mtime": 1788645467.6031723,
-    "seen": 1788646006.3098814,
-    "ast_hash": "00b2b47a9f9fe65b0e1ff363f0a55640",
+    "mtime": 1788649841.1484108,
+    "seen": 1788650678.2298653,
+    "ast_hash": "b5900975932d00035bb3428d79d629f9",
     "semantic_hash": ""
   },
   "lib/utils/chat_id.dart": {
@@ -1266,9 +1266,9 @@
     "semantic_hash": ""
   },
   "test/mechanic_home_screen_test.dart": {
-    "mtime": 1788645728.9081767,
-    "seen": 1788646006.3102674,
-    "ast_hash": "bf092719f92e3fb38cbc96d06c66afd1",
+    "mtime": 1788650290.9825456,
+    "seen": 1788650678.2301486,
+    "ast_hash": "9b7554cb8a0951253ce2bbaed10c4888",
     "semantic_hash": ""
   },
   "test/mechanic_profile_screen_test.dart": {
