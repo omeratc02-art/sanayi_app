@@ -39,9 +39,20 @@ async function writeRepeatCustomerRate(
   // account per registered business — see MechanicLoginPage registration),
   // but if more than one somehow matches, update all of them rather than
   // silently picking one arbitrarily.
+  //
+  // repeatCustomerCount (repeatCustomers, the raw distinct-customer count)
+  // is written alongside the existing repeatCustomerRate field — the
+  // Flutter app's UI has moved to showing the raw count (a "%0 Tekrar
+  // Tercih" percentage unfairly read as a bad signal for a new business
+  // with little data yet), but repeatCustomerRate itself is left in place
+  // rather than removed, since nothing here requires reshaping what's
+  // already stored.
   const batch = firestore.batch();
   for (const doc of accountsSnapshot.docs) {
-    batch.update(doc.ref, { repeatCustomerRate: result.repeatCustomerRate });
+    batch.update(doc.ref, {
+      repeatCustomerRate: result.repeatCustomerRate,
+      repeatCustomerCount: result.repeatCustomers,
+    });
   }
   await batch.commit();
 }

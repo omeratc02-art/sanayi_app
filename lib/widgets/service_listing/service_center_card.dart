@@ -254,38 +254,40 @@ class _CenterInfo extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 11),
         FutureBuilder<int?>(
-          future: MechanicProfileRepository().fetchRepeatCustomerRate(mechanicChatId(mechanic.name)),
+          future: MechanicProfileRepository().fetchRepeatCustomerCount(mechanicChatId(mechanic.name)),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SizedBox.shrink();
             }
-            final rate = snapshot.hasError ? null : snapshot.data;
-            if (rate == null) {
-              return const _TrustChip(
-                icon: Icons.repeat_rounded,
-                color: AppColors.textSecondary,
-                label: 'Tekrar tercih verisi yok',
-              );
+            final count = snapshot.hasError ? null : snapshot.data;
+            // Fully hidden, not a muted "no data yet" chip — same
+            // "hide below threshold" reasoning as VerifiedJobsBadge (a raw
+            // 0 read as a bad signal here, same problem a "%0 Tekrar
+            // Tercih" percentage had for a new business with no data yet).
+            if (count == null || count == 0) {
+              return const SizedBox.shrink();
             }
-            return InkWell(
-              onTap: () => showTrustInfoSheet(
-                context,
-                icon: Icons.repeat_rounded,
-                accentColor: AppColors.primaryDark,
-                title: 'Tekrar Tercih Oranı',
-                description:
-                    'Bu oran, bir önceki ziyaretinden sonra müşterilerin başka bir hizmet için bu servis '
-                    'sağlayıcısına tekrar dönme yüzdesini gösterir. Yüksek bir oran, daha güçlü bir müşteri '
-                    'memnuniyeti ve güveni olduğunu gösterir.',
-                highlight: 'Müşterilerin %$rate\'i bu hizmeti tekrar tercih etti.',
-              ),
-              borderRadius: BorderRadius.circular(20),
-              child: _TrustChip(
-                icon: Icons.repeat_rounded,
-                color: AppColors.primaryDark,
-                label: '%$rate Tekrar Tercih',
+            return Padding(
+              padding: const EdgeInsets.only(top: 11),
+              child: InkWell(
+                onTap: () => showTrustInfoSheet(
+                  context,
+                  icon: Icons.repeat_rounded,
+                  accentColor: AppColors.primaryDark,
+                  title: 'Tekrar Tercih Eden Müşteriler',
+                  description:
+                      'Bu sayı, bir önceki ziyaretinden sonra başka bir hizmet için bu servis sağlayıcısına '
+                      'tekrar dönen farklı müşteri sayısını gösterir. Yüksek bir sayı, daha güçlü bir '
+                      'müşteri memnuniyeti ve güveni olduğunu gösterir.',
+                  highlight: '$count müşteri bu hizmeti tekrar tercih etti.',
+                ),
+                borderRadius: BorderRadius.circular(20),
+                child: _TrustChip(
+                  icon: Icons.repeat_rounded,
+                  color: AppColors.primaryDark,
+                  label: '$count Kez Tekrar Tercih Edildi',
+                ),
               ),
             );
           },

@@ -87,16 +87,66 @@ class MechanicDetailPage extends StatelessWidget {
             const SizedBox(height: 20),
             _RatingSummaryRow(mechanic: mechanic),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(child: _RepeatCustomerRateTile(mechanic: mechanic)),
-                const SizedBox(width: 12),
+            FutureBuilder<int?>(
+              future: MechanicProfileRepository().fetchRepeatCustomerCount(mechanicChatId(mechanic.name)),
+              builder: (context, snapshot) {
+                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final count = snapshot.hasError ? null : snapshot.data;
                 // No distance tile: real mechanicAccounts have no real
                 // geolocation data yet (see Mechanic.distanceLabel).
-                Expanded(
-                  child: StatTile(icon: Icons.payments, label: 'Fiyat Aralığı', value: mechanic.priceRangeLabel),
-                ),
-              ],
+                final resolvedPriceTile =
+                    StatTile(icon: Icons.payments, label: 'Fiyat Aralığı', value: mechanic.priceRangeLabel);
+
+                // Once resolved with nothing to show, the repeat-customer
+                // tile is fully hidden — not a muted placeholder — same
+                // "hide below threshold" reasoning as VerifiedJobsBadge (a
+                // raw 0 reads as a bad signal here, the same problem a "%0
+                // Tekrar Tercih" percentage had for a new business with no
+                // data yet). The price tile then takes the full row alone,
+                // rather than leaving an empty half next to it.
+                if (!isLoading && (count == null || count == 0)) {
+                  return resolvedPriceTile;
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: isLoading
+                          ? const StatTile(icon: Icons.repeat, label: 'Tekrar Müşteri', value: '...')
+                          : InkWell(
+                              onTap: () => showTrustInfoSheet(
+                                context,
+                                icon: Icons.repeat_rounded,
+                                accentColor: AppColors.primaryDark,
+                                title: 'Tekrar Tercih Eden Müşteriler',
+                                description:
+                                    'Bu sayı, bir önceki ziyaretinden sonra başka bir hizmet için bu servis '
+                                    'sağlayıcısına tekrar dönen farklı müşteri sayısını gösterir. Yüksek bir '
+                                    'sayı, daha güçlü bir müşteri memnuniyeti ve güveni olduğunu gösterir.',
+                                highlight: '$count müşteri bu hizmeti tekrar tercih etti.',
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Stack(
+                                children: [
+                                  StatTile(icon: Icons.repeat, label: 'Tekrar Müşteri', value: '$count'),
+                                  Positioned(
+                                    top: 6,
+                                    right: 6,
+                                    child: Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: resolvedPriceTile),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 16),
             _InfoCard(
@@ -177,60 +227,6 @@ class _RatingSummaryRow extends StatelessWidget {
                     ],
                   ),
                 ),
-        );
-      },
-    );
-  }
-}
-
-/// A fixed-position StatTile in the 3-column stats Row (alongside Distance
-/// and Price, which are synchronous), so unlike [_RatingSummaryRow] this
-/// keeps the same StatTile container visible throughout — collapsing to
-/// SizedBox.shrink() while loading would leave a blank gap next to the two
-/// already-populated sibling tiles.
-class _RepeatCustomerRateTile extends StatelessWidget {
-  const _RepeatCustomerRateTile({required this.mechanic});
-
-  final Mechanic mechanic;
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<int?>(
-      future: MechanicProfileRepository().fetchRepeatCustomerRate(mechanicChatId(mechanic.name)),
-      builder: (context, snapshot) {
-        final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        final rate = snapshot.hasError ? null : snapshot.data;
-        final valueLabel = isLoading ? '...' : (rate == null ? '—' : '%$rate');
-        return InkWell(
-          onTap: rate == null
-              ? null
-              : () => showTrustInfoSheet(
-                    context,
-                    icon: Icons.repeat_rounded,
-                    accentColor: AppColors.primaryDark,
-                    title: 'Tekrar Tercih Oranı',
-                    description:
-                        'Bu oran, bir önceki ziyaretinden sonra müşterilerin başka bir hizmet için bu '
-                        'servis sağlayıcısına tekrar dönme yüzdesini gösterir. Yüksek bir oran, daha '
-                        'güçlü bir müşteri memnuniyeti ve güveni olduğunu gösterir.',
-                    highlight: 'Müşterilerin %$rate\'i bu hizmeti tekrar tercih etti.',
-                  ),
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              StatTile(icon: Icons.repeat, label: 'Tekrar Müşteri', value: valueLabel),
-              if (rate != null)
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Icon(
-                    Icons.info_outline_rounded,
-                    size: 16,
-                    color: AppColors.textSecondary.withValues(alpha: 0.7),
-                  ),
-                ),
-            ],
-          ),
         );
       },
     );

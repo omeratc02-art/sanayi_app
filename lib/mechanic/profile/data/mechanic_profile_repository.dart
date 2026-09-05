@@ -55,4 +55,22 @@ class MechanicProfileRepository {
     }
     return null;
   }
+
+  /// A business's raw repeat-customer count — how many distinct customers
+  /// completed more than one verified appointment with them — written by
+  /// the same updateRepeatCustomerRates Cloud Function run alongside
+  /// repeatCustomerRate (see that function's own writeRepeatCustomerRate).
+  /// Same lookup/null/archived-skip reasoning as fetchRepeatCustomerRate
+  /// above, just a different field: null both when no matching document
+  /// exists and when the function hasn't run for this business yet.
+  Future<int?> fetchRepeatCustomerCount(String businessId) async {
+    final snapshot = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['archived'] == true) continue;
+      final count = data['repeatCustomerCount'];
+      return count is num ? count.toInt() : null;
+    }
+    return null;
+  }
 }

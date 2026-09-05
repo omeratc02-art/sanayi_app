@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sanayi_app/models/mechanic.dart';
+import 'package:sanayi_app/utils/chat_id.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
 import 'package:sanayi_app/widgets/service_listing/service_center_card.dart';
 
@@ -55,5 +56,51 @@ void main() {
   testWidgets('a genuinely long business name still renders without overflow', (WidgetTester tester) async {
     await pumpCard(tester, 'Anadolu Yakası Merkez Oto Tamir ve Bakım Servisi Ltd. Şti.');
     expect(tester.takeException(), isNull);
+  });
+
+  group('repeat-customer count chip', () {
+    // Deliberately doesn't contain "Tekrar Tercih" itself — several
+    // assertions below search for that substring, and the mechanic's own
+    // name (always rendered on the card) would otherwise self-match.
+    const name = 'Sayaç Deneme Ustası';
+    final businessId = mechanicChatId(name);
+
+    testWidgets('shows the raw count when repeatCustomerCount > 0', (WidgetTester tester) async {
+      await firestoreInstance.collection('mechanicAccounts').add({
+        'name': name,
+        'businessId': businessId,
+        'repeatCustomerCount': 7,
+      });
+
+      await pumpCard(tester, name);
+
+      expect(find.text('7 Kez Tekrar Tercih Edildi'), findsOneWidget);
+    });
+
+    testWidgets('hides the chip entirely when repeatCustomerCount is 0 — not a muted placeholder', (
+      WidgetTester tester,
+    ) async {
+      await firestoreInstance.collection('mechanicAccounts').add({
+        'name': name,
+        'businessId': businessId,
+        'repeatCustomerCount': 0,
+      });
+
+      await pumpCard(tester, name);
+
+      expect(find.textContaining('Tekrar Tercih'), findsNothing);
+      expect(find.textContaining('Tekrar tercih'), findsNothing);
+    });
+
+    testWidgets('hides the chip entirely when no matching mechanicAccounts document exists', (
+      WidgetTester tester,
+    ) async {
+      // No seeding at all — mirrors every other test in this file, which
+      // never seeds a matching document either.
+      await pumpCard(tester, name);
+
+      expect(find.textContaining('Tekrar Tercih'), findsNothing);
+      expect(find.textContaining('Tekrar tercih'), findsNothing);
+    });
   });
 }

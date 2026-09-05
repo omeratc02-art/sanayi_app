@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
 import 'package:sanayi_app/main.dart';
+import 'package:sanayi_app/models/mechanic.dart';
 import 'package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart';
 import 'package:sanayi_app/screens/search/search_tab.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
@@ -61,7 +62,7 @@ void main() {
     expect(detailScope, findsOneWidget);
     expect(find.descendant(of: detailScope, matching: find.text('Hızlı Lastikçi')), findsWidgets);
     expect(find.descendant(of: detailScope, matching: find.text('Onaylı Usta')), findsOneWidget);
-    expect(find.descendant(of: detailScope, matching: find.text('%84')), findsOneWidget);
+    expect(find.descendant(of: detailScope, matching: find.text('42')), findsOneWidget);
     // No distance assertion: real mechanicAccounts have no real geolocation
     // data yet, so the distance stat tile was removed from this page.
     expect(find.descendant(of: detailScope, matching: find.text('₺200 - ₺380')), findsOneWidget);
@@ -86,4 +87,40 @@ void main() {
 
     expect(find.textContaining('0212 667 45 09'), findsOneWidget);
   });
+
+  testWidgets(
+    'Repeat-customer tile is hidden entirely (not a muted placeholder) when repeatCustomerCount is 0/absent, '
+    'and the price tile takes the full row alone',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(400, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // No mechanicAccounts document at all for this business — same
+      // "no data yet" case fetchRepeatCustomerCount returns null for.
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MechanicDetailPage(
+            mechanic: Mechanic(
+              name: 'Yeni Usta',
+              rating: 0,
+              reviewCount: 0,
+              phone: '5551234567',
+              address: 'Test Adres',
+              priceMin: 200,
+              priceMax: 400,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tekrar Müşteri'), findsNothing);
+      expect(find.textContaining('Tekrar Tercih'), findsNothing);
+      // The price tile still renders correctly, alone.
+      expect(find.text('Fiyat Aralığı'), findsOneWidget);
+      expect(find.text('₺200 - ₺400'), findsOneWidget);
+    },
+  );
 }
