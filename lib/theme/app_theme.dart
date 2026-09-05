@@ -54,6 +54,18 @@ class AppColors {
   static const Color ratingBackground = Color(0xFFFEF7DC);
   static const Color verified = Color(0xFF4338CA);
   static const Color verifiedBackground = Color(0xFFECECFB);
+
+  // Schedule-status tags — the mechanic home screen's Bugün/Yarın/Gecikti
+  // tags on pending requests. Kept separate from [emergency] (reserved
+  // exclusively for the roadside-help card) and [open]/[closed] (business
+  // hours), so this status vocabulary doesn't borrow either's one reserved
+  // meaning. Never used for general branding.
+  static const Color scheduleOverdue = Color(0xFFDC2626);
+  static const Color scheduleOverdueBackground = Color(0xFFFDEBEA);
+  static const Color scheduleToday = Color(0xFF0369A1);
+  static const Color scheduleTodayBackground = Color(0xFFE3F2FB);
+  static const Color scheduleTomorrow = Color(0xFF7C3AED);
+  static const Color scheduleTomorrowBackground = Color(0xFFF1EAFE);
 }
 
 /// Named type scale (approved visual-identity direction) — four disciplined
