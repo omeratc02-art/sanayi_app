@@ -5,7 +5,7 @@ import '../../widgets/categories/service_entry_card.dart';
 
 /// Landing page for the "Yağ Değişimi" category — a flat list of the
 /// specific oil-change services, each its own entry point into a dedicated
-/// detail page. No pricing or actions here, matching [MaintenanceSubcategoryPage].
+/// detail page. No pricing or actions here, matching [PeriodicMaintenanceCategoryPage].
 class OilChangeCategoryPage extends StatelessWidget {
   const OilChangeCategoryPage({super.key, required this.onServiceSelected});
 

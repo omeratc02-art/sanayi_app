@@ -14,11 +14,9 @@ import '../categories/body_paint_category_page.dart';
 import '../categories/brake_system_category_page.dart';
 import '../categories/exhaust_system_category_page.dart';
 import '../categories/glass_lighting_category_page.dart';
-import '../categories/maintenance_major_detail_page.dart';
-import '../categories/maintenance_routine_detail_page.dart';
-import '../categories/maintenance_subcategory_page.dart';
 import '../categories/motor_category_page.dart';
 import '../categories/oil_change_category_page.dart';
+import '../categories/periodic_maintenance_category_page.dart';
 import '../categories/suspension_steering_category_page.dart';
 import '../categories/tire_wheel_category_page.dart';
 import '../categories/transmission_clutch_category_page.dart';
@@ -73,21 +71,6 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
-  void _openPeriodicMaintenance() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MaintenanceSubcategoryPage(
-          onRoutineMaintenanceSelected: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MaintenanceRoutineDetailPage()),
-          ),
-          onMajorMaintenanceSelected: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MaintenanceMajorDetailPage()),
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Shared push for the "category landing page → service listing" pattern
   /// (see [OilChangeCategoryPage], [BrakeSystemCategoryPage], etc.): every
   /// such landing page takes a single `ValueChanged<String>` that should
@@ -114,7 +97,7 @@ class _MainShellState extends State<MainShell> {
         builder: (_) => VehicleRepairCategoryPage(
           onCategoryTap: (category) {
             if (category == 'Periyodik Bakım') {
-              _openPeriodicMaintenance();
+              _openServiceCategory((onSelected) => PeriodicMaintenanceCategoryPage(onServiceSelected: onSelected));
             } else if (category == 'Yağ Değişimi') {
               _openServiceCategory((onSelected) => OilChangeCategoryPage(onServiceSelected: onSelected));
             } else if (category == 'Fren Sistemi') {

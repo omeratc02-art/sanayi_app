@@ -7,8 +7,10 @@ import 'package:google_sign_in_platform_interface/google_sign_in_platform_interf
 import 'package:sanayi_app/main.dart';
 import 'package:sanayi_app/screens/categories/ac_climate_category_page.dart';
 import 'package:sanayi_app/screens/categories/motor_category_page.dart';
+import 'package:sanayi_app/screens/categories/periodic_maintenance_category_page.dart';
 import 'package:sanayi_app/screens/home/home_tab.dart';
 import 'package:sanayi_app/screens/home/vehicle_repair_category_page.dart';
+import 'package:sanayi_app/screens/service_listing/service_listing_page.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
 
 import 'test_utils/fake_google_sign_in_platform.dart';
@@ -129,4 +131,30 @@ void main() {
 
     expect(find.byType(MotorCategoryPage), findsOneWidget);
   });
+
+  testWidgets(
+    'Tapping "Periyodik Bakım" opens its 2-entry list, and tapping an entry goes straight to ServiceListingPage',
+    (WidgetTester tester) async {
+      await pumpApp(tester);
+      await openVehicleRepair(tester);
+
+      final vehicleRepairScope = find.byType(VehicleRepairCategoryPage);
+      await tester.tap(find.descendant(of: vehicleRepairScope, matching: find.text('Periyodik Bakım')));
+      await tester.pumpAndSettle();
+
+      // One tap in — same depth as every other category (e.g. Motor,
+      // Klima above) — no intermediate informational/checklist page.
+      expect(find.byType(PeriodicMaintenanceCategoryPage), findsOneWidget);
+      final periodicScope = find.byType(PeriodicMaintenanceCategoryPage);
+      expect(find.descendant(of: periodicScope, matching: find.text('10.000–20.000 km Bakımı')), findsOneWidget);
+      expect(find.descendant(of: periodicScope, matching: find.text('Ağır Bakım')), findsOneWidget);
+
+      await tester.tap(find.descendant(of: periodicScope, matching: find.text('Ağır Bakım')));
+      await tester.pumpAndSettle();
+
+      final listingPage = tester.widget<ServiceListingPage>(find.byType(ServiceListingPage));
+      expect(listingPage.serviceName, 'Ağır Bakım');
+      expect(listingPage.hizmetTuru, 'tamir');
+    },
+  );
 }

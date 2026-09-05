@@ -4,9 +4,9 @@ import '../../theme/app_theme.dart';
 import '../common/premium_surface.dart';
 
 /// Tappable icon + title + subtitle + chevron card, used across category
-/// landing pages (e.g. [MaintenanceSubcategoryPage], oil-change services)
-/// as the entry point into a dedicated detail page. Deliberately carries no
-/// pricing or action buttons of its own — that's the destination page's job.
+/// landing pages (e.g. [PeriodicMaintenanceCategoryPage], oil-change
+/// services) as the entry point into ServiceListingPage. Deliberately
+/// carries no pricing or action buttons of its own.
 class ServiceEntryCard extends StatelessWidget {
   const ServiceEntryCard({
     super.key,
