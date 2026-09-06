@@ -482,13 +482,15 @@ class _MechanicHomeTopBar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 40,
-          height: 40,
+          // Was 40x40 with a 20px logo — bumped up so the brand mark carries
+          // more visual weight instead of reading as a small afterthought.
+          width: 44,
+          height: 44,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(gradient: _logoBadgeGradient, borderRadius: BorderRadius.all(Radius.circular(12))),
+          decoration: const BoxDecoration(gradient: _logoBadgeGradient, borderRadius: BorderRadius.all(Radius.circular(13))),
           child: Image.asset(
             _logoAssetPath,
-            height: 20,
+            height: 22,
             fit: BoxFit.contain,
             // Resilience only — falls back to an empty badge (no
             // broken-image icon) if the asset is ever missing again.
@@ -496,21 +498,35 @@ class _MechanicHomeTopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'SanayiGo',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primary),
+                // Was fontSize 15/w800/AppColors.primary — AppColors.primary
+                // (a sky blue) has weak contrast against white for text this
+                // small; primaryDark reads as a clearly stronger, darker
+                // wordmark, and the larger w900 size/weight gives it more
+                // visual mass to match the strengthened logo badge.
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
                 'Ustanın Gücü, Yolda Güven',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
+                // Was fontSize 10.5/textSecondary (unweighted) — a touch
+                // bigger, semibold, and a darker gray (textPrimary at
+                // reduced alpha, rather than the lighter textSecondary
+                // token) so it no longer nearly disappears next to the
+                // strengthened wordmark above it.
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary.withValues(alpha: 0.75),
+                ),
               ),
             ],
           ),
@@ -616,12 +632,29 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
             children: [
               Text(
                 greeting,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                // Was fontSize 22/w800 — AppColors.textPrimary is already
+                // this app's darkest neutral token (near-black), so the
+                // color itself was already correct/maximally dark; the
+                // faintness read as a weight problem instead, so this goes
+                // up to w900 (the heaviest weight the variable font
+                // supports) with a slightly larger size, so it reads as the
+                // unmistakably dominant element on this row.
+                style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Randevularınızı ve hizmet taleplerinizi yönetin.',
-                style: TextStyle(fontSize: 13.5, height: 1.4, color: AppColors.textSecondary),
+                // Was fontSize 13.5/textSecondary (unweighted). Still
+                // clearly secondary to the greeting above, but darker
+                // (textPrimary at reduced alpha, rather than the lighter
+                // textSecondary token) and semibold so it holds up instead
+                // of nearly disappearing.
+                style: TextStyle(
+                  fontSize: 13.5,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary.withValues(alpha: 0.72),
+                ),
               ),
             ],
           ),

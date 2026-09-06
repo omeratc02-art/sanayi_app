@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2470 nodes · 3485 edges · 143 communities (116 shown, 21 thin omitted)
+- 2472 nodes · 3486 edges · 146 communities (118 shown, 23 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 33 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a4366101`
+- Built from commit: `e70cc225`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -75,7 +75,7 @@
 - emergency_help_card.dart
 - compilerOptions
 - working_hours.dart
-- mechanic_profile.dart
+- category_list.dart
 - sort_filter_bar.dart
 - trust_metric_tile.dart
 - appointment_request_card.dart
@@ -86,14 +86,14 @@
 - wWinMain
 - ../../utils/firebase_instances.dart
 - List
-- category_list.dart
+- category_grid.dart
 - chat_repository.dart
 - category_card.dart
 - verified_trust_badge.dart
 - manifest.json
 - mechanic_home_page.dart
 - chat_unread_test.dart
-- brake_system_category_page.dart
+- vehicle.dart
 - contact_info_sheet.dart
 - mechanic_upload/package.json
 - ../../data/mock_data.dart
@@ -105,7 +105,7 @@
 - detail_action_bar.dart
 - chat_booking_action_test.dart
 - Graphify Knowledge Graph Workflow
-- appointment_request.dart
+- firebase_options.dart
 - backfill_hizmet_turu.js
 - pending_booking_vehicle.dart
 - exhaust_system_category_page.dart
@@ -117,14 +117,18 @@
 - booking_history.dart
 - ../../models/mechanic.dart
 - VoidCallback
-- request_another_time_sheet.dart
-- AppointmentRequestStore
+- greeting_bar.dart
+- tire_wheel_category_page.dart
+- transmission_clutch_category_page.dart
+- SingleTickerProviderStateMixin
 - all_vehicles_page.dart
+- google_sign_in_button_stub.dart
 - mechanic_home_screen_test.dart
 - ../mechanic/appointments/data/appointment_repository.dart
 - Step 2.5: Video and audio
 - Step 4.5: Graph health check
-- motor_category_page.dart
+- _MechanicAppointmentsScreenState
+- _SuggestionSentBannerState
 - time_slot.dart
 - chat_id.dart
 - MainActivity.kt
@@ -158,12 +162,12 @@
 2. `Win32Window` - 24 edges
 3. `/graphify command` - 14 edges
 4. `MessageHandler` - 12 edges
-5. `Mechanic` - 10 edges
-6. `FlutterWindow` - 10 edges
-7. `Create` - 10 edges
-8. `WndProc` - 10 edges
-9. `scripts` - 9 edges
-10. `MessageHandler` - 9 edges
+5. `FlutterWindow` - 10 edges
+6. `Create` - 10 edges
+7. `WndProc` - 10 edges
+8. `Mechanic` - 10 edges
+9. `MessageHandler` - 9 edges
+10. `scripts` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `flutter run Device-Offline Failure (attempt 1)` --semantically_similar_to--> `flutter run Device-Offline Failure (attempt 2)`  [INFERRED] [semantically similar]
@@ -188,7 +192,7 @@
 - **Flutter Desktop Runner Build Pattern (Linux/Windows)** — linux_cmakelists_runner_target, linux_runner_cmakelists_runner_executable, windows_cmakelists_runner_target, windows_runner_cmakelists_runner_executable [INFERRED 0.85]
 - **Graph Query & Self-Improving Recall Loop** — claude_skills_graphify_references_query_query_flow, claude_skills_graphify_references_query_path_flow, claude_skills_graphify_references_query_explain_flow, claude_skills_graphify_references_query_save_result_command, claude_skills_graphify_references_query_reflect_command [INFERRED 0.85]
 
-## Communities (143 total, 21 thin omitted)
+## Communities (146 total, 23 thin omitted)
 
 ### Community 0 - "mechanic_appointments_screen.dart"
 Cohesion: 0.02
@@ -219,8 +223,8 @@ Cohesion: 0.04
 Nodes (51): AppColors, AppRadius, AppShadows, AppSpacing, AppTextStyles, AppTheme, background, body (+43 more)
 
 ### Community 7 - "appointment_detail_page.dart"
-Cohesion: 0.11
-Nodes (19): AppointmentRequest get, customer_conversation_page.dart, _acceptSuggestion, AppointmentDetailPage, _AppointmentDetailPageState, build, createState, _DetailRow (+11 more)
+Cohesion: 0.05
+Nodes (42): AppointmentRequest get, ../booking/time_slot_grid.dart, customer_conversation_page.dart, AppointmentRequest, AppointmentRequestStatus, businessId, customerId, date (+34 more)
 
 ### Community 8 - "generate_adaptive_foreground.dart"
 Cohesion: 0.05
@@ -247,12 +251,12 @@ Cohesion: 0.05
 Nodes (39): data/chat_message.dart, data/chat_repository.dart, appointment, _bubbleColor, _ChatBubble, chatId, _controller, createState (+31 more)
 
 ### Community 14 - "login_page.dart"
-Cohesion: 0.06
-Nodes (35): ../home/main_shell.dart, _afterSignedIn, build, _codeController, _confirmCode, createState, _debugLoginButton, _debugSignIn (+27 more)
+Cohesion: 0.05
+Nodes (39): ../home/main_shell.dart, _afterSignedIn, _AuthDialog, _AuthDialogState, build, _codeController, _confirmCode, createState (+31 more)
 
 ### Community 15 - "mechanic.dart"
-Cohesion: 0.08
-Nodes (23): address, categories, distanceLabel, distanceValue, fromFirestore, hizmetler, hizmetTuru, isOpen (+15 more)
+Cohesion: 0.05
+Nodes (37): bool get, double?, int?, address, businessId, businessName, email, fromFirestore (+29 more)
 
 ### Community 16 - "appointment_calendar_view.dart"
 Cohesion: 0.05
@@ -263,8 +267,8 @@ Cohesion: 0.11
 Nodes (18): build, _clusterSpacing, HomeTab, _MainServiceCategories, onCategoryTap, _sectionPadding, _showComingSoon, _spacing (+10 more)
 
 ### Community 18 - "my_vehicles_section.dart"
-Cohesion: 0.06
-Nodes (34): deriveVehiclesFromAppointments, licensePlate, modelLabel, seen, sorted, Vehicle, vehicles, _AddVehicleRow (+26 more)
+Cohesion: 0.08
+Nodes (25): _AddVehicleRow, _appointments, build, createState, dispose, _headerToContentSpacing, _iconBackground, _iconInnerSize (+17 more)
 
 ### Community 19 - "premium_surface.dart"
 Cohesion: 0.06
@@ -280,15 +284,15 @@ Nodes (20): build, _controller, createState, dispose, _filteredResults, _future,
 
 ### Community 22 - "mechanic_home_screen.dart"
 Cohesion: 0.03
-Nodes (70): ../appointments/mechanic_request_details_page.dart, appointment, appointmentDate, _appointmentRepository, appointments, build, businessName, color (+62 more)
+Nodes (73): Appointment, ../appointments/mechanic_request_details_page.dart, appointment, appointmentDate, _appointmentRepository, appointments, build, businessName (+65 more)
 
 ### Community 23 - "scripts"
 Cohesion: 0.07
 Nodes (28): firebase-functions, dependencies, firebase-admin, firebase-functions, devDependencies, jest, ts-jest, @types/jest (+20 more)
 
 ### Community 24 - "appointments_tab.dart"
-Cohesion: 0.06
-Nodes (33): ../../data/appointment_request_store.dart, Appointment, appointment, _AppointmentList, AppointmentsTab, _AppointmentsTabState, build, comment (+25 more)
+Cohesion: 0.08
+Nodes (27): Appointment, appointment, _AppointmentList, AppointmentsTab, _AppointmentsTabState, build, comment, _commentController (+19 more)
 
 ### Community 25 - "mechanic_notifications_screen.dart"
 Cohesion: 0.08
@@ -300,15 +304,15 @@ Nodes (22): FlPluginRegistry, FlView, GApplication, gboolean, gchar, GObject, Gt
 
 ### Community 27 - "appointment_request_store.dart"
 Cohesion: 0.08
-Nodes (24): bool get, int get, accept, actionNeededCount, _applyRealAppointment, appointmentRequestFromAccepted, _combine, _composeNote (+16 more)
+Nodes (25): ChangeNotifier, int get, accept, actionNeededCount, _applyRealAppointment, appointmentRequestFromAccepted, AppointmentRequestStore, _combine (+17 more)
 
 ### Community 28 - "static const"
 Cohesion: 0.09
 Nodes (22): AcClimateCategoryPage, build, _cardSpacing, onServiceSelected, _services, BatteryElectricalCategoryPage, build, _cardSpacing (+14 more)
 
 ### Community 29 - "_"
-Cohesion: 0.07
-Nodes (27): google_sign_in_button.dart, renderButton, _, account, autoSignedInCredential, completer, credential, digits (+19 more)
+Cohesion: 0.08
+Nodes (25): google_sign_in_button.dart, _, account, autoSignedInCredential, completer, credential, digits, googleSignInAccounts (+17 more)
 
 ### Community 30 - "notifications_page.dart"
 Cohesion: 0.09
@@ -320,15 +324,15 @@ Nodes (22): ../../data/booking_history.dart, build, count, createState, distribu
 
 ### Community 32 - "package:flutter/material.dart"
 Cohesion: 0.10
-Nodes (18): BodyPaintCategoryPage, build, _cardSpacing, onServiceSelected, _services, build, SectionLabel, text (+10 more)
+Nodes (18): BrakeSystemCategoryPage, build, _cardSpacing, onServiceSelected, _services, build, SectionLabel, text (+10 more)
 
 ### Community 33 - "appointment_repository.dart"
 Cohesion: 0.09
 Nodes (22): appointment.dart, acceptProposedTime, acceptTimeProposal, AppointmentRepository, _collection, fetchAppointmentById, fetchAppointments, fetchOnTimeCompletionRate (+14 more)
 
 ### Community 34 - "State"
-Cohesion: 0.10
-Nodes (30): MechanicAppointmentsScreen, _MechanicAppointmentsScreenState, _SuggestionSentBanner, _SuggestionSentBannerState, _TypingIndicator, _TypingIndicatorState, _BusinessPickerDialog, _BusinessPickerDialogState (+22 more)
+Cohesion: 0.14
+Nodes (20): AdminApprovalScreen, _AdminApprovalScreenState, _TypingIndicator, _BusinessPickerDialog, _BusinessPickerDialogState, _MechanicAuthDialog, _MechanicAuthDialogState, MechanicLoginPage (+12 more)
 
 ### Community 35 - "customer_conversation_list_page.dart"
 Cohesion: 0.09
@@ -347,12 +351,12 @@ Cohesion: 0.11
 Nodes (19): ../appointments/data/appointment_repository.dart, data/mechanic_profile.dart, data/mechanic_profile_repository.dart, build, createState, fallback, _fallbackMechanic, icon (+11 more)
 
 ### Community 39 - "main.dart"
-Cohesion: 0.10
-Nodes (18): ../../auth/social_auth.dart, dev/dev_mode_launcher.dart, firebase_options.dart, android, DefaultFirebaseOptions, ios, macos, web (+10 more)
+Cohesion: 0.18
+Nodes (10): ../../auth/social_auth.dart, dev/dev_mode_launcher.dart, firebase_options.dart, build, initializeApp, initializeGoogleSignIn, main, SanayiApp (+2 more)
 
 ### Community 40 - "service_center_card.dart"
-Cohesion: 0.09
-Nodes (21): _actionsPadding, _background, build, _buttonSpacing, _CenterInfo, color, _gradient, icon (+13 more)
+Cohesion: 0.10
+Nodes (20): _actionsPadding, _background, _buttonSpacing, _CenterInfo, color, _gradient, icon, label (+12 more)
 
 ### Community 41 - "mechanic_detail_page.dart"
 Cohesion: 0.11
@@ -364,7 +368,7 @@ Nodes (21): ElevatedButton, package:flutter_test/flutter_test.dart, package:sana
 
 ### Community 43 - "MaterialPageRoute"
 Cohesion: 0.11
-Nodes (18): _openMechanicDetail, build, build, build, build, _openAppointments, _openNotifications, _openRequestDetails (+10 more)
+Nodes (19): _openMechanicDetail, build, build, build, build, _openAppointments, _openNotifications, _openRequestDetails (+11 more)
 
 ### Community 44 - "package:fake_cloud_firestore/fake_cloud_firestore.dart"
 Cohesion: 0.16
@@ -388,19 +392,19 @@ Nodes (17): _arrowButtonSize, build, color, icon, _iconBadgeSize, _iconSize, ill
 
 ### Community 49 - "customer_profile_tab.dart"
 Cohesion: 0.04
-Nodes (43): ../../admin/admin_approval_screen.dart, ../../admin/data/admin_repository.dart, DateTime?, chatId, ChatMessage, ChatSummary, createdAt, customerDisplayName (+35 more)
+Nodes (43): ../../admin/admin_approval_screen.dart, ../../admin/data/admin_repository.dart, DateTime, chatId, ChatMessage, ChatSummary, createdAt, customerDisplayName (+35 more)
 
 ### Community 50 - "mechanic_list_tile.dart"
 Cohesion: 0.12
 Nodes (16): Mechanic, _avatarBackground, _avatarSize, _borderRadius, build, isOpen, _margin, mechanic (+8 more)
 
 ### Community 51 - "admin_approval_screen.dart"
-Cohesion: 0.04
-Nodes (44): data/admin_mechanic_row.dart, data/admin_repository.dart, _AccessDenied, AdminApprovalScreen, _AdminApprovalScreenState, build, _checkAccess, createState (+36 more)
+Cohesion: 0.05
+Nodes (42): data/admin_mechanic_row.dart, data/admin_repository.dart, _AccessDenied, build, _checkAccess, createState, _directoryRepository, _EmptyState (+34 more)
 
 ### Community 52 - "all_categories_page.dart"
 Cohesion: 0.12
-Nodes (16): AllCategoriesPage, _AllCategoriesPageState, build, categories, _controller, createState, dispose, onCategorySelected (+8 more)
+Nodes (14): build, categories, _controller, createState, dispose, onCategorySelected, _query, title (+6 more)
 
 ### Community 53 - "skeleton_loader.dart"
 Cohesion: 0.14
@@ -430,9 +434,9 @@ Nodes (13): compileOnSave, compilerOptions, module, noImplicitReturns, noUnusedL
 Cohesion: 0.14
 Nodes (13): current, _dayIndex, _dayOrder, endMinutes, indexOf, isOpenNow, matchesToday, normalized (+5 more)
 
-### Community 60 - "mechanic_profile.dart"
-Cohesion: 0.14
-Nodes (13): double?, int?, address, businessId, businessName, email, fromFirestore, isVerified (+5 more)
+### Community 60 - "category_list.dart"
+Cohesion: 0.20
+Nodes (9): EdgeInsets, build, categories, CategoryList, onCategoryTap, padding, _spacing, _tileHeight (+1 more)
 
 ### Community 61 - "sort_filter_bar.dart"
 Cohesion: 0.17
@@ -451,8 +455,8 @@ Cohesion: 0.17
 Nodes (11): ../common/premium_surface.dart, build, icon, _iconBackground, _iconInnerSize, _iconSize, onTap, ServiceEntryCard (+3 more)
 
 ### Community 65 - "service_listing_page.dart"
-Cohesion: 0.17
-Nodes (11): ../../data/mechanic_directory_repository.dart, Future, build, createState, _fetchSortedServiceCenters, _future, hizmetTuru, initState (+3 more)
+Cohesion: 0.15
+Nodes (13): ../../data/mechanic_directory_repository.dart, Future, build, createState, _fetchSortedServiceCenters, _future, hizmetTuru, initState (+5 more)
 
 ### Community 66 - "fake_google_sign_in_platform.dart"
 Cohesion: 0.17
@@ -474,9 +478,9 @@ Nodes (11): build, DevModeLauncher, fetchProfile, fetchRepeatCustomerCount, fetc
 Cohesion: 0.14
 Nodes (12): formatFullDate, isSameDay, _monthFull, _weekdayFull, _weekdayShort, build, onSelected, selected (+4 more)
 
-### Community 71 - "category_list.dart"
-Cohesion: 0.10
-Nodes (19): category_card.dart, EdgeInsets, build, categories, CategoryGrid, _gridSpacing, _maxColumns, _minColumns (+11 more)
+### Community 71 - "category_grid.dart"
+Cohesion: 0.18
+Nodes (10): category_card.dart, build, categories, CategoryGrid, _gridSpacing, _maxColumns, _minColumns, onCategoryTap (+2 more)
 
 ### Community 72 - "chat_repository.dart"
 Cohesion: 0.18
@@ -502,9 +506,9 @@ Nodes (9): ../appointments/mechanic_appointments_screen.dart, build, createState
 Cohesion: 0.17
 Nodes (11): package:firebase_auth_mocks/firebase_auth_mocks.dart, package:sanayi_app/data/appointment_request_store.dart, package:sanayi_app/screens/appointments/customer_conversation_list_page.dart, package:sanayi_app/screens/appointments/customer_conversation_page.dart, package:sanayi_app/screens/notifications/notifications_page.dart, package:sanayi_app/widgets/home/greeting_bar.dart, main, pumpApp (+3 more)
 
-### Community 78 - "brake_system_category_page.dart"
-Cohesion: 0.33
-Nodes (5): BrakeSystemCategoryPage, build, _cardSpacing, onServiceSelected, _services
+### Community 78 - "vehicle.dart"
+Cohesion: 0.20
+Nodes (9): deriveVehiclesFromAppointments, licensePlate, modelLabel, seen, sorted, Vehicle, vehicles, ../../mechanic/appointments/data/appointment.dart (+1 more)
 
 ### Community 79 - "contact_info_sheet.dart"
 Cohesion: 0.22
@@ -532,7 +536,7 @@ Nodes (9): GitHub clone flow (single/multi repo), graphify merge-graphs command,
 
 ### Community 85 - "ValueChanged"
 Cohesion: 0.11
-Nodes (15): build, _cardSpacing, OilChangeCategoryPage, onServiceSelected, _services, build, _cardSpacing, onServiceSelected (+7 more)
+Nodes (15): build, _cardSpacing, MotorCategoryPage, onServiceSelected, _services, build, _cardSpacing, OilChangeCategoryPage (+7 more)
 
 ### Community 86 - "index.ts"
 Cohesion: 0.44
@@ -550,9 +554,9 @@ Nodes (7): package:sanayi_app/screens/booking/appointment_request_page.dart, pac
 Cohesion: 0.25
 Nodes (8): Graphify Knowledge Graph Workflow, graphify explain command, graphify-out/graph.json, graphify path command, graphify query command, graphify-out/GRAPH_REPORT.md, graphify update command, graphify-out/wiki/index.md
 
-### Community 90 - "appointment_request.dart"
-Cohesion: 0.15
-Nodes (12): AppointmentRequestStatus, businessId, customerId, date, id, mechanicName, preferredWindowLabel, proposedDateTime (+4 more)
+### Community 90 - "firebase_options.dart"
+Cohesion: 0.22
+Nodes (8): android, DefaultFirebaseOptions, ios, macos, web, windows, package:firebase_core/firebase_core.dart, static const FirebaseOptions
 
 ### Community 91 - "backfill_hizmet_turu.js"
 Cohesion: 0.32
@@ -598,9 +602,21 @@ Nodes (5): fetchByBusinessId, fetchByHizmetTuru, _firestore, MechanicDirectoryRe
 Cohesion: 0.33
 Nodes (5): build, onSeeAll, SectionHeader, title, VoidCallback
 
-### Community 103 - "request_another_time_sheet.dart"
-Cohesion: 0.18
-Nodes (11): ../booking/time_slot_grid.dart, AppointmentRequest, build, createState, onSubmitted, request, _RequestAnotherTimeSheetContent, _RequestAnotherTimeSheetContentState (+3 more)
+### Community 102 - "greeting_bar.dart"
+Cohesion: 0.29
+Nodes (6): ../../data/appointment_request_store.dart, build, GreetingBar, onNotificationTap, unreadMessageCount, userName
+
+### Community 103 - "tire_wheel_category_page.dart"
+Cohesion: 0.33
+Nodes (5): build, _cardSpacing, onServiceSelected, _services, TireWheelCategoryPage
+
+### Community 104 - "transmission_clutch_category_page.dart"
+Cohesion: 0.33
+Nodes (5): build, _cardSpacing, onServiceSelected, _services, TransmissionClutchCategoryPage
+
+### Community 105 - "SingleTickerProviderStateMixin"
+Cohesion: 0.67
+Nodes (4): _TypingIndicatorState, _TypingIndicatorState, SingleTickerProviderStateMixin, _TypingIndicator
 
 ### Community 106 - "all_vehicles_page.dart"
 Cohesion: 0.25
@@ -621,10 +637,6 @@ Nodes (5): Step 2.5: Transcribe video/audio flow, Whisper domain-hint prompt, St
 ### Community 111 - "Step 4.5: Graph health check"
 Cohesion: 0.40
 Nodes (5): graphify.analyze.graph_diff(), Step 4.5: Graph health check, Step 4: Build graph, cluster, analyze, generate outputs, Step 5: Label communities, Step 6: Generate Obsidian vault + HTML
-
-### Community 113 - "motor_category_page.dart"
-Cohesion: 0.33
-Nodes (5): build, _cardSpacing, MotorCategoryPage, onServiceSelected, _services
 
 ### Community 114 - "time_slot.dart"
 Cohesion: 0.50
@@ -659,22 +671,22 @@ Nodes (4): date, now, time, today
   pubspec.yaml · relation: references
 
 ## Knowledge Gaps
-- **1536 isolated node(s):** `name`, `build`, `build:watch`, `serve`, `shell` (+1531 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1733 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1536 isolated node(s):** `ScheduleBucket`, `_RequestCardData`, `_twoColumnBreakpoint`, `_sidebarWidth`, `_appointmentRepository` (+1531 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1735 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `social_auth.dart googleSignInButton() (referenced, path uncertain)` and `google_sign_in_web Dependency`?**
   _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
-- **Why does `_` connect `_` to `admin_repository.dart`, `../../utils/firebase_instances.dart`, `chat_repository.dart`, `appointment_request_store.dart`, `pending_booking_vehicle.dart`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Why does `_` connect `_` to `admin_repository.dart`, `../../utils/firebase_instances.dart`, `chat_repository.dart`, `google_sign_in_button_stub.dart`, `mechanic.dart`, `pending_booking_vehicle.dart`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `AppointmentRequest` connect `appointment_detail_page.dart` to `notifications_page.dart`, `appointment_request_card.dart`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Why does `Mechanic` connect `mechanic_list_tile.dart` to `customer_conversation_list_page.dart`, `customer_conversation_page.dart`, `appointment_request_page.dart`, `mechanic_profile_screen.dart`, `service_center_card.dart`, `mechanic_detail_page.dart`, `mechanic_login_page.dart`, `mechanic.dart`, `reviews_page.dart`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `Appointment` connect `appointments_tab.dart` to `appointment.dart`, `mechanic_request_details_page.dart`, `mechanic_appointment_details_page.dart`, `mechanic_conversation_page.dart`, `appointment_calendar_view.dart`, `mechanic_home_screen.dart`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **What connects `name`, `build`, `build:watch` to the rest of the system?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **What connects `ScheduleBucket`, `_RequestCardData`, `_twoColumnBreakpoint` to the rest of the system?**
   _1536 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `mechanic_appointments_screen.dart` be split into smaller, more focused modules?**
   _Cohesion score 0.021052631578947368 - nodes in this community are weakly interconnected._
