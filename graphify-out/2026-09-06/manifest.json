@@ -282,9 +282,9 @@
     "semantic_hash": "1fc94de1c981ff68f01b44789333cd0e"
   },
   "lib/mechanic/home/mechanic_home_screen.dart": {
-    "mtime": 1788707345.7783763,
-    "seen": 1788707859.685197,
-    "ast_hash": "cefa9623c4b7575d229abbce8782d177",
+    "mtime": 1788708461.2678554,
+    "seen": 1788708768.9443293,
+    "ast_hash": "42d7cb3fd49db97f161881e309f25351",
     "semantic_hash": ""
   },
   "lib/mechanic/notifications/mechanic_notifications_screen.dart": {
