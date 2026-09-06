@@ -1113,17 +1113,6 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_dailyschedulerow",
-      "label": "_DailyScheduleRow",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "mechanic_appointments_screen.dart",
-      "file_type": "code",
-      "norm_label": "_dailyschedulerow",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_mechanic_appointments_mechanic_appointments_screen_declinerequest",
       "label": "_declineRequest",
       "_origin": "ast",
@@ -1153,17 +1142,6 @@
       "community_name": "mechanic_appointments_screen.dart",
       "file_type": "code",
       "norm_label": "distance",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_emptytabstate",
-      "label": "_EmptyTabState",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "mechanic_appointments_screen.dart",
-      "file_type": "code",
-      "norm_label": "_emptytabstate",
       "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
@@ -1289,17 +1267,6 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_inforow",
-      "label": "_InfoRow",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "mechanic_appointments_screen.dart",
-      "file_type": "code",
-      "norm_label": "_inforow",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_mechanic_appointments_mechanic_appointments_screen_initstate",
       "label": "initState",
       "_origin": "ast",
@@ -1395,17 +1362,6 @@
       "community_name": "mechanic_appointments_screen.dart",
       "file_type": "code",
       "norm_label": "_monthnames",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_newrequestbadge",
-      "label": "_NewRequestBadge",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "mechanic_appointments_screen.dart",
-      "file_type": "code",
-      "norm_label": "_newrequestbadge",
       "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
@@ -1608,17 +1564,6 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_servicebadge",
-      "label": "_ServiceBadge",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "mechanic_appointments_screen.dart",
-      "file_type": "code",
-      "norm_label": "_servicebadge",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_mechanic_appointments_mechanic_appointments_screen_showappointmentconfirmeddialog",
       "label": "_showAppointmentConfirmedDialog",
       "_origin": "ast",
@@ -1769,17 +1714,6 @@
       "community_name": "mechanic_appointments_screen.dart",
       "file_type": "code",
       "norm_label": "time",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_timelinerow",
-      "label": "_TimelineRow",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "mechanic_appointments_screen.dart",
-      "file_type": "code",
-      "norm_label": "_timelinerow",
       "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
@@ -3126,6 +3060,17 @@
       "source_location": null
     },
     {
+      "id": "firebasefirestore",
+      "label": "FirebaseFirestore",
+      "_origin": "ast",
+      "community": 100,
+      "community_name": "../../models/mechanic.dart",
+      "file_type": "code",
+      "norm_label": "firebasefirestore",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "lib_data_mechanic_directory_repository",
       "label": "mechanic_directory_repository.dart",
       "_origin": "ast",
@@ -4072,6 +4017,17 @@
       "source_location": null
     },
     {
+      "id": "lib_mechanic_auth_mechanic_login_page_businessoption",
+      "label": "_BusinessOption",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "mechanic_login_page.dart",
+      "file_type": "code",
+      "norm_label": "_businessoption",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_mechanic_auth_mechanic_login_page_businessoptionlabel",
       "label": "_BusinessOptionLabel",
       "_origin": "ast",
@@ -4112,6 +4068,17 @@
       "community_name": "mechanic_login_page.dart",
       "file_type": "code",
       "norm_label": "_claimablebusinesses",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_auth_mechanic_login_page_claimableoption",
+      "label": "_ClaimableOption",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "mechanic_login_page.dart",
+      "file_type": "code",
+      "norm_label": "_claimableoption",
       "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
@@ -4420,6 +4387,17 @@
       "community_name": "mechanic_login_page.dart",
       "file_type": "code",
       "norm_label": "_messageforerror",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_auth_mechanic_login_page_mockdataoption",
+      "label": "_MockDataOption",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "mechanic_login_page.dart",
+      "file_type": "code",
+      "norm_label": "_mockdataoption",
       "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
@@ -4744,12 +4722,12 @@
     },
     {
       "id": "datetime",
-      "label": "DateTime?",
+      "label": "DateTime",
       "_origin": "ast",
       "community": 113,
       "community_name": "date_strip.dart",
       "file_type": "code",
-      "norm_label": "datetime?",
+      "norm_label": "datetime",
       "source_file": null,
       "source_location": null
     },
@@ -4941,11 +4919,22 @@
       "source_location": ""
     },
     {
+      "id": "package_firebase_auth_mocks_firebase_auth_mocks_dart",
+      "label": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
+      "_origin": "ast",
+      "community": 117,
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
+      "file_type": "code",
+      "norm_label": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "package_sanayi_app_mechanic_profile_mechanic_profile_screen_dart",
       "label": "package:sanayi_app/mechanic/profile/mechanic_profile_screen.dart",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "package:sanayi_app/mechanic/profile/mechanic_profile_screen.dart",
       "source_file": null,
@@ -4956,7 +4945,7 @@
       "label": "mechanic_profile_screen_test.dart",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "mechanic_profile_screen_test.dart",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -4967,7 +4956,7 @@
       "label": "businessId",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "businessid",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -4978,7 +4967,7 @@
       "label": "main",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "main",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -4989,7 +4978,7 @@
       "label": "pumpScreen",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "pumpscreen",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -5000,7 +4989,7 @@
       "label": "seedCompletedAppointment",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "seedcompletedappointment",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -5011,7 +5000,7 @@
       "label": "seedProfile",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "seedprofile",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -5022,7 +5011,7 @@
       "label": "uid",
       "_origin": "ast",
       "community": 117,
-      "community_name": "mechanic_profile_screen_test.dart",
+      "community_name": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
       "file_type": "code",
       "norm_label": "uid",
       "source_file": "test/mechanic_profile_screen_test.dart",
@@ -5601,39 +5590,6 @@
       "source_location": null
     },
     {
-      "id": "package_sanayi_app_screens_home_all_vehicles_page_dart",
-      "label": "package:sanayi_app/screens/home/all_vehicles_page.dart",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "package:sanayi_app/screens/home/all_vehicles_page.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_sanayi_app_screens_home_home_tab_dart",
-      "label": "package:sanayi_app/screens/home/home_tab.dart",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "package:sanayi_app/screens/home/home_tab.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_sanayi_app_screens_home_vehicle_repair_category_page_dart",
-      "label": "package:sanayi_app/screens/home/vehicle_repair_category_page.dart",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "package:sanayi_app/screens/home/vehicle_repair_category_page.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "package_sanayi_app_screens_service_listing_service_listing_page_dart",
       "label": "package:sanayi_app/screens/service_listing/service_listing_page.dart",
       "_origin": "ast",
@@ -5686,61 +5642,6 @@
       "file_type": "code",
       "norm_label": "pumpapp",
       "source_file": "test/category_grid_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_my_vehicles_test",
-      "label": "my_vehicles_test.dart",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "my_vehicles_test.dart",
-      "source_file": "test/my_vehicles_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_my_vehicles_test_customeruid",
-      "label": "customerUid",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "customeruid",
-      "source_file": "test/my_vehicles_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_my_vehicles_test_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "test/my_vehicles_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_my_vehicles_test_pumpapp",
-      "label": "pumpApp",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "pumpapp",
-      "source_file": "test/my_vehicles_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_my_vehicles_test_seedappointment",
-      "label": "seedAppointment",
-      "_origin": "ast",
-      "community": 125,
-      "community_name": "category_grid_test.dart",
-      "file_type": "code",
-      "norm_label": "seedappointment",
-      "source_file": "test/my_vehicles_test.dart",
       "source_location": null
     },
     {
@@ -5979,20 +5880,9 @@
       "label": "FirebaseAuth",
       "_origin": "ast",
       "community": 129,
-      "community_name": "FirebaseFirestore",
+      "community_name": "firebase_instances.dart",
       "file_type": "code",
       "norm_label": "firebaseauth",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "firebasefirestore",
-      "label": "FirebaseFirestore",
-      "_origin": "ast",
-      "community": 129,
-      "community_name": "FirebaseFirestore",
-      "file_type": "code",
-      "norm_label": "firebasefirestore",
       "source_file": null,
       "source_location": null
     },
@@ -6001,7 +5891,7 @@
       "label": "firebase_instances.dart",
       "_origin": "ast",
       "community": 129,
-      "community_name": "FirebaseFirestore",
+      "community_name": "firebase_instances.dart",
       "file_type": "code",
       "norm_label": "firebase_instances.dart",
       "source_file": "lib/utils/firebase_instances.dart",
@@ -6012,7 +5902,7 @@
       "label": "firebaseAuthInstance",
       "_origin": "ast",
       "community": 129,
-      "community_name": "FirebaseFirestore",
+      "community_name": "firebase_instances.dart",
       "file_type": "code",
       "norm_label": "firebaseauthinstance",
       "source_file": "lib/utils/firebase_instances.dart",
@@ -6023,7 +5913,7 @@
       "label": "firestoreInstance",
       "_origin": "ast",
       "community": 129,
-      "community_name": "FirebaseFirestore",
+      "community_name": "firebase_instances.dart",
       "file_type": "code",
       "norm_label": "firestoreinstance",
       "source_file": "lib/utils/firebase_instances.dart",
@@ -6034,7 +5924,7 @@
       "label": "package:firebase_auth/firebase_auth.dart",
       "_origin": "ast",
       "community": 129,
-      "community_name": "FirebaseFirestore",
+      "community_name": "firebase_instances.dart",
       "file_type": "code",
       "norm_label": "package:firebase_auth/firebase_auth.dart",
       "source_file": null,
@@ -7966,158 +7856,180 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_auth_mechanic_login_page_businessoption",
-      "label": "_BusinessOption",
+      "id": "lib_mechanic_appointments_mechanic_conversation_page_typingindicatorstate",
+      "label": "_TypingIndicatorState",
       "_origin": "ast",
       "community": 152,
-      "community_name": "_BusinessOption",
+      "community_name": "SingleTickerProviderStateMixin",
       "file_type": "code",
-      "norm_label": "_businessoption",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
+      "norm_label": "_typingindicatorstate",
+      "source_file": "lib/mechanic/appointments/mechanic_conversation_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_auth_mechanic_login_page_claimableoption",
-      "label": "_ClaimableOption",
+      "id": "lib_screens_appointments_customer_conversation_page_typingindicatorstate",
+      "label": "_TypingIndicatorState",
       "_origin": "ast",
       "community": 152,
-      "community_name": "_BusinessOption",
+      "community_name": "SingleTickerProviderStateMixin",
       "file_type": "code",
-      "norm_label": "_claimableoption",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mockdataoption",
-      "label": "_MockDataOption",
-      "_origin": "ast",
-      "community": 152,
-      "community_name": "_BusinessOption",
-      "file_type": "code",
-      "norm_label": "_mockdataoption",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_businesspickerdialog",
-      "label": "_BusinessPickerDialog",
-      "_origin": "ast",
-      "community": 153,
-      "community_name": "_BusinessPickerDialog",
-      "file_type": "code",
-      "norm_label": "_businesspickerdialog",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_businesspickerdialogstate",
-      "label": "_BusinessPickerDialogState",
-      "_origin": "ast",
-      "community": 153,
-      "community_name": "_BusinessPickerDialog",
-      "file_type": "code",
-      "norm_label": "_businesspickerdialogstate",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mechanicauthdialog",
-      "label": "_MechanicAuthDialog",
-      "_origin": "ast",
-      "community": 154,
-      "community_name": "_MechanicAuthDialog",
-      "file_type": "code",
-      "norm_label": "_mechanicauthdialog",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mechanicauthdialogstate",
-      "label": "_MechanicAuthDialogState",
-      "_origin": "ast",
-      "community": 154,
-      "community_name": "_MechanicAuthDialog",
-      "file_type": "code",
-      "norm_label": "_mechanicauthdialogstate",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mechanicloginpage",
-      "label": "MechanicLoginPage",
-      "_origin": "ast",
-      "community": 155,
-      "community_name": "MechanicLoginPage",
-      "file_type": "code",
-      "norm_label": "mechanicloginpage",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mechanicloginpagestate",
-      "label": "_MechanicLoginPageState",
-      "_origin": "ast",
-      "community": 155,
-      "community_name": "MechanicLoginPage",
-      "file_type": "code",
-      "norm_label": "_mechanicloginpagestate",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mechanicphoneauthdialog",
-      "label": "_MechanicPhoneAuthDialog",
-      "_origin": "ast",
-      "community": 156,
-      "community_name": "_MechanicPhoneAuthDialog",
-      "file_type": "code",
-      "norm_label": "_mechanicphoneauthdialog",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_auth_mechanic_login_page_mechanicphoneauthdialogstate",
-      "label": "_MechanicPhoneAuthDialogState",
-      "_origin": "ast",
-      "community": 156,
-      "community_name": "_MechanicPhoneAuthDialog",
-      "file_type": "code",
-      "norm_label": "_mechanicphoneauthdialogstate",
-      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_appointments_customer_conversation_page_customerconversationpage",
-      "label": "CustomerConversationPage",
-      "_origin": "ast",
-      "community": 157,
-      "community_name": "CustomerConversationPage",
-      "file_type": "code",
-      "norm_label": "customerconversationpage",
+      "norm_label": "_typingindicatorstate",
       "source_file": "lib/screens/appointments/customer_conversation_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_appointments_customer_conversation_page_customerconversationpagestate",
-      "label": "_CustomerConversationPageState",
+      "id": "singletickerproviderstatemixin",
+      "label": "SingleTickerProviderStateMixin",
       "_origin": "ast",
-      "community": 157,
-      "community_name": "CustomerConversationPage",
+      "community": 152,
+      "community_name": "SingleTickerProviderStateMixin",
       "file_type": "code",
-      "norm_label": "_customerconversationpagestate",
-      "source_file": "lib/screens/appointments/customer_conversation_page.dart",
+      "norm_label": "singletickerproviderstatemixin",
+      "source_file": null,
       "source_location": null
     },
     {
-      "id": "ts_jest_ts_jest",
-      "label": "ts-jest",
+      "id": "typingindicator",
+      "label": "_TypingIndicator",
+      "_origin": "ast",
+      "community": 152,
+      "community_name": "SingleTickerProviderStateMixin",
+      "file_type": "code",
+      "norm_label": "_typingindicator",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_mechanicappointmentsscreen",
+      "label": "MechanicAppointmentsScreen",
+      "_origin": "ast",
+      "community": 153,
+      "community_name": "_MechanicAppointmentsScreenState",
+      "file_type": "code",
+      "norm_label": "mechanicappointmentsscreen",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_mechanicappointmentsscreenstate",
+      "label": "_MechanicAppointmentsScreenState",
+      "_origin": "ast",
+      "community": 153,
+      "community_name": "_MechanicAppointmentsScreenState",
+      "file_type": "code",
+      "norm_label": "_mechanicappointmentsscreenstate",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_suggestionsentbanner",
+      "label": "_SuggestionSentBanner",
+      "_origin": "ast",
+      "community": 154,
+      "community_name": "_SuggestionSentBannerState",
+      "file_type": "code",
+      "norm_label": "_suggestionsentbanner",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_suggestionsentbannerstate",
+      "label": "_SuggestionSentBannerState",
+      "_origin": "ast",
+      "community": 154,
+      "community_name": "_SuggestionSentBannerState",
+      "file_type": "code",
+      "norm_label": "_suggestionsentbannerstate",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_request_details_page_mechanicrequestdetailspage",
+      "label": "MechanicRequestDetailsPage",
+      "_origin": "ast",
+      "community": 155,
+      "community_name": "MechanicRequestDetailsPage",
+      "file_type": "code",
+      "norm_label": "mechanicrequestdetailspage",
+      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_request_details_page_mechanicrequestdetailspagestate",
+      "label": "_MechanicRequestDetailsPageState",
+      "_origin": "ast",
+      "community": 155,
+      "community_name": "MechanicRequestDetailsPage",
+      "file_type": "code",
+      "norm_label": "_mechanicrequestdetailspagestate",
+      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_request_details_page_requestactionbar",
+      "label": "_RequestActionBar",
+      "_origin": "ast",
+      "community": 156,
+      "community_name": "_RequestActionBar",
+      "file_type": "code",
+      "norm_label": "_requestactionbar",
+      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_request_details_page_requestactionbarstate",
+      "label": "_RequestActionBarState",
+      "_origin": "ast",
+      "community": 156,
+      "community_name": "_RequestActionBar",
+      "file_type": "code",
+      "norm_label": "_requestactionbarstate",
+      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomescreen",
+      "label": "MechanicHomeScreen",
+      "_origin": "ast",
+      "community": 157,
+      "community_name": "MechanicHomeScreen",
+      "file_type": "code",
+      "norm_label": "mechanichomescreen",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomescreenstate",
+      "label": "_MechanicHomeScreenState",
+      "_origin": "ast",
+      "community": 157,
+      "community_name": "MechanicHomeScreen",
+      "file_type": "code",
+      "norm_label": "_mechanichomescreenstate",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_booking_appointment_request_page_appointmentrequestpage",
+      "label": "AppointmentRequestPage",
       "_origin": "ast",
       "community": 158,
-      "community_name": "ts-jest",
-      "confidence": "EXTRACTED",
+      "community_name": "AppointmentRequestPage",
       "file_type": "code",
-      "norm_label": "ts-jest",
-      "source_file": "ts-jest"
+      "norm_label": "appointmentrequestpage",
+      "source_file": "lib/screens/booking/appointment_request_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_booking_appointment_request_page_appointmentrequestpagestate",
+      "label": "_AppointmentRequestPageState",
+      "_origin": "ast",
+      "community": 158,
+      "community_name": "AppointmentRequestPage",
+      "file_type": "code",
+      "norm_label": "_appointmentrequestpagestate",
+      "source_file": "lib/screens/booking/appointment_request_page.dart",
+      "source_location": null
     },
     {
       "id": "data_appointment_dart",
@@ -9183,17 +9095,6 @@
       "community_name": "my_vehicles_section.dart",
       "file_type": "code",
       "norm_label": "section_header.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "streamsubscription",
-      "label": "StreamSubscription",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "my_vehicles_section.dart",
-      "file_type": "code",
-      "norm_label": "streamsubscription",
       "source_file": null,
       "source_location": null
     },
@@ -10429,6 +10330,28 @@
       "source_location": null
     },
     {
+      "id": "data_mechanic_directory_repository_dart",
+      "label": "../../data/mechanic_directory_repository.dart",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "../../data/mechanic_directory_repository.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "future",
+      "label": "Future",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "future",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "lib_screens_search_search_tab",
       "label": "search_tab.dart",
       "_origin": "ast",
@@ -10594,6 +10517,116 @@
       "source_location": null
     },
     {
+      "id": "lib_screens_service_listing_service_listing_page",
+      "label": "service_listing_page.dart",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "service_listing_page.dart",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_build",
+      "label": "build",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "build",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_createstate",
+      "label": "createState",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "createstate",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_fetchsortedservicecenters",
+      "label": "_fetchSortedServiceCenters",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "_fetchsortedservicecenters",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_future",
+      "label": "_future",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "_future",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_hizmetturu",
+      "label": "hizmetTuru",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "hizmetturu",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_initstate",
+      "label": "initState",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "initstate",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_servicelistingpage",
+      "label": "ServiceListingPage",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "servicelistingpage",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_servicelistingpagestate",
+      "label": "_ServiceListingPageState",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "_servicelistingpagestate",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_service_listing_service_listing_page_servicename",
+      "label": "serviceName",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "servicename",
+      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_location": null
+    },
+    {
       "id": "mechanic_detail_mechanic_detail_page_dart",
       "label": "../mechanic_detail/mechanic_detail_page.dart",
       "_origin": "ast",
@@ -10601,6 +10634,17 @@
       "community_name": "search_tab.dart",
       "file_type": "code",
       "norm_label": "../mechanic_detail/mechanic_detail_page.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "utils_chat_id_dart",
+      "label": "../../utils/chat_id.dart",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "../../utils/chat_id.dart",
       "source_file": null,
       "source_location": null
     },
@@ -10656,6 +10700,28 @@
       "community_name": "search_tab.dart",
       "file_type": "code",
       "norm_label": "../../widgets/search/sort_filter_bar.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "widgets_service_listing_service_center_card_dart",
+      "label": "../../widgets/service_listing/service_center_card.dart",
+      "_origin": "ast",
+      "community": 21,
+      "community_name": "search_tab.dart",
+      "file_type": "code",
+      "norm_label": "../../widgets/service_listing/service_center_card.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "appointment",
+      "label": "Appointment",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "appointment",
       "source_file": null,
       "source_location": null
     },
@@ -10722,6 +10788,17 @@
       "community_name": "mechanic_home_screen.dart",
       "file_type": "code",
       "norm_label": "appointments",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_appointmenttimelinerow",
+      "label": "_AppointmentTimelineRow",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_appointmenttimelinerow",
       "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
       "source_location": null
     },
@@ -10832,6 +10909,17 @@
       "community_name": "mechanic_home_screen.dart",
       "file_type": "code",
       "norm_label": "dispose",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_emptypendingrequestsstate",
+      "label": "_EmptyPendingRequestsState",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_emptypendingrequestsstate",
       "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
       "source_location": null
     },
@@ -11034,6 +11122,39 @@
       "source_location": null
     },
     {
+      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomegreetinghero",
+      "label": "_MechanicHomeGreetingHero",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_mechanichomegreetinghero",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomestatsrow",
+      "label": "_MechanicHomeStatsRow",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_mechanichomestatsrow",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_mechanichometopbar",
+      "label": "_MechanicHomeTopBar",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_mechanichometopbar",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_mechanic_home_mechanic_home_screen_newrequestscount",
       "label": "newRequestsCount",
       "_origin": "ast",
@@ -11111,6 +11232,17 @@
       "source_location": null
     },
     {
+      "id": "lib_mechanic_home_mechanic_home_screen_pendingrequestrow",
+      "label": "_PendingRequestRow",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_pendingrequestrow",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_mechanic_home_mechanic_home_screen_pendingrequests",
       "label": "_pendingRequests",
       "_origin": "ast",
@@ -11122,6 +11254,17 @@
       "source_location": null
     },
     {
+      "id": "lib_mechanic_home_mechanic_home_screen_pendingrequestslist",
+      "label": "_PendingRequestsList",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_pendingrequestslist",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_mechanic_home_mechanic_home_screen_pendingrequestssubscription",
       "label": "_pendingRequestsSubscription",
       "_origin": "ast",
@@ -11129,6 +11272,17 @@
       "community_name": "mechanic_home_screen.dart",
       "file_type": "code",
       "norm_label": "_pendingrequestssubscription",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_performancerow",
+      "label": "_PerformanceRow",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_performancerow",
       "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
       "source_location": null
     },
@@ -11265,6 +11419,17 @@
       "source_location": null
     },
     {
+      "id": "lib_mechanic_home_mechanic_home_screen_serviceperformancecard",
+      "label": "_ServicePerformanceCard",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_serviceperformancecard",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_mechanic_home_mechanic_home_screen_showdot",
       "label": "showDot",
       "_origin": "ast",
@@ -11283,6 +11448,17 @@
       "community_name": "mechanic_home_screen.dart",
       "file_type": "code",
       "norm_label": "_sidebarwidth",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_statitem",
+      "label": "_StatItem",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_statitem",
       "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
       "source_location": null
     },
@@ -11338,6 +11514,17 @@
       "community_name": "mechanic_home_screen.dart",
       "file_type": "code",
       "norm_label": "todaycount",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_home_mechanic_home_screen_todayschedulecard",
+      "label": "_TodayScheduleCard",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_todayschedulecard",
       "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
       "source_location": null
     },
@@ -11408,6 +11595,17 @@
       "source_location": null
     },
     {
+      "id": "mechanicprofile",
+      "label": "MechanicProfile?",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "mechanicprofile?",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "notifications_mechanic_notifications_screen_dart",
       "label": "../notifications/mechanic_notifications_screen.dart",
       "_origin": "ast",
@@ -11437,6 +11635,17 @@
       "community_name": "mechanic_home_screen.dart",
       "file_type": "code",
       "norm_label": "../profile/data/mechanic_profile_repository.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "string",
+      "label": "String?",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "mechanic_home_screen.dart",
+      "file_type": "code",
+      "norm_label": "string?",
       "source_file": null,
       "source_location": null
     },
@@ -11859,28 +12068,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_appointments_appointments_tab_completionverificationcard",
-      "label": "_CompletionVerificationCard",
-      "_origin": "ast",
-      "community": 24,
-      "community_name": "appointments_tab.dart",
-      "file_type": "code",
-      "norm_label": "_completionverificationcard",
-      "source_file": "lib/screens/appointments/appointments_tab.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_appointments_appointments_tab_completionverificationcardstate",
-      "label": "_CompletionVerificationCardState",
-      "_origin": "ast",
-      "community": 24,
-      "community_name": "appointments_tab.dart",
-      "file_type": "code",
-      "norm_label": "_completionverificationcardstate",
-      "source_file": "lib/screens/appointments/appointments_tab.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_appointments_appointments_tab_confirmcompleted",
       "label": "_confirmCompleted",
       "_origin": "ast",
@@ -12079,17 +12266,6 @@
       "source_location": null
     },
     {
-      "id": "appointments_data_appointment_repository_dart",
-      "label": "../appointments/data/appointment_repository.dart",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "../appointments/data/appointment_repository.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "appointments_data_chat_message_dart",
       "label": "../appointments/data/chat_message.dart",
       "_origin": "ast",
@@ -12119,28 +12295,6 @@
       "community_name": "mechanic_notifications_screen.dart",
       "file_type": "code",
       "norm_label": "../appointments/mechanic_conversation_page.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "data_mechanic_profile_dart",
-      "label": "data/mechanic_profile.dart",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "data/mechanic_profile.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "data_mechanic_profile_repository_dart",
-      "label": "data/mechanic_profile_repository.dart",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "data/mechanic_profile_repository.dart",
       "source_file": null,
       "source_location": null
     },
@@ -12384,193 +12538,6 @@
       "file_type": "code",
       "norm_label": "type",
       "source_file": "lib/mechanic/notifications/mechanic_notifications_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen",
-      "label": "mechanic_profile_screen.dart",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "mechanic_profile_screen.dart",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_build",
-      "label": "build",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "build",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_createstate",
-      "label": "createState",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "createstate",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_fallback",
-      "label": "fallback",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "fallback",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_fallbackmechanic",
-      "label": "_fallbackMechanic",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_fallbackmechanic",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_icon",
-      "label": "icon",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "icon",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_inforow",
-      "label": "_InfoRow",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_inforow",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_initstate",
-      "label": "initState",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "initstate",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_label",
-      "label": "label",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "label",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_load",
-      "label": "_load",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_load",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_loading",
-      "label": "_loading",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_loading",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_mechanicprofilescreen",
-      "label": "MechanicProfileScreen",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "mechanicprofilescreen",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_mechanicprofilescreenstate",
-      "label": "_MechanicProfileScreenState",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_mechanicprofilescreenstate",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_mergedfield",
-      "label": "_mergedField",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_mergedfield",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_noprofilestate",
-      "label": "_NoProfileState",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_noprofilestate",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_profile",
-      "label": "_profile",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_profile",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_profile_mechanic_profile_screen_profilebody",
-      "label": "_ProfileBody",
-      "_origin": "ast",
-      "community": 25,
-      "community_name": "mechanic_notifications_screen.dart",
-      "file_type": "code",
-      "norm_label": "_profilebody",
-      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
@@ -13531,28 +13498,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_booking_appointment_request_page_appointmentrequestpage",
-      "label": "AppointmentRequestPage",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "appointment_request_page.dart",
-      "file_type": "code",
-      "norm_label": "appointmentrequestpage",
-      "source_file": "lib/screens/booking/appointment_request_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_booking_appointment_request_page_appointmentrequestpagestate",
-      "label": "_AppointmentRequestPageState",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "appointment_request_page.dart",
-      "file_type": "code",
-      "norm_label": "_appointmentrequestpagestate",
-      "source_file": "lib/screens/booking/appointment_request_page.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_booking_appointment_request_page_bordercolor",
       "label": "_borderColor",
       "_origin": "ast",
@@ -14353,6 +14298,17 @@
       "file_type": "code",
       "norm_label": "_unreadmessagecard",
       "source_file": "lib/screens/notifications/notifications_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "streamsubscription",
+      "label": "StreamSubscription",
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "notifications_page.dart",
+      "file_type": "code",
+      "norm_label": "streamsubscription",
+      "source_file": null,
       "source_location": null
     },
     {
@@ -15225,50 +15181,6 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_mechanicappointmentsscreen",
-      "label": "MechanicAppointmentsScreen",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "mechanicappointmentsscreen",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_mechanicappointmentsscreenstate",
-      "label": "_MechanicAppointmentsScreenState",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_mechanicappointmentsscreenstate",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_suggestionsentbanner",
-      "label": "_SuggestionSentBanner",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_suggestionsentbanner",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_appointments_screen_suggestionsentbannerstate",
-      "label": "_SuggestionSentBannerState",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_suggestionsentbannerstate",
-      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_mechanic_appointments_mechanic_conversation_page_typingindicator",
       "label": "_TypingIndicator",
       "_origin": "ast",
@@ -15280,80 +15192,113 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_conversation_page_typingindicatorstate",
-      "label": "_TypingIndicatorState",
+      "id": "lib_mechanic_auth_mechanic_login_page_businesspickerdialog",
+      "label": "_BusinessPickerDialog",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_typingindicatorstate",
-      "source_file": "lib/mechanic/appointments/mechanic_conversation_page.dart",
+      "norm_label": "_businesspickerdialog",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_request_details_page_proposetimecalendarpage",
-      "label": "_ProposeTimeCalendarPage",
+      "id": "lib_mechanic_auth_mechanic_login_page_businesspickerdialogstate",
+      "label": "_BusinessPickerDialogState",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_proposetimecalendarpage",
-      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "norm_label": "_businesspickerdialogstate",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_request_details_page_proposetimecalendarpagestate",
-      "label": "_ProposeTimeCalendarPageState",
+      "id": "lib_mechanic_auth_mechanic_login_page_mechanicauthdialog",
+      "label": "_MechanicAuthDialog",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_proposetimecalendarpagestate",
-      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "norm_label": "_mechanicauthdialog",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_request_details_page_requestactionbar",
-      "label": "_RequestActionBar",
+      "id": "lib_mechanic_auth_mechanic_login_page_mechanicauthdialogstate",
+      "label": "_MechanicAuthDialogState",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_requestactionbar",
-      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "norm_label": "_mechanicauthdialogstate",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_request_details_page_requestactionbarstate",
-      "label": "_RequestActionBarState",
+      "id": "lib_mechanic_auth_mechanic_login_page_mechanicloginpage",
+      "label": "MechanicLoginPage",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_requestactionbarstate",
-      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "norm_label": "mechanicloginpage",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomescreen",
-      "label": "MechanicHomeScreen",
+      "id": "lib_mechanic_auth_mechanic_login_page_mechanicloginpagestate",
+      "label": "_MechanicLoginPageState",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "mechanichomescreen",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "norm_label": "_mechanicloginpagestate",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
       "source_location": null
     },
     {
-      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomescreenstate",
-      "label": "_MechanicHomeScreenState",
+      "id": "lib_mechanic_auth_mechanic_login_page_mechanicphoneauthdialog",
+      "label": "_MechanicPhoneAuthDialog",
       "_origin": "ast",
       "community": 34,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_mechanichomescreenstate",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "norm_label": "_mechanicphoneauthdialog",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_auth_mechanic_login_page_mechanicphoneauthdialogstate",
+      "label": "_MechanicPhoneAuthDialogState",
+      "_origin": "ast",
+      "community": 34,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_mechanicphoneauthdialogstate",
+      "source_file": "lib/mechanic/auth/mechanic_login_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_appointments_appointments_tab_completionverificationcard",
+      "label": "_CompletionVerificationCard",
+      "_origin": "ast",
+      "community": 34,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_completionverificationcard",
+      "source_file": "lib/screens/appointments/appointments_tab.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_appointments_appointments_tab_completionverificationcardstate",
+      "label": "_CompletionVerificationCardState",
+      "_origin": "ast",
+      "community": 34,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_completionverificationcardstate",
+      "source_file": "lib/screens/appointments/appointments_tab.dart",
       "source_location": null
     },
     {
@@ -15365,28 +15310,6 @@
       "file_type": "code",
       "norm_label": "_typingindicator",
       "source_file": "lib/screens/appointments/customer_conversation_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_appointments_customer_conversation_page_typingindicatorstate",
-      "label": "_TypingIndicatorState",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_typingindicatorstate",
-      "source_file": "lib/screens/appointments/customer_conversation_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "singletickerproviderstatemixin",
-      "label": "SingleTickerProviderStateMixin",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "singletickerproviderstatemixin",
-      "source_file": null,
       "source_location": null
     },
     {
@@ -15408,17 +15331,6 @@
       "community_name": "State",
       "file_type": "code",
       "norm_label": "statefulwidget",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "typingindicator",
-      "label": "_TypingIndicator",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_typingindicator",
       "source_file": null,
       "source_location": null
     },
@@ -15907,190 +15819,69 @@
       "source_location": null
     },
     {
-      "id": "lib_admin_admin_approval_screen_accessdenied",
-      "label": "_AccessDenied",
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_dailyschedulerow",
+      "label": "_DailyScheduleRow",
       "_origin": "ast",
       "community": 37,
       "community_name": "StatelessWidget",
       "file_type": "code",
-      "norm_label": "_accessdenied",
-      "source_file": "lib/admin/admin_approval_screen.dart",
+      "norm_label": "_dailyschedulerow",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_admin_admin_approval_screen_emptystate",
-      "label": "_EmptyState",
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_emptytabstate",
+      "label": "_EmptyTabState",
       "_origin": "ast",
       "community": 37,
       "community_name": "StatelessWidget",
       "file_type": "code",
-      "norm_label": "_emptystate",
-      "source_file": "lib/admin/admin_approval_screen.dart",
+      "norm_label": "_emptytabstate",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_admin_admin_approval_screen_errorstate",
-      "label": "_ErrorState",
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_inforow",
+      "label": "_InfoRow",
       "_origin": "ast",
       "community": 37,
       "community_name": "StatelessWidget",
       "file_type": "code",
-      "norm_label": "_errorstate",
-      "source_file": "lib/admin/admin_approval_screen.dart",
+      "norm_label": "_inforow",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_admin_admin_approval_screen_filterchip",
-      "label": "_FilterChip",
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_newrequestbadge",
+      "label": "_NewRequestBadge",
       "_origin": "ast",
       "community": 37,
       "community_name": "StatelessWidget",
       "file_type": "code",
-      "norm_label": "_filterchip",
-      "source_file": "lib/admin/admin_approval_screen.dart",
+      "norm_label": "_newrequestbadge",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_admin_admin_approval_screen_mechaniclist",
-      "label": "_MechanicList",
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_servicebadge",
+      "label": "_ServiceBadge",
       "_origin": "ast",
       "community": 37,
       "community_name": "StatelessWidget",
       "file_type": "code",
-      "norm_label": "_mechaniclist",
-      "source_file": "lib/admin/admin_approval_screen.dart",
+      "norm_label": "_servicebadge",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_admin_admin_approval_screen_mechanicrow",
-      "label": "_MechanicRow",
+      "id": "lib_mechanic_appointments_mechanic_appointments_screen_timelinerow",
+      "label": "_TimelineRow",
       "_origin": "ast",
       "community": 37,
       "community_name": "StatelessWidget",
       "file_type": "code",
-      "norm_label": "_mechanicrow",
-      "source_file": "lib/admin/admin_approval_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_appointmenttimelinerow",
-      "label": "_AppointmentTimelineRow",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_appointmenttimelinerow",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_emptypendingrequestsstate",
-      "label": "_EmptyPendingRequestsState",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_emptypendingrequestsstate",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomegreetinghero",
-      "label": "_MechanicHomeGreetingHero",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_mechanichomegreetinghero",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_mechanichomestatsrow",
-      "label": "_MechanicHomeStatsRow",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_mechanichomestatsrow",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_mechanichometopbar",
-      "label": "_MechanicHomeTopBar",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_mechanichometopbar",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_pendingrequestrow",
-      "label": "_PendingRequestRow",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_pendingrequestrow",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_pendingrequestslist",
-      "label": "_PendingRequestsList",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_pendingrequestslist",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_performancerow",
-      "label": "_PerformanceRow",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_performancerow",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_serviceperformancecard",
-      "label": "_ServicePerformanceCard",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_serviceperformancecard",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_statitem",
-      "label": "_StatItem",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_statitem",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_home_mechanic_home_screen_todayschedulecard",
-      "label": "_TodayScheduleCard",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "_todayschedulecard",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "norm_label": "_timelinerow",
+      "source_file": "lib/mechanic/appointments/mechanic_appointments_screen.dart",
       "source_location": null
     },
     {
@@ -16204,6 +15995,28 @@
       "source_location": null
     },
     {
+      "id": "lib_widgets_service_listing_service_center_card_centerinfo",
+      "label": "_CenterInfo",
+      "_origin": "ast",
+      "community": 37,
+      "community_name": "StatelessWidget",
+      "file_type": "code",
+      "norm_label": "_centerinfo",
+      "source_file": "lib/widgets/service_listing/service_center_card.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_widgets_service_listing_service_center_card_trustchip",
+      "label": "_TrustChip",
+      "_origin": "ast",
+      "community": 37,
+      "community_name": "StatelessWidget",
+      "file_type": "code",
+      "norm_label": "_trustchip",
+      "source_file": "lib/widgets/service_listing/service_center_card.dart",
+      "source_location": null
+    },
+    {
       "id": "statelesswidget",
       "label": "StatelessWidget",
       "_origin": "ast",
@@ -16211,17 +16024,6 @@
       "community_name": "StatelessWidget",
       "file_type": "code",
       "norm_label": "statelesswidget",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "widgets_common_premium_surface_dart",
-      "label": "../../widgets/common/premium_surface.dart",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "StatelessWidget",
-      "file_type": "code",
-      "norm_label": "../../widgets/common/premium_surface.dart",
       "source_file": null,
       "source_location": null
     },
@@ -16629,6 +16431,28 @@
       "community_name": "customer_conversation_page.dart",
       "file_type": "code",
       "norm_label": "createstate",
+      "source_file": "lib/screens/appointments/customer_conversation_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_appointments_customer_conversation_page_customerconversationpage",
+      "label": "CustomerConversationPage",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "customer_conversation_page.dart",
+      "file_type": "code",
+      "norm_label": "customerconversationpage",
+      "source_file": "lib/screens/appointments/customer_conversation_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_appointments_customer_conversation_page_customerconversationpagestate",
+      "label": "_CustomerConversationPageState",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "customer_conversation_page.dart",
+      "file_type": "code",
+      "norm_label": "_customerconversationpagestate",
       "source_file": "lib/screens/appointments/customer_conversation_page.dart",
       "source_location": null
     },
@@ -17084,17 +16908,6 @@
       "source_location": null
     },
     {
-      "id": "lib_widgets_service_listing_service_center_card_centerinfo",
-      "label": "_CenterInfo",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "service_center_card.dart",
-      "file_type": "code",
-      "norm_label": "_centerinfo",
-      "source_file": "lib/widgets/service_listing/service_center_card.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_widgets_service_listing_service_center_card_color",
       "label": "color",
       "_origin": "ast",
@@ -17201,17 +17014,6 @@
       "community_name": "service_center_card.dart",
       "file_type": "code",
       "norm_label": "_shopphotofallback",
-      "source_file": "lib/widgets/service_listing/service_center_card.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_widgets_service_listing_service_center_card_trustchip",
-      "label": "_TrustChip",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "service_center_card.dart",
-      "file_type": "code",
-      "norm_label": "_trustchip",
       "source_file": "lib/widgets/service_listing/service_center_card.dart",
       "source_location": null
     },
@@ -17491,17 +17293,6 @@
       "source_location": null
     },
     {
-      "id": "package_google_sign_in_platform_interface_google_sign_in_platform_interface_dart",
-      "label": "package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart",
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "booking_test.dart",
-      "file_type": "code",
-      "norm_label": "package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "package_sanayi_app_data_pending_booking_vehicle_dart",
       "label": "package:sanayi_app/data/pending_booking_vehicle.dart",
       "_origin": "ast",
@@ -17531,6 +17322,28 @@
       "community_name": "booking_test.dart",
       "file_type": "code",
       "norm_label": "package:sanayi_app/screens/categories/tire_wheel_category_page.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_sanayi_app_screens_home_home_tab_dart",
+      "label": "package:sanayi_app/screens/home/home_tab.dart",
+      "_origin": "ast",
+      "community": 42,
+      "community_name": "booking_test.dart",
+      "file_type": "code",
+      "norm_label": "package:sanayi_app/screens/home/home_tab.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_sanayi_app_screens_mechanic_detail_mechanic_detail_page_dart",
+      "label": "package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart",
+      "_origin": "ast",
+      "community": 42,
+      "community_name": "booking_test.dart",
+      "file_type": "code",
+      "norm_label": "package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart",
       "source_file": null,
       "source_location": null
     },
@@ -17777,6 +17590,17 @@
       "source_location": null
     },
     {
+      "id": "lib_screens_appointments_appointment_detail_page_build",
+      "label": "build",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "MaterialPageRoute",
+      "file_type": "code",
+      "norm_label": "build",
+      "source_file": "lib/screens/appointments/appointment_detail_page.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_appointments_customer_conversation_list_page_build",
       "label": "build",
       "_origin": "ast",
@@ -17876,17 +17700,6 @@
       "source_location": null
     },
     {
-      "id": "package_firebase_auth_mocks_firebase_auth_mocks_dart",
-      "label": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "package:flutter_test/flutter_test.dart",
-      "file_type": "code",
-      "norm_label": "package:firebase_auth_mocks/firebase_auth_mocks.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "package_flutter_test_flutter_test_dart",
       "label": "package:flutter_test/flutter_test.dart",
       "_origin": "ast",
@@ -17894,6 +17707,17 @@
       "community_name": "package:flutter_test/flutter_test.dart",
       "file_type": "code",
       "norm_label": "package:flutter_test/flutter_test.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_google_sign_in_platform_interface_google_sign_in_platform_interface_dart",
+      "label": "package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "package:flutter_test/flutter_test.dart",
+      "file_type": "code",
+      "norm_label": "package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart",
       "source_file": null,
       "source_location": null
     },
@@ -18302,6 +18126,83 @@
       "file_type": "code",
       "norm_label": "package:cloud_firestore/cloud_firestore.dart",
       "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_sanayi_app_screens_home_all_vehicles_page_dart",
+      "label": "package:sanayi_app/screens/home/all_vehicles_page.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "package:sanayi_app/screens/home/all_vehicles_page.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_sanayi_app_screens_home_vehicle_repair_category_page_dart",
+      "label": "package:sanayi_app/screens/home/vehicle_repair_category_page.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "package:sanayi_app/screens/home/vehicle_repair_category_page.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "test_my_vehicles_test",
+      "label": "my_vehicles_test.dart",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "my_vehicles_test.dart",
+      "source_file": "test/my_vehicles_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_my_vehicles_test_customeruid",
+      "label": "customerUid",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "customeruid",
+      "source_file": "test/my_vehicles_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_my_vehicles_test_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "test/my_vehicles_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_my_vehicles_test_pumpapp",
+      "label": "pumpApp",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "pumpapp",
+      "source_file": "test/my_vehicles_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_my_vehicles_test_seedappointment",
+      "label": "seedAppointment",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "package:cloud_firestore/cloud_firestore.dart",
+      "file_type": "code",
+      "norm_label": "seedappointment",
+      "source_file": "test/my_vehicles_test.dart",
       "source_location": null
     },
     {
@@ -19363,6 +19264,17 @@
       "source_location": null
     },
     {
+      "id": "lib_admin_admin_approval_screen_accessdenied",
+      "label": "_AccessDenied",
+      "_origin": "ast",
+      "community": 51,
+      "community_name": "admin_approval_screen.dart",
+      "file_type": "code",
+      "norm_label": "_accessdenied",
+      "source_file": "lib/admin/admin_approval_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_admin_admin_approval_screen_build",
       "label": "build",
       "_origin": "ast",
@@ -19403,6 +19315,39 @@
       "community_name": "admin_approval_screen.dart",
       "file_type": "code",
       "norm_label": "_directoryrepository",
+      "source_file": "lib/admin/admin_approval_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_admin_admin_approval_screen_emptystate",
+      "label": "_EmptyState",
+      "_origin": "ast",
+      "community": 51,
+      "community_name": "admin_approval_screen.dart",
+      "file_type": "code",
+      "norm_label": "_emptystate",
+      "source_file": "lib/admin/admin_approval_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_admin_admin_approval_screen_errorstate",
+      "label": "_ErrorState",
+      "_origin": "ast",
+      "community": 51,
+      "community_name": "admin_approval_screen.dart",
+      "file_type": "code",
+      "norm_label": "_errorstate",
+      "source_file": "lib/admin/admin_approval_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_admin_admin_approval_screen_filterchip",
+      "label": "_FilterChip",
+      "_origin": "ast",
+      "community": 51,
+      "community_name": "admin_approval_screen.dart",
+      "file_type": "code",
+      "norm_label": "_filterchip",
       "source_file": "lib/admin/admin_approval_screen.dart",
       "source_location": null
     },
@@ -19502,6 +19447,28 @@
       "community_name": "admin_approval_screen.dart",
       "file_type": "code",
       "norm_label": "mechanic",
+      "source_file": "lib/admin/admin_approval_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_admin_admin_approval_screen_mechaniclist",
+      "label": "_MechanicList",
+      "_origin": "ast",
+      "community": 51,
+      "community_name": "admin_approval_screen.dart",
+      "file_type": "code",
+      "norm_label": "_mechaniclist",
+      "source_file": "lib/admin/admin_approval_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_admin_admin_approval_screen_mechanicrow",
+      "label": "_MechanicRow",
+      "_origin": "ast",
+      "community": 51,
+      "community_name": "admin_approval_screen.dart",
+      "file_type": "code",
+      "norm_label": "_mechanicrow",
       "source_file": "lib/admin/admin_approval_screen.dart",
       "source_location": null
     },
@@ -21739,17 +21706,6 @@
       "source_location": null
     },
     {
-      "id": "common_premium_surface_dart",
-      "label": "../common/premium_surface.dart",
-      "_origin": "ast",
-      "community": 63,
-      "community_name": "appointment_request_card.dart",
-      "file_type": "code",
-      "norm_label": "../common/premium_surface.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "lib_widgets_appointments_appointment_request_card",
       "label": "appointment_request_card.dart",
       "_origin": "ast",
@@ -21882,6 +21838,17 @@
       "source_location": null
     },
     {
+      "id": "common_premium_surface_dart",
+      "label": "../common/premium_surface.dart",
+      "_origin": "ast",
+      "community": 64,
+      "community_name": "service_entry_card.dart",
+      "file_type": "code",
+      "norm_label": "../common/premium_surface.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "lib_widgets_categories_service_entry_card",
       "label": "service_entry_card.dart",
       "_origin": "ast",
@@ -22003,157 +21970,223 @@
       "source_location": null
     },
     {
-      "id": "data_mechanic_directory_repository_dart",
-      "label": "../../data/mechanic_directory_repository.dart",
+      "id": "appointments_data_appointment_repository_dart",
+      "label": "../appointments/data/appointment_repository.dart",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "../../data/mechanic_directory_repository.dart",
+      "norm_label": "../appointments/data/appointment_repository.dart",
       "source_file": null,
       "source_location": null
     },
     {
-      "id": "future",
-      "label": "Future",
+      "id": "data_mechanic_profile_dart",
+      "label": "data/mechanic_profile.dart",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "future",
+      "norm_label": "data/mechanic_profile.dart",
       "source_file": null,
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page",
-      "label": "service_listing_page.dart",
+      "id": "data_mechanic_profile_repository_dart",
+      "label": "data/mechanic_profile_repository.dart",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "service_listing_page.dart",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "data/mechanic_profile_repository.dart",
+      "source_file": null,
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_build",
+      "id": "lib_mechanic_profile_mechanic_profile_screen",
+      "label": "mechanic_profile_screen.dart",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "mechanic_profile_screen.dart",
+      "file_type": "code",
+      "norm_label": "mechanic_profile_screen.dart",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_profile_mechanic_profile_screen_build",
       "label": "build",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
       "norm_label": "build",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_createstate",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_createstate",
       "label": "createState",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
       "norm_label": "createstate",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_fetchsortedservicecenters",
-      "label": "_fetchSortedServiceCenters",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_fallback",
+      "label": "fallback",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "_fetchsortedservicecenters",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "fallback",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_future",
-      "label": "_future",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_fallbackmechanic",
+      "label": "_fallbackMechanic",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "_future",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "_fallbackmechanic",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_hizmetturu",
-      "label": "hizmetTuru",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_icon",
+      "label": "icon",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "hizmetturu",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "icon",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_initstate",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_inforow",
+      "label": "_InfoRow",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "mechanic_profile_screen.dart",
+      "file_type": "code",
+      "norm_label": "_inforow",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_profile_mechanic_profile_screen_initstate",
       "label": "initState",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
       "norm_label": "initstate",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_servicelistingpage",
-      "label": "ServiceListingPage",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_label",
+      "label": "label",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "servicelistingpage",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "label",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_servicelistingpagestate",
-      "label": "_ServiceListingPageState",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_load",
+      "label": "_load",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "_servicelistingpagestate",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "_load",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_screens_service_listing_service_listing_page_servicename",
-      "label": "serviceName",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_loading",
+      "label": "_loading",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "servicename",
-      "source_file": "lib/screens/service_listing/service_listing_page.dart",
+      "norm_label": "_loading",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "utils_chat_id_dart",
-      "label": "../../utils/chat_id.dart",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_mechanicprofilescreen",
+      "label": "MechanicProfileScreen",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "../../utils/chat_id.dart",
-      "source_file": null,
+      "norm_label": "mechanicprofilescreen",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
-      "id": "widgets_service_listing_service_center_card_dart",
-      "label": "../../widgets/service_listing/service_center_card.dart",
+      "id": "lib_mechanic_profile_mechanic_profile_screen_mechanicprofilescreenstate",
+      "label": "_MechanicProfileScreenState",
       "_origin": "ast",
       "community": 65,
-      "community_name": "service_listing_page.dart",
+      "community_name": "mechanic_profile_screen.dart",
       "file_type": "code",
-      "norm_label": "../../widgets/service_listing/service_center_card.dart",
-      "source_file": null,
+      "norm_label": "_mechanicprofilescreenstate",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_profile_mechanic_profile_screen_mergedfield",
+      "label": "_mergedField",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "mechanic_profile_screen.dart",
+      "file_type": "code",
+      "norm_label": "_mergedfield",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_profile_mechanic_profile_screen_noprofilestate",
+      "label": "_NoProfileState",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "mechanic_profile_screen.dart",
+      "file_type": "code",
+      "norm_label": "_noprofilestate",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_profile_mechanic_profile_screen_profile",
+      "label": "_profile",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "mechanic_profile_screen.dart",
+      "file_type": "code",
+      "norm_label": "_profile",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_profile_mechanic_profile_screen_profilebody",
+      "label": "_ProfileBody",
+      "_origin": "ast",
+      "community": 65,
+      "community_name": "mechanic_profile_screen.dart",
+      "file_type": "code",
+      "norm_label": "_profilebody",
+      "source_file": "lib/mechanic/profile/mechanic_profile_screen.dart",
       "source_location": null
     },
     {
@@ -22586,17 +22619,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_appointments_appointment_detail_page_build",
-      "label": "build",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "appointment_detail_page.dart",
-      "file_type": "code",
-      "norm_label": "build",
-      "source_file": "lib/screens/appointments/appointment_detail_page.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_appointments_appointment_detail_page_createstate",
       "label": "createState",
       "_origin": "ast",
@@ -22736,6 +22758,17 @@
       "community_name": "appointment_detail_page.dart",
       "file_type": "code",
       "norm_label": "../../widgets/appointments/propose_time_dialog.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "widgets_common_premium_surface_dart",
+      "label": "../../widgets/common/premium_surface.dart",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "appointment_detail_page.dart",
+      "file_type": "code",
+      "norm_label": "../../widgets/common/premium_surface.dart",
       "source_file": null,
       "source_location": null
     },
@@ -23587,17 +23620,6 @@
       "source_location": null
     },
     {
-      "id": "package_sanayi_app_screens_appointments_customer_conversation_page_dart",
-      "label": "package:sanayi_app/screens/appointments/customer_conversation_page.dart",
-      "_origin": "ast",
-      "community": 77,
-      "community_name": "chat_unread_test.dart",
-      "file_type": "code",
-      "norm_label": "package:sanayi_app/screens/appointments/customer_conversation_page.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "package_sanayi_app_screens_notifications_notifications_page_dart",
       "label": "package:sanayi_app/screens/notifications/notifications_page.dart",
       "_origin": "ast",
@@ -23605,17 +23627,6 @@
       "community_name": "chat_unread_test.dart",
       "file_type": "code",
       "norm_label": "package:sanayi_app/screens/notifications/notifications_page.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_sanayi_app_utils_firebase_instances_dart",
-      "label": "package:sanayi_app/utils/firebase_instances.dart",
-      "_origin": "ast",
-      "community": 77,
-      "community_name": "chat_unread_test.dart",
-      "file_type": "code",
-      "norm_label": "package:sanayi_app/utils/firebase_instances.dart",
       "source_file": null,
       "source_location": null
     },
@@ -23672,39 +23683,6 @@
       "file_type": "code",
       "norm_label": "seedchatwithunreadmechanicmessage",
       "source_file": "test/chat_unread_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_quick_reply_chips_test",
-      "label": "quick_reply_chips_test.dart",
-      "_origin": "ast",
-      "community": 77,
-      "community_name": "chat_unread_test.dart",
-      "file_type": "code",
-      "norm_label": "quick_reply_chips_test.dart",
-      "source_file": "test/quick_reply_chips_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_quick_reply_chips_test_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 77,
-      "community_name": "chat_unread_test.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "test/quick_reply_chips_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "textfield",
-      "label": "TextField",
-      "_origin": "ast",
-      "community": 77,
-      "community_name": "chat_unread_test.dart",
-      "file_type": "code",
-      "norm_label": "textfield",
-      "source_file": null,
       "source_location": null
     },
     {
@@ -25006,6 +24984,17 @@
       "source_location": null
     },
     {
+      "id": "package_sanayi_app_screens_appointments_customer_conversation_page_dart",
+      "label": "package:sanayi_app/screens/appointments/customer_conversation_page.dart",
+      "_origin": "ast",
+      "community": 88,
+      "community_name": "chat_booking_action_test.dart",
+      "file_type": "code",
+      "norm_label": "package:sanayi_app/screens/appointments/customer_conversation_page.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "package_sanayi_app_screens_booking_appointment_request_page_dart",
       "label": "package:sanayi_app/screens/booking/appointment_request_page.dart",
       "_origin": "ast",
@@ -25017,13 +25006,13 @@
       "source_location": null
     },
     {
-      "id": "package_sanayi_app_screens_mechanic_detail_mechanic_detail_page_dart",
-      "label": "package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart",
+      "id": "package_sanayi_app_utils_firebase_instances_dart",
+      "label": "package:sanayi_app/utils/firebase_instances.dart",
       "_origin": "ast",
       "community": 88,
       "community_name": "chat_booking_action_test.dart",
       "file_type": "code",
-      "norm_label": "package:sanayi_app/screens/mechanic_detail/mechanic_detail_page.dart",
+      "norm_label": "package:sanayi_app/utils/firebase_instances.dart",
       "source_file": null,
       "source_location": null
     },
@@ -25091,6 +25080,39 @@
       "file_type": "code",
       "norm_label": "seedmechanicaccount",
       "source_file": "test/chat_booking_action_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_quick_reply_chips_test",
+      "label": "quick_reply_chips_test.dart",
+      "_origin": "ast",
+      "community": 88,
+      "community_name": "chat_booking_action_test.dart",
+      "file_type": "code",
+      "norm_label": "quick_reply_chips_test.dart",
+      "source_file": "test/quick_reply_chips_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_quick_reply_chips_test_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 88,
+      "community_name": "chat_booking_action_test.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "test/quick_reply_chips_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "textfield",
+      "label": "TextField",
+      "_origin": "ast",
+      "community": 88,
+      "community_name": "chat_booking_action_test.dart",
+      "file_type": "code",
+      "norm_label": "textfield",
+      "source_file": null,
       "source_location": null
     },
     {
@@ -25314,28 +25336,6 @@
       "source_location": null
     },
     {
-      "id": "lib_mechanic_appointments_mechanic_request_details_page_mechanicrequestdetailspage",
-      "label": "MechanicRequestDetailsPage",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "mechanic_request_details_page.dart",
-      "file_type": "code",
-      "norm_label": "mechanicrequestdetailspage",
-      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_mechanic_appointments_mechanic_request_details_page_mechanicrequestdetailspagestate",
-      "label": "_MechanicRequestDetailsPageState",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "mechanic_request_details_page.dart",
-      "file_type": "code",
-      "norm_label": "_mechanicrequestdetailspagestate",
-      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_mechanic_appointments_mechanic_request_details_page_note",
       "label": "note",
       "_origin": "ast",
@@ -25442,6 +25442,28 @@
       "community_name": "mechanic_request_details_page.dart",
       "file_type": "code",
       "norm_label": "_proposenewtime",
+      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_request_details_page_proposetimecalendarpage",
+      "label": "_ProposeTimeCalendarPage",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "mechanic_request_details_page.dart",
+      "file_type": "code",
+      "norm_label": "_proposetimecalendarpage",
+      "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_mechanic_appointments_mechanic_request_details_page_proposetimecalendarpagestate",
+      "label": "_ProposeTimeCalendarPageState",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "mechanic_request_details_page.dart",
+      "file_type": "code",
+      "norm_label": "_proposetimecalendarpagestate",
       "source_file": "lib/mechanic/appointments/mechanic_request_details_page.dart",
       "source_location": null
     },
@@ -31347,6 +31369,18 @@
     },
     {
       "source": "lib_mechanic_home_mechanic_home_screen",
+      "target": "appointment",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_mechanic_home_mechanic_home_screen",
       "target": "color",
       "relation": "references",
       "_origin": "ast",
@@ -31407,31 +31441,19 @@
     },
     {
       "source": "lib_mechanic_home_mechanic_home_screen",
-      "target": "lib_mechanic_appointments_data_appointment_appointment",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "lib_mechanic_home_mechanic_home_screen",
-      "target": "lib_mechanic_profile_data_mechanic_profile_mechanicprofile",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "variable_type",
-      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "lib_mechanic_home_mechanic_home_screen",
       "target": "list",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_mechanic_home_mechanic_home_screen",
+      "target": "mechanicprofile",
       "relation": "references",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -31456,6 +31478,18 @@
     {
       "source": "lib_mechanic_home_mechanic_home_screen",
       "target": "streamsubscription",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "variable_type",
+      "source_file": "lib/mechanic/home/mechanic_home_screen.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_mechanic_home_mechanic_home_screen",
+      "target": "string",
       "relation": "references",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -66771,5 +66805,5 @@
       "source_file": ".claude/skills/graphify/references/query.md"
     }
   ],
-  "built_at_commit": "2333413bdf316579ef060f2eb0c9bd71bb281e57"
+  "built_at_commit": "6254459aa62ef037cb64cfce8901c5984997fceb"
 }
