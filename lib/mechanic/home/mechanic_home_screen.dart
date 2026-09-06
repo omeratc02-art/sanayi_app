@@ -309,6 +309,10 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             businessName: _profile?.businessName,
             unreadChatCount: _unreadChatCount,
             onNotificationTap: _openNotifications,
+            // Same already-computed values passed to _TodayOverviewCard
+            // below — not a second query/computation, just reused here too.
+            todayCount: todayCount,
+            newRequestsCount: newRequestsCount,
           ),
           Expanded(
             child: ListView(
@@ -418,21 +422,33 @@ String _timeAwareGreetingPrefix(DateTime now) {
   return 'İyi akşamlar';
 }
 
-/// Compact branded header — a time-aware greeting with the real business
-/// name, a static supporting line (no numbers here anymore; the real
-/// today's/new-request counts live in [_TodayOverviewCard] below instead,
-/// so they're not duplicated in two places), and a bell whose badge is a
-/// real unread-message count.
+/// Compact branded header — a small SanayiGo wordmark, a time-aware
+/// greeting with the real business name, a static supporting line, a real
+/// today's-summary line (built from the same todayCount/newRequestsCount
+/// _MechanicHomeScreenState.build() already computes for
+/// [_TodayOverviewCard] — not a second query, some duplication between the
+/// two is expected), a bell whose badge is a real unread-message count, and
+/// a small slogan under the bell.
 class _MechanicHomeHeader extends StatelessWidget {
   const _MechanicHomeHeader({
     required this.businessName,
     required this.unreadChatCount,
     required this.onNotificationTap,
+    required this.todayCount,
+    required this.newRequestsCount,
   });
 
   final String? businessName;
   final int unreadChatCount;
   final VoidCallback onNotificationTap;
+  final int? todayCount;
+  final int? newRequestsCount;
+
+  // The real app icon's foreground artwork (see pubspec.yaml's assets
+  // entry) — a transparent-background car+wrench mark, the same art used
+  // to generate the launcher icon. Reused as-is for the wordmark row
+  // rather than a new/placeholder image.
+  static const _logoAssetPath = 'assets/icon/app_icon_foreground.png';
 
   // Same 3-stop brand gradient PremiumHeroHeader already uses on the
   // customer-side home screen (see widgets/home/premium_hero_header.dart)
@@ -451,6 +467,11 @@ class _MechanicHomeHeader extends StatelessWidget {
     final trimmedName = businessName?.trim();
     final prefix = _timeAwareGreetingPrefix(DateTime.now());
     final greeting = (trimmedName == null || trimmedName.isEmpty) ? '$prefix 👋' : '$prefix, $trimmedName 👋';
+    // Same isLoading-aware "..." placeholder convention _PrimaryStat already
+    // uses below — never a fabricated number, never a raw "null".
+    final summaryLine = (todayCount == null || newRequestsCount == null)
+        ? 'Bugün ... randevunuz, ... yeni talebiniz var.'
+        : 'Bugün $todayCount randevunuz, $newRequestsCount yeni talebiniz var.';
 
     return Container(
       width: double.infinity,
@@ -458,18 +479,36 @@ class _MechanicHomeHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          // More top/bottom breathing room than before (14/16) — the larger
-          // greeting/subtitle below needs a taller band to sit in
-          // comfortably instead of feeling compressed against the edges.
-          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 24, AppSpacing.lg, 26),
+          // More top/bottom breathing room than before, and a taller
+          // bottom inset in particular — this now holds the wordmark row
+          // above the greeting and the real summary line below the
+          // subtitle, so the band needs to grow downward to fit both
+          // without compressing the greeting/subtitle sizing.
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 20, AppSpacing.lg, 30),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Image.asset(_logoAssetPath, height: 22, fit: BoxFit.contain),
+                        const SizedBox(width: 6),
+                        Text(
+                          'SanayiGo',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                            color: Colors.white.withValues(alpha: 0.95),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
                     Text(
                       greeting,
                       style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: Colors.white),
@@ -479,22 +518,43 @@ class _MechanicHomeHeader extends StatelessWidget {
                       'Randevularınızı ve hizmet taleplerinizi yönetin.',
                       style: TextStyle(fontSize: 13.5, height: 1.45, color: Colors.white.withValues(alpha: 0.88)),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      summaryLine,
+                      style: TextStyle(fontSize: 12.5, height: 1.3, color: Colors.white.withValues(alpha: 0.82)),
+                    ),
                   ],
                 ),
               ),
-              Container(
-                width: 52,
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), shape: BoxShape.circle),
-                child: IconButton(
-                  onPressed: onNotificationTap,
-                  icon: Badge(
-                    isLabelVisible: unreadChatCount > 0,
-                    label: Text('$unreadChatCount'),
-                    child: const Icon(Icons.notifications_outlined, size: 28, color: Colors.white),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), shape: BoxShape.circle),
+                    child: IconButton(
+                      onPressed: onNotificationTap,
+                      icon: Badge(
+                        isLabelVisible: unreadChatCount > 0,
+                        label: Text('$unreadChatCount'),
+                        child: const Icon(Icons.notifications_outlined, size: 28, color: Colors.white),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Güvenle Yönetin',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                      color: Colors.white.withValues(alpha: 0.78),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

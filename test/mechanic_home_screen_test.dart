@@ -414,4 +414,71 @@ void main() {
 
     expect(find.byIcon(Icons.verified_rounded), findsNothing);
   });
+
+  testWidgets('Header shows the real SanayiGo wordmark (logo + text) and the slogan', (WidgetTester tester) async {
+    await seedMechanicAccount();
+    await pumpScreen(tester);
+
+    expect(find.text('SanayiGo'), findsOneWidget);
+    expect(find.text('Güvenle Yönetin'), findsOneWidget);
+    // The real app-icon foreground art (see pubspec.yaml's assets entry),
+    // not a placeholder — same file the launcher icon is generated from.
+    final logo = tester.widget<Image>(find.byType(Image));
+    expect(logo.image, isA<AssetImage>());
+    expect((logo.image as AssetImage).assetName, 'assets/icon/app_icon_foreground.png');
+  });
+
+  testWidgets(
+    "Header's today's-summary line uses the same real counts as the overview card, not a second computation",
+    (WidgetTester tester) async {
+      await seedMechanicAccount();
+      // 2 confirmed appointments today.
+      await seedConfirmedAppointment(
+        id: 'appt-1',
+        appointmentDate: daysFromNow(0),
+        time: '09:00',
+        vehicleModel: 'Fiat Egea',
+        serviceType: 'Yağ Değişimi',
+      );
+      await seedConfirmedAppointment(
+        id: 'appt-2',
+        appointmentDate: daysFromNow(0),
+        time: '11:00',
+        vehicleModel: 'Renault Clio',
+        serviceType: 'Lastik Değişimi',
+      );
+      // 3 pending ("new") requests.
+      await seedAppointment('req-1', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
+      await seedAppointment('req-2', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
+      await seedAppointment('req-3', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
+
+      await pumpScreen(tester);
+
+      expect(find.text('Bugün 2 randevunuz, 3 yeni talebiniz var.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "Header's today's-summary line shows a safe '...' placeholder while loading, never null or a fabricated number",
+    (WidgetTester tester) async {
+      await seedMechanicAccount();
+
+      tester.view.physicalSize = const Size(400, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // A single pump (not pumpAndSettle) — catches the screen's very first
+      // frame, before resolveMyBusinessId()/the appointment streams have
+      // resolved, when todayCount/newRequestsCount are still null.
+      await tester.pumpWidget(const MaterialApp(home: MechanicHomeScreen()));
+
+      expect(find.text('Bugün ... randevunuz, ... yeni talebiniz var.'), findsOneWidget);
+      expect(find.textContaining('null'), findsNothing);
+
+      // Let everything settle so no pending timers/streams leak into the
+      // next test.
+      await tester.pumpAndSettle();
+    },
+  );
 }
