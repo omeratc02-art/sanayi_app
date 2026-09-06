@@ -101,11 +101,11 @@ void main() {
   }
 
   Future<void> pumpScreen(WidgetTester tester) async {
-    // Tall surface — this screen has a lot more vertical content (gradient
-    // header, today's-overview card, new-requests list, today's-appointments
-    // timeline, service-performance tiles) than the default test window,
-    // and a plain ListView still needs each item within the
-    // viewport/cache extent to actually build it.
+    // Tall surface — this screen has a lot more vertical content (unified
+    // top section, new-requests list, today's-appointments timeline,
+    // service-performance tiles) than the default test window, and a plain
+    // ListView still needs each item within the viewport/cache extent to
+    // actually build it.
     tester.view.physicalSize = const Size(400, 3000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -134,73 +134,55 @@ void main() {
     expect(find.text('${expectedGreetingPrefix()} 👋'), findsOneWidget);
   });
 
-  testWidgets('Stat cards show real live counts, not hidden at 0, with no hardcoded mock content', (
-    WidgetTester tester,
-  ) async {
-    await seedMechanicAccount();
-    // 1 pending ("new request").
-    await seedAppointment(
-      'req-pending',
-      appointmentDate: daysFromNow(0),
-      createdAt: DateTime.now(),
-    );
-    // 1 confirmed for today.
-    await seedAppointment(
-      'req-today',
-      appointmentDate: daysFromNow(0),
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      durum: 'kabul edildi',
-    );
-    // 1 confirmed for the future ("upcoming").
-    await seedAppointment(
-      'req-upcoming',
-      appointmentDate: daysFromNow(5),
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      durum: 'kabul edildi',
-    );
-    // 1 confirmed for the past, never completed ("overdue").
-    await seedAppointment(
-      'req-overdue',
-      appointmentDate: daysFromNow(-3),
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      durum: 'kabul edildi',
-    );
-    // A verified-completed job with a past date must NOT inflate "overdue"
-    // — durum stays 'kabul edildi' forever once accepted (see
-    // AppointmentRepository.markCustomerVerified, which only ever touches
-    // tamamlanmaDurumu), so this specifically exercises that distinction.
-    await seedAppointment(
-      'req-completed-old',
-      appointmentDate: daysFromNow(-30),
-      createdAt: DateTime.now().subtract(const Duration(days: 40)),
-      durum: 'kabul edildi',
-      tamamlanmaDurumu: 'dogrulanmis_tamamlandi',
-    );
+  testWidgets(
+    "Top section's workload numbers show real live counts, not hidden at 0, with no hardcoded mock content",
+    (WidgetTester tester) async {
+      await seedMechanicAccount();
+      // 1 pending ("new request").
+      await seedAppointment(
+        'req-pending',
+        appointmentDate: daysFromNow(0),
+        createdAt: DateTime.now(),
+      );
+      // 1 confirmed for today.
+      await seedAppointment(
+        'req-today',
+        appointmentDate: daysFromNow(0),
+        createdAt: DateTime.now().subtract(const Duration(days: 3)),
+        durum: 'kabul edildi',
+      );
 
-    await pumpScreen(tester);
+      await pumpScreen(tester);
 
-    expect(find.text('1'), findsNWidgets(4)); // today, new, upcoming, overdue — each real, each exactly 1
-    expect(find.text('Randevularınızı ve hizmet taleplerinizi yönetin.'), findsOneWidget);
+      // Today's-confirmed-appointment count and new-request count — the
+      // only two numbers the unified top section shows (upcoming/overdue
+      // counts and any weekly total are explicitly out of scope for this
+      // section and are not displayed anywhere on this screen).
+      expect(find.text('1'), findsNWidgets(2));
+      expect(find.text('Bugünkü Randevu'), findsOneWidget);
+      expect(find.text('Yeni Talep'), findsOneWidget);
+      expect(find.text('Randevularınızı ve hizmet taleplerinizi yönetin.'), findsOneWidget);
 
-    // The old hardcoded elements are fully gone.
-    expect(find.text('3'), findsNothing);
-    expect(find.textContaining('Ahmet Yılmaz'), findsNothing);
-    expect(find.text('Önemli Gelişmeler'), findsNothing);
-  });
+      // The old hardcoded elements are fully gone.
+      expect(find.text('3'), findsNothing);
+      expect(find.textContaining('Ahmet Yılmaz'), findsNothing);
+      expect(find.text('Önemli Gelişmeler'), findsNothing);
+    },
+  );
 
-  testWidgets('Empty state: zero pending/upcoming appointments shows real zeros, not a hidden/broken layout', (
+  testWidgets('Empty state: zero pending/today appointments shows real zeros, not a hidden/broken layout', (
     WidgetTester tester,
   ) async {
     await seedMechanicAccount();
     await pumpScreen(tester);
 
     expect(find.text('Bekleyen talebiniz yok.'), findsOneWidget);
-    // Today's-overview's 4 counts (today/new/upcoming/overdue) plus the
-    // service-performance section's real repeat-customer count (also
-    // unthresholded — 0 is a real, shown value, not hidden) — 5 in total.
-    // Rating and on-time-rate show '—' instead of a fake 0 since there's no
-    // completed job yet to compute either from.
-    expect(find.text('0'), findsNWidgets(5));
+    // The top section's 2 counts (today/new) plus the service-performance
+    // section's real repeat-customer count (also unthresholded — 0 is a
+    // real, shown value, not hidden) — 3 in total. Rating and on-time-rate
+    // show '—' instead of a fake 0 since there's no completed job yet to
+    // compute either from.
+    expect(find.text('0'), findsNWidgets(3));
     expect(find.textContaining('Ahmet Yılmaz'), findsNothing);
   });
 
@@ -239,12 +221,11 @@ void main() {
 
       // The older request appears as a compact preview beneath the
       // spotlighted one, with a real date-based tag instead (appointmentDate
-      // is 2 days out -> "Yaklaşan"). Found twice: once as that tag, once
-      // more as the "Bugün" overview card's own "Yaklaşan" (upcoming-count)
-      // secondary-chip label — the same real coincidence of wording as
-      // 'Gecikti' elsewhere. (The redesign folded the old separate "Diğer
-      // Talepler" sub-heading into one unified "Yeni Talepler" section.)
-      expect(find.text('Yaklaşan'), findsNWidgets(2));
+      // is 2 days out -> "Yaklaşan"). The unified top section no longer has
+      // an "upcoming" secondary chip of its own (that concept was dropped
+      // when the old separate "Bugün" overview card was folded in — see
+      // _MechanicHomeHeader), so this tag is now unambiguous.
+      expect(find.text('Yaklaşan'), findsOneWidget);
     },
   );
 
@@ -298,14 +279,17 @@ void main() {
       await pumpScreen(tester);
 
       // 'Bugün' and 'Yarın' each come only from their request's own
-      // date-based tag — the overview card's today/new-request labels are
-      // 'Randevu'/'Yeni Talep', not 'Bugün'/'Yarın', so neither collides.
+      // date-based tag — the top section's today/new-request labels are
+      // 'Bugünkü Randevu'/'Yeni Talep', not 'Bugün'/'Yarın', so neither
+      // collides.
       expect(find.text('Bugün'), findsOneWidget);
       expect(find.text('Yarın'), findsOneWidget);
-      // req-overdue's own "Gecikti" tag is capped out of the preview — only
-      // the overview card's "Gecikti" secondary-chip (still a real count of
-      // 1) is on screen.
-      expect(find.text('Gecikti'), findsOneWidget);
+      // req-overdue's own "Gecikti" tag is capped out of the preview, and
+      // the unified top section no longer has its own "delayed" secondary
+      // chip (dropped when the old separate overview card was folded in),
+      // so "Gecikti" doesn't appear anywhere on screen in this scenario —
+      // only reachable via "Tümünü Gör".
+      expect(find.text('Gecikti'), findsNothing);
       expect(find.text('Tümünü Gör (4)'), findsOneWidget);
     },
   );
@@ -416,7 +400,7 @@ void main() {
   });
 
   testWidgets(
-    'Header shows the real SanayiGo wordmark stacked (logo above text, not side-by-side) plus the slogan',
+    'Top section shows the real SanayiGo wordmark (logo badge beside the text, not stacked) plus the slogan',
     (WidgetTester tester) async {
       await seedMechanicAccount();
       await pumpScreen(tester);
@@ -438,20 +422,18 @@ void main() {
       // it rendered, not the errorBuilder's SizedBox.shrink().
       expect(tester.getSize(find.byType(Image)).height, greaterThan(0));
 
-      // Stacked, not side-by-side: the logo sits above the text (smaller
-      // top offset) and the two are horizontally centered relative to each
-      // other (their horizontal centers roughly coincide, unlike a
-      // left-logo/right-text row where the text's center would sit well to
-      // the right of the logo's).
+      // Side-by-side now (the top-section redesign moved the logo into a
+      // small colored badge to the left of the identity text column,
+      // replacing the earlier stacked logo-above-text arrangement): the
+      // logo badge sits to the left of the "SanayiGo" text, not above it.
       final logoRect = tester.getRect(find.byType(Image));
       final textRect = tester.getRect(find.text('SanayiGo'));
-      expect(logoRect.bottom, lessThanOrEqualTo(textRect.top));
-      expect((logoRect.center.dx - textRect.center.dx).abs(), lessThan(1));
+      expect(logoRect.right, lessThanOrEqualTo(textRect.left));
     },
   );
 
   testWidgets(
-    "Header's today's-summary line uses the same real counts as the overview card, not a second computation",
+    "Top section's workload numbers use the same real counts as the rest of the screen, not a second computation",
     (WidgetTester tester) async {
       await seedMechanicAccount();
       // 2 confirmed appointments today.
@@ -469,19 +451,26 @@ void main() {
         vehicleModel: 'Renault Clio',
         serviceType: 'Lastik Değişimi',
       );
-      // 3 pending ("new") requests.
+      // 4 pending ("new") requests — created "now" so the spotlighted
+      // request's own tag reads "Bugün Gelen Talep" rather than "Yeni
+      // Talep", keeping it distinct from the top section's "Yeni Talep"
+      // caption label.
       await seedAppointment('req-1', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
       await seedAppointment('req-2', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
       await seedAppointment('req-3', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
+      await seedAppointment('req-4', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
 
       await pumpScreen(tester);
 
-      expect(find.text('Bugün 2 randevunuz, 3 yeni talebiniz var.'), findsOneWidget);
+      expect(find.text('Bugünkü Randevu'), findsOneWidget);
+      expect(find.text('Yeni Talep'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('4'), findsOneWidget);
     },
   );
 
   testWidgets(
-    "Header's today's-summary line shows a safe '...' placeholder while loading, never null or a fabricated number",
+    "Top section's workload numbers show a safe '...' placeholder while loading, never null or a fabricated number",
     (WidgetTester tester) async {
       await seedMechanicAccount();
 
@@ -495,7 +484,9 @@ void main() {
       // resolved, when todayCount/newRequestsCount are still null.
       await tester.pumpWidget(const MaterialApp(home: MechanicHomeScreen()));
 
-      expect(find.text('Bugün ... randevunuz, ... yeni talebiniz var.'), findsOneWidget);
+      // Both workload numbers (today + new requests) share the same '...'
+      // placeholder convention.
+      expect(find.text('...'), findsNWidgets(2));
       expect(find.textContaining('null'), findsNothing);
 
       // Let everything settle so no pending timers/streams leak into the

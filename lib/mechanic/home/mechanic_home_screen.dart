@@ -21,25 +21,26 @@ import '../profile/data/mechanic_profile_repository.dart';
 /// Mechanic module's "Home" tab — a premium work dashboard, ordered so the
 /// mechanic can read it top-to-bottom in priority order:
 ///
-///   1. A compact header (time-aware greeting with the real business name,
-///      a real unread-message bell badge).
-///   2. "Bugün" — a strong two-number overview (today's confirmed
-///      appointments, new requests) with upcoming/delayed as smaller
-///      secondary chips beneath — see [_TodayOverviewCard].
-///   3. "Yeni Talepler" — the actual work needing a decision, shown as real
+///   1. A unified top section (see [_MechanicHomeHeader]) — identity
+///      (wordmark, time-aware greeting with the real business name,
+///      subtitle) and today's workload (today's confirmed-appointment
+///      count, new-request count) as ONE light-background composition,
+///      not a colored hero band stacked above a separate stat card.
+///   2. "Yeni Talepler" — the actual work needing a decision, shown as real
 ///      cards (vehicle, service, preferred date/time, how long ago it
 ///      arrived, a clear "Talebi İncele" action) — see
 ///      [_NewRequestsSection].
-///   4. "Bugünün Randevuları" — a compact timeline of today's confirmed
+///   3. "Bugünün Randevuları" — a compact timeline of today's confirmed
 ///      appointments — see [_TodayAppointmentsSection].
-///   5. "Servis Performansı" — real rating/repeat-customer/on-time-rate
+///   4. "Servis Performansı" — real rating/repeat-customer/on-time-rate
 ///      trust metrics, deliberately last and visually smaller than the
 ///      work above it — see [_ServicePerformanceSection].
 ///
 /// Every number and label traces back to a real Firestore-backed field or
 /// live stream — see [scheduleBucketFor] for the one shared date-bucketing
-/// rule used by both the overview card and each request's status tag, so
-/// they can never disagree. Two things this screen deliberately does NOT
+/// rule used by both the top section's workload numbers and each request's
+/// status tag, so they can never disagree. Two things this screen
+/// deliberately does NOT
 /// show, because no real data backs them: an "Estimated Work / Revenue"
 /// figure (no per-appointment price/fee field exists anywhere in the
 /// schema) and a fabricated "urgent"/"acil" flag (see
@@ -295,10 +296,6 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final todayCount = _isLoadingSchedule ? null : _countConfirmed((b) => b == ScheduleBucket.today);
-    final overdueCount = _isLoadingSchedule ? null : _countConfirmed((b) => b == ScheduleBucket.overdue);
-    final upcomingCount = _isLoadingSchedule
-        ? null
-        : _countConfirmed((b) => b == ScheduleBucket.tomorrow || b == ScheduleBucket.upcoming);
     final newRequestsCount = _isLoadingPending ? null : _pendingRequests.length;
 
     return Scaffold(
@@ -309,26 +306,15 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             businessName: _profile?.businessName,
             unreadChatCount: _unreadChatCount,
             onNotificationTap: _openNotifications,
-            // Same already-computed values passed to _TodayOverviewCard
-            // below — not a second query/computation, just reused here too.
+            // Same values the top section's workload numbers show — not a
+            // second query/computation.
             todayCount: todayCount,
             newRequestsCount: newRequestsCount,
           ),
           Expanded(
             child: ListView(
-              // Top inset bumped from AppSpacing.lg (16) to AppSpacing.xl
-              // (20) — the enlarged header now has noticeably more visual
-              // mass, and the old gap started reading as slightly cramped
-              // against it.
               padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xl),
               children: [
-                _TodayOverviewCard(
-                  today: todayCount,
-                  newRequests: newRequestsCount,
-                  upcoming: upcomingCount,
-                  overdue: overdueCount,
-                ),
-                const SizedBox(height: AppSpacing.xxl),
                 _NewRequestsSection(
                   isLoading: _isLoadingPending,
                   requests: _pendingRequests,
@@ -422,13 +408,24 @@ String _timeAwareGreetingPrefix(DateTime now) {
   return 'İyi akşamlar';
 }
 
-/// Compact branded header — a small SanayiGo wordmark, a time-aware
-/// greeting with the real business name, a static supporting line, a real
-/// today's-summary line (built from the same todayCount/newRequestsCount
-/// _MechanicHomeScreenState.build() already computes for
-/// [_TodayOverviewCard] — not a second query, some duplication between the
-/// two is expected), a bell whose badge is a real unread-message count, and
-/// a small slogan under the bell.
+/// Unified top section — identity (SanayiGo wordmark, time-aware greeting
+/// with the real business name, subtitle) and today's workload (today's
+/// confirmed-appointment count, new-request count) as ONE composition on a
+/// light/white background, replacing the previous gradient hero band
+/// stacked above a separately-boxed "Bugün" overview card. Both numbers are
+/// the exact same todayCount/newRequestsCount _MechanicHomeScreenState.build()
+/// already computes once — passed straight through, never recomputed.
+///
+/// Deliberately no full-bleed color gradient here — brand color is used
+/// only selectively: the small logo badge, the new-requests number when
+/// it's > 0, small icon accents. New-requests carries a touch more
+/// emphasis (turquoise color, slightly larger) than today's-appointment
+/// count when it's > 0, since it represents something needing a decision —
+/// but that's a calm brand-color accent, never red/alert styling, the same
+/// "a workflow state, not an emergency" reasoning this file already
+/// documents for [AppColors.scheduleOverdue] vs [AppColors.emergency]. Both
+/// numbers read visually quieter (muted gray, no accent color) at 0 or
+/// while still loading — see [_WorkloadStat].
 class _MechanicHomeHeader extends StatelessWidget {
   const _MechanicHomeHeader({
     required this.businessName,
@@ -450,18 +447,18 @@ class _MechanicHomeHeader extends StatelessWidget {
   // was requested to replace this, but that file does not exist anywhere
   // in the project (checked: not on disk, not tracked by git, not
   // gitignored) — pointing at it would just reproduce the exact
-  // "asset does not exist" failure this change is fixing. Swap this
-  // constant (and pubspec.yaml's assets: entry) to sanayigo_logo.png once
-  // that file is actually added.
+  // "asset does not exist" failure a prior change already fixed once.
+  // Swap this constant (and pubspec.yaml's assets: entry) to
+  // sanayigo_logo.png once that file is actually added.
   static const _logoAssetPath = 'assets/icon/app_icon_foreground.png';
 
-  // Same 3-stop brand gradient PremiumHeroHeader already uses on the
-  // customer-side home screen (see widgets/home/premium_hero_header.dart)
-  // — reused here for visual consistency instead of inventing a new one.
-  // Kept to just this header (a compact band, not a large filled area) so
-  // the rest of the screen stays light/neutral with only small color
-  // accents, per the redesign's "avoid excessive large blue areas" ask.
-  static const _gradient = LinearGradient(
+  // Same 3-stop brand gradient PremiumHeroHeader uses on the customer-side
+  // home screen — but scoped down to just the small logo badge now (see
+  // build()) rather than the whole section's background. The logo art
+  // itself is white-on-transparent, so it needs a colored patch behind it
+  // to stay visible now that the section around it is white/light, not a
+  // full-bleed gradient band.
+  static const _logoBadgeGradient = LinearGradient(
     colors: [AppColors.turquoise, AppColors.primary, AppColors.primaryDark],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -472,108 +469,133 @@ class _MechanicHomeHeader extends StatelessWidget {
     final trimmedName = businessName?.trim();
     final prefix = _timeAwareGreetingPrefix(DateTime.now());
     final greeting = (trimmedName == null || trimmedName.isEmpty) ? '$prefix 👋' : '$prefix, $trimmedName 👋';
-    // Same isLoading-aware "..." placeholder convention _PrimaryStat already
-    // uses below — never a fabricated number, never a raw "null".
-    final summaryLine = (todayCount == null || newRequestsCount == null)
-        ? 'Bugün ... randevunuz, ... yeni talebiniz var.'
-        : 'Bugün $todayCount randevunuz, $newRequestsCount yeni talebiniz var.';
 
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(gradient: _gradient),
+      color: AppColors.surface,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          // More top/bottom breathing room than before, and a taller
-          // bottom inset in particular — this now holds the wordmark row
-          // above the greeting and the real summary line below the
-          // subtitle, so the band needs to grow downward to fit both
-          // without compressing the greeting/subtitle sizing.
-          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 20, AppSpacing.lg, 30),
-          child: Row(
+          // Noticeably tighter than the old gradient hero's padding — a
+          // white background doesn't need as much surrounding room to
+          // avoid feeling cramped, and this composition is replacing two
+          // stacked pieces with one, so it should read as more efficient,
+          // not larger.
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 18, AppSpacing.lg, AppSpacing.lg),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Stacked, not side-by-side — logo on top, "SanayiGo"
-                    // centered directly beneath it. The Column's own
-                    // crossAxisAlignment.center only centers the image/text
-                    // relative to each other; the block as a whole still
-                    // sits flush-left, matching the outer left-aligned
-                    // Column below it (greeting/subtitle/summary).
-                    Column(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(gradient: _logoBadgeGradient, borderRadius: BorderRadius.all(Radius.circular(12))),
+                    child: Image.asset(
+                      _logoAssetPath,
+                      height: 20,
+                      fit: BoxFit.contain,
+                      // Resilience only — falls back to an empty badge (no
+                      // broken-image icon) if the asset is ever missing
+                      // again. Not a substitute for fixing the real file.
+                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Image.asset(
-                          _logoAssetPath,
-                          height: 22,
-                          fit: BoxFit.contain,
-                          // Resilience only — falls back to just the
-                          // "SanayiGo" text (no broken-image icon) if the
-                          // asset is ever missing again. Not a substitute
-                          // for actually fixing/registering the real file.
-                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                        ),
-                        const SizedBox(height: 4),
                         Text(
                           'SanayiGo',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 0.3,
-                            color: Colors.white.withValues(alpha: 0.95),
+                            letterSpacing: 0.5,
+                            color: AppColors.turquoise,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          greeting,
+                          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Randevularınızı ve hizmet taleplerinizi yönetin.',
+                          style: TextStyle(fontSize: 13.5, height: 1.45, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Text(
-                      greeting,
-                      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: Colors.white),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Randevularınızı ve hizmet taleplerinizi yönetin.',
-                      style: TextStyle(fontSize: 13.5, height: 1.45, color: Colors.white.withValues(alpha: 0.88)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      summaryLine,
-                      style: TextStyle(fontSize: 12.5, height: 1.3, color: Colors.white.withValues(alpha: 0.82)),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), shape: BoxShape.circle),
-                    child: IconButton(
-                      onPressed: onNotificationTap,
-                      icon: Badge(
-                        isLabelVisible: unreadChatCount > 0,
-                        label: Text('$unreadChatCount'),
-                        child: const Icon(Icons.notifications_outlined, size: 28, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.turquoise.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          onPressed: onNotificationTap,
+                          icon: Badge(
+                            isLabelVisible: unreadChatCount > 0,
+                            label: Text('$unreadChatCount'),
+                            child: const Icon(Icons.notifications_outlined, size: 24, color: AppColors.primaryDark),
+                          ),
+                        ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Güvenle Yönetin',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                          color: AppColors.textSecondary.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(height: 1, color: AppColors.divider),
+              const SizedBox(height: 16),
+              // Today's workload — one composition, not two side-by-side
+              // bordered/shadowed boxes: shared typography scale, a single
+              // subtle divider between them, icon-plus-label captions above
+              // each number instead of big colored icon tiles.
+              Row(
+                children: [
+                  Expanded(
+                    child: _WorkloadStat(
+                      icon: Icons.event_available_rounded,
+                      value: todayCount,
+                      label: 'Bugünkü Randevu',
+                      emphasize: false,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Güvenle Yönetin',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                      color: Colors.white.withValues(alpha: 0.78),
+                  Container(
+                    width: 1,
+                    height: 38,
+                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    color: AppColors.divider,
+                  ),
+                  Expanded(
+                    child: _WorkloadStat(
+                      icon: Icons.inbox_rounded,
+                      value: newRequestsCount,
+                      label: 'Yeni Talep',
+                      emphasize: true,
                     ),
                   ),
                 ],
@@ -586,175 +608,52 @@ class _MechanicHomeHeader extends StatelessWidget {
   }
 }
 
-/// "Bugün" — the strong, single overview card the redesign asked for
-/// instead of four visually equal numbers: two large primary stats
-/// (today's confirmed appointments, new requests) with icon badges, and
-/// two smaller secondary chips (upcoming, delayed) beneath. Same four real
-/// numbers a flatter stat row used to show — none added, removed, or
-/// recomputed here, just reordered by importance.
-class _TodayOverviewCard extends StatelessWidget {
-  const _TodayOverviewCard({
-    required this.today,
-    required this.newRequests,
-    required this.upcoming,
-    required this.overdue,
-  });
-
-  final int? today;
-  final int? newRequests;
-  final int? upcoming;
-  final int? overdue;
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumSurface(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      borderRadius: AppRadius.lg,
-      border: Border.all(color: AppColors.divider),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'BUGÜN',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-              color: AppColors.textSecondary.withValues(alpha: 0.8),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _PrimaryStat(
-                  icon: Icons.event_available_rounded,
-                  value: today,
-                  label: 'Randevu',
-                  color: AppColors.scheduleToday,
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 44,
-                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                color: AppColors.divider,
-              ),
-              Expanded(
-                child: _PrimaryStat(
-                  icon: Icons.inbox_rounded,
-                  value: newRequests,
-                  label: 'Yeni Talep',
-                  color: AppColors.turquoise,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _SecondaryStatChip(
-                  icon: Icons.event_repeat_rounded,
-                  value: upcoming,
-                  label: 'Yaklaşan',
-                  color: AppColors.scheduleUpcoming,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _SecondaryStatChip(
-                  icon: Icons.schedule_rounded,
-                  value: overdue,
-                  label: 'Gecikti',
-                  color: AppColors.scheduleOverdue,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PrimaryStat extends StatelessWidget {
-  const _PrimaryStat({required this.icon, required this.value, required this.label, required this.color});
+/// One of the two "today's workload" numbers. Both share the same quiet
+/// treatment (muted gray, no accent color) at 0 or while still loading —
+/// [emphasize] (true only for the new-requests count) adds a calm brand-
+/// color accent and a touch more size ONLY once the value is real and > 0,
+/// never for a loading/zero state and never as red/alert styling.
+class _WorkloadStat extends StatelessWidget {
+  const _WorkloadStat({required this.icon, required this.value, required this.label, required this.emphasize});
 
   final IconData icon;
   final int? value;
   final String label;
-  final Color color;
+  final bool emphasize;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    final isQuiet = value == null || value == 0;
+    final numberColor = isQuiet
+        ? AppColors.textSecondary.withValues(alpha: 0.55)
+        : (emphasize ? AppColors.turquoise : AppColors.textPrimary);
+    final iconColor = isQuiet ? AppColors.textSecondary.withValues(alpha: 0.5) : numberColor;
+    final fontSize = (!isQuiet && emphasize) ? 30.0 : 26.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
-          child: Icon(icon, color: color, size: 22),
-        ),
-        const SizedBox(width: AppSpacing.sm + 2),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value == null ? '...' : '$value',
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.0),
-              ),
-              const SizedBox(height: 2),
-              Text(
+        Row(
+          children: [
+            Icon(icon, size: 15, color: iconColor),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value == null ? '...' : '$value',
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w800, color: numberColor, height: 1.0),
         ),
       ],
-    );
-  }
-}
-
-class _SecondaryStatChip extends StatelessWidget {
-  const _SecondaryStatChip({required this.icon, required this.value, required this.label, required this.color});
-
-  final IconData icon;
-  final int? value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(AppRadius.sm)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            value == null ? '...' : '$value',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
