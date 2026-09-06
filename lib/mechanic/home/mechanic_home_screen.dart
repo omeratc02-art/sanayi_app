@@ -465,7 +465,19 @@ class _MechanicHomeTopBar extends StatelessWidget {
 
   // The real app icon's foreground artwork (see pubspec.yaml's assets
   // entry) — a transparent-background car+wrench mark, the same art used
-  // to generate the launcher icon.
+  // to generate the launcher icon. The file and the pubspec.yaml
+  // declaration are both correct (verified directly: 79526-byte valid PNG
+  // on disk, listed under pubspec.yaml's assets: with correct 2/4-space
+  // YAML indentation). If this ever renders blank again, it is almost
+  // certainly NOT a code/pubspec problem — it's a stale build: this asset
+  // entry was added after some existing `flutter run`/`flutter build web`
+  // output was produced, and Flutter web bakes AssetManifest.bin into the
+  // build at build time — a hot reload does not regenerate it, only a full
+  // stop + rebuild does. (Diagnosed exactly this way once already: a
+  // build/web/ output whose AssetManifest predated this pubspec entry had
+  // no record of the file at all.) See errorBuilder below, which now logs
+  // the real exception instead of failing silently, so this is
+  // diagnosable from the console instead of just "no logo".
   static const _logoAssetPath = 'assets/icon/app_icon_foreground.png';
 
   static const _logoBadgeGradient = LinearGradient(
@@ -492,9 +504,15 @@ class _MechanicHomeTopBar extends StatelessWidget {
             _logoAssetPath,
             height: 22,
             fit: BoxFit.contain,
-            // Resilience only — falls back to an empty badge (no
-            // broken-image icon) if the asset is ever missing again.
-            errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+            // Falls back to an empty badge (no broken-image icon) rather
+            // than crashing, but this is NOT a silent fallback — the real
+            // exception is logged, so a failure here is diagnosable from
+            // the console (see _logoAssetPath's own doc comment for the
+            // one real cause this has actually had: a stale build).
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('SanayiGo logo asset failed to load ($_logoAssetPath): $error');
+              return const SizedBox.shrink();
+            },
           ),
         ),
         const SizedBox(width: 10),

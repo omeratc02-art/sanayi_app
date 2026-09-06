@@ -144,6 +144,49 @@ void main() {
       expect(find.descendant(of: find.byType(Badge), matching: find.text('1')), findsOneWidget);
     });
 
+    testWidgets(
+      'The real logo asset actually decodes and renders (not just present pre-decode, and not the '
+      'errorBuilder fallback) — proves the asset+pubspec registration is genuinely correct',
+      (WidgetTester tester) async {
+        await seedMechanicAccount();
+
+        tester.view.physicalSize = const Size(390, 3200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        // The whole sequence — pump, then enough further pumps for the
+        // ImageStream's real (non-faked) codec-decode Future to actually
+        // resolve and trigger Image's internal setState — has to run
+        // inside one runAsync block. Splitting pumpWidget into its own
+        // runAsync and settling afterward isn't enough: the decode
+        // callback can still fire after that block returns, outside real
+        // async execution, and never get picked up.
+        await tester.runAsync(() async {
+          await tester.pumpWidget(const MaterialApp(home: MechanicHomeScreen()));
+          for (var i = 0; i < 10; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+            await tester.pump();
+          }
+        });
+
+        // If the asset had failed to load, errorBuilder would have
+        // replaced the Image with a SizedBox — so there would be no Image
+        // widget here at all, not a broken one.
+        expect(find.byType(Image), findsOneWidget);
+
+        // The authoritative proof of a successful decode: Image delegates
+        // to RawImage once its ImageStream resolves a frame, and
+        // RawImage.image is the actual decoded dart:ui.Image — non-null
+        // (and with real pixel dimensions) only once real image bytes were
+        // successfully read and decoded, not on the errorBuilder path.
+        final rawImage = tester.widget<RawImage>(find.byType(RawImage));
+        expect(rawImage.image, isNotNull);
+        expect(rawImage.image!.width, greaterThan(0));
+        expect(rawImage.image!.height, greaterThan(0));
+      },
+    );
+
     testWidgets('Bell badge is hidden (no numeric label) when there are no unread chats', (
       WidgetTester tester,
     ) async {
