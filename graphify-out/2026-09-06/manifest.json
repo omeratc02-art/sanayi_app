@@ -222,10 +222,10 @@
     "semantic_hash": "6e29b6622663c00487e1f6ff776770d4"
   },
   "lib/mechanic/appointments/data/appointment_repository.dart": {
-    "mtime": 1788040390.0703676,
-    "seen": 1788509668.3180227,
-    "ast_hash": "943e2be5029ed833abca0854dcdde0c1",
-    "semantic_hash": "943e2be5029ed833abca0854dcdde0c1"
+    "mtime": 1788674547.3634708,
+    "seen": 1788675454.6539052,
+    "ast_hash": "0a107a8be72d9a3c8c0e82751c8eb0f0",
+    "semantic_hash": ""
   },
   "lib/mechanic/appointments/data/chat_message.dart": {
     "mtime": 1787092019.986099,
@@ -282,9 +282,9 @@
     "semantic_hash": "1fc94de1c981ff68f01b44789333cd0e"
   },
   "lib/mechanic/home/mechanic_home_screen.dart": {
-    "mtime": 1788650534.6444707,
-    "seen": 1788650678.229695,
-    "ast_hash": "343ca427c3d8ab6398c9409f110412c9",
+    "mtime": 1788674772.7088087,
+    "seen": 1788675454.6539629,
+    "ast_hash": "2295c56dee949e6ff2fb6ce533a51ec5",
     "semantic_hash": ""
   },
   "lib/mechanic/notifications/mechanic_notifications_screen.dart": {
@@ -1266,9 +1266,9 @@
     "semantic_hash": ""
   },
   "test/mechanic_home_screen_test.dart": {
-    "mtime": 1788650290.9825456,
-    "seen": 1788650678.2301486,
-    "ast_hash": "9b7554cb8a0951253ce2bbaed10c4888",
+    "mtime": 1788675211.3932214,
+    "seen": 1788675454.6545913,
+    "ast_hash": "21fc415c994c2e59eb15d1fceac41c35",
     "semantic_hash": ""
   },
   "test/mechanic_profile_screen_test.dart": {
