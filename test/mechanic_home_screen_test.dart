@@ -10,16 +10,16 @@ import 'package:sanayi_app/utils/firebase_instances.dart';
 import 'package:sanayi_app/widgets/common/premium_surface.dart';
 
 /// MechanicHomeScreen was rebuilt to match a visual reference mockup (top
-/// bar, a fixed static greeting hero, a responsive two-column body) while
-/// keeping every value real: business name, unread-message count, today's
-/// confirmed-appointment count, new-request count, rating/repeat-customer/
-/// on-time metrics, and isVerified. These tests assert the real data
-/// renders correctly and that nothing fabricated (a weekly total, a
+/// bar, a fixed static greeting hero, a single full-width pending-requests
+/// list) while keeping every value real: business name, unread-message
+/// count, new-request count, and isVerified. These tests assert the real
+/// data renders correctly and that nothing fabricated (a weekly total, a
 /// repeat-customer percentage, a stock vehicle/profile photo, a 4th bottom
-/// nav tab) ever appears. The stats row (today/new-requests/rating) was
-/// removed entirely — those real values still render elsewhere on this
-/// screen (the pending-requests list, the performance card), just not in
-/// their own dedicated row any more.
+/// nav tab) ever appears. The old stats row, the "Bugünün Programı"
+/// today's-schedule card, and the "Servis Performansınız"
+/// rating/repeat-customer/on-time card were all removed entirely — the
+/// pending-requests list is now the screen's only body content, at every
+/// width (no more two-column/sidebar layout).
 void main() {
   const mechanicUid = 'test-mechanic-uid';
   const businessId = 'test-usta-isletmesi';
@@ -96,10 +96,10 @@ void main() {
     return DateTime(target.year, target.month, target.day, 12);
   }
 
-  // Narrow (phone-width, stacked layout) by default — this screen has a
-  // lot of vertical content (top bar, hero, the pending-requests list,
-  // schedule card, performance card), and a plain ListView still needs
-  // each item within the viewport/cache extent to actually build it.
+  // Narrow (phone-width) by default — this screen has a lot of vertical
+  // content (top bar, hero, the pending-requests list), and a plain
+  // ListView still needs each item within the viewport/cache extent to
+  // actually build it.
   Future<void> pumpScreen(WidgetTester tester, {double width = 390, double height = 3200}) async {
     tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1.0;
@@ -206,13 +206,15 @@ void main() {
       expect(find.text('Usta'), findsOneWidget);
     });
 
-    testWidgets('Doğrulanmış Servis appears (top-bar chip + performance-card badge) only for a verified account', (
+    testWidgets('Doğrulanmış Servis appears (top-bar profile chip badge) only for a verified account', (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount(isVerified: true);
       await pumpScreen(tester);
 
-      expect(find.text('Doğrulanmış Servis'), findsNWidgets(2));
+      // Only the top-bar profile chip's own badge now — the performance
+      // card that used to carry a second copy of this badge is gone.
+      expect(find.text('Doğrulanmış Servis'), findsOneWidget);
     });
 
     testWidgets('Doğrulanmış Servis appears nowhere for an unverified account', (WidgetTester tester) async {
@@ -260,33 +262,47 @@ void main() {
     });
   });
 
-  group('Stats row', () {
-    testWidgets('The stats row is gone entirely — no leftover today/new-requests/rating stat widgets', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await seedConfirmedAppointment(
-        id: 'appt-1',
-        appointmentDate: daysFromNow(0),
-        time: '09:00',
-        vehicleModel: 'Fiat Egea',
-        serviceType: 'Yağ Değişimi',
-      );
-      await seedAppointment('req-1', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
+  group('Removed sidebar cards', () {
+    testWidgets(
+      'No stats row, no "Bugünün Programı" card, and no "Servis Performansınız" card remain, even with real '
+      'confirmed-appointment and performance data present',
+      (WidgetTester tester) async {
+        await seedMechanicAccount();
+        await firestoreInstance.collection('mechanicAccounts').doc(mechanicUid).update({'repeatCustomerCount': 6});
+        await seedConfirmedAppointment(
+          id: 'appt-1',
+          appointmentDate: daysFromNow(0),
+          time: '09:00',
+          vehicleModel: 'Fiat Egea',
+          serviceType: 'Yağ Değişimi',
+        );
+        await seedAppointment('req-1', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
 
-      await pumpScreen(tester);
+        await pumpScreen(tester);
 
-      expect(find.text('Bugün / Randevu'), findsNothing);
-      // "Yeni Talepler" now appears exactly once — the pending-requests
-      // list's own section heading — since the stats row that used to
-      // share this exact text is gone.
-      expect(find.text('Yeni Talepler'), findsOneWidget);
-      // "Müşteri Puanı" still appears once (rating summary is null — no
-      // rated jobs yet, so the performance card's own label has no
-      // parenthetical) — but only from the performance card now, not
-      // doubled up with the removed stats row's own copy of the same text.
-      expect(find.text('Müşteri Puanı'), findsOneWidget);
-    });
+        // The old stats row's own labels.
+        expect(find.text('Bugün / Randevu'), findsNothing);
+        expect(find.text('Müşteri Puanı'), findsNothing);
+        // "Yeni Talepler" now appears exactly once — the pending-requests
+        // list's own section heading — since the stats row that used to
+        // share this exact text is gone.
+        expect(find.text('Yeni Talepler'), findsOneWidget);
+
+        // The "Bugünün Programı" card, including its confirmed-appointment
+        // row, empty state, and availability button.
+        expect(find.text('Bugünün Programı'), findsNothing);
+        expect(find.text('Fiat Egea'), findsNothing);
+        expect(find.text('09:00'), findsNothing);
+        expect(find.text('Uygunluk durumunu düzenle'), findsNothing);
+
+        // The "Servis Performansınız" card, including its repeat-customer
+        // count and on-time-rate rows.
+        expect(find.text('Servis Performansınız'), findsNothing);
+        expect(find.text('Tekrar Müşteri'), findsNothing);
+        expect(find.text('Zamanında Teslim'), findsNothing);
+        expect(find.text('6'), findsNothing);
+      },
+    );
   });
 
   group('Yeni Talepler (unified pending-requests list)', () {
@@ -411,110 +427,20 @@ void main() {
     });
   });
 
-  group('Bugünün Programı', () {
-    testWidgets('Shows real confirmed appointments sorted earliest-first', (WidgetTester tester) async {
-      await seedMechanicAccount();
-      await seedConfirmedAppointment(
-        id: 'appt-late',
-        appointmentDate: daysFromNow(0),
-        time: '14:30',
-        vehicleModel: 'VW Golf',
-        serviceType: 'Periyodik Bakım',
-      );
-      await seedConfirmedAppointment(
-        id: 'appt-early',
-        appointmentDate: daysFromNow(0),
-        time: '08:00',
-        vehicleModel: 'Opel Astra',
-        serviceType: 'Fren Bakımı',
-      );
-
-      await pumpScreen(tester);
-
-      expect(find.text('08:00'), findsOneWidget);
-      expect(find.text('14:30'), findsOneWidget);
-
-      final earlyY = tester.getTopLeft(find.text('08:00')).dy;
-      final lateY = tester.getTopLeft(find.text('14:30')).dy;
-      expect(earlyY, lessThan(lateY));
-    });
-
-    testWidgets('Shows the real empty-state copy when there are none today, plus the availability button', (
+  group('Layout at every width (single column, no sidebar any more)', () {
+    testWidgets('No overflow at a narrow (phone) width, pending-requests list renders full-width', (
       WidgetTester tester,
     ) async {
-      await seedMechanicAccount();
-      await pumpScreen(tester);
-
-      expect(find.text('Bugün için planlanmış randevu yok'), findsOneWidget);
-      expect(find.text('Uygunluk durumunu düzenle'), findsOneWidget);
-      expect(find.text('Tümünü Gör'), findsOneWidget);
-    });
-
-    testWidgets('Tapping "Uygunluk durumunu düzenle" opens the real appointments screen (no dead button)', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await pumpScreen(tester);
-
-      await tester.tap(find.text('Uygunluk durumunu düzenle'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Yeni Talepler'), findsOneWidget); // MechanicAppointmentsScreen's default tab
-    });
-  });
-
-  group('Servis Performansınız', () {
-    testWidgets('Shows the real repeat-customer count as a raw integer, never a percentage', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await firestoreInstance.collection('mechanicAccounts').doc(mechanicUid).update({'repeatCustomerCount': 6});
-
-      await pumpScreen(tester);
-
-      expect(find.text('Servis Performansınız'), findsOneWidget);
-      expect(find.text('Tekrar Müşteri'), findsOneWidget);
-      expect(find.text('6'), findsOneWidget);
-      expect(find.textContaining('%6'), findsNothing);
-    });
-
-    testWidgets('Shows — for rating/on-time when no completed job exists yet, not a fabricated 0', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await pumpScreen(tester);
-
-      // 2 in total: the performance card's rating value and on-time value
-      // — none fabricated as a 0/0%, since there's no completed job yet.
-      // (No stats row any more to contribute a third.)
-      expect(find.text('—'), findsNWidgets(2));
-    });
-  });
-
-  group('Responsive layout', () {
-    testWidgets('Stacks vertically with no overflow at a common phone width', (WidgetTester tester) async {
       await seedMechanicAccount();
       await seedAppointment('req-1', appointmentDate: daysFromNow(0), createdAt: DateTime.now());
-      await seedConfirmedAppointment(
-        id: 'appt-1',
-        appointmentDate: daysFromNow(0),
-        time: '09:00',
-        vehicleModel: 'Fiat Egea',
-        serviceType: 'Yağ Değişimi',
-      );
 
       await pumpScreen(tester, width: 360);
 
       expect(tester.takeException(), isNull);
-      // Stacked: the sidebar's "Bugünün Programı" card renders below the
-      // main column's pending-requests list, not beside it. 'Renault Clio'
-      // is seedAppointment's default vehicle model for 'req-1'.
-      final requestY = tester.getTopLeft(find.text('Renault Clio')).dy;
-      final scheduleY = tester.getTopLeft(find.text('Bugünün Programı')).dy;
-      expect(scheduleY, greaterThan(requestY));
+      expect(find.text('Renault Clio'), findsOneWidget);
     });
 
-    testWidgets('Renders a true two-column layout with no overflow at a wide (tablet/desktop) width', (
+    testWidgets('No overflow at a wide (tablet/desktop) width — still single column, no side-by-side sidebar', (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount();
@@ -523,11 +449,11 @@ void main() {
       await pumpScreen(tester, width: 900, height: 1400);
 
       expect(tester.takeException(), isNull);
-      // Side by side: the sidebar's "Bugünün Programı" title sits to the
-      // right of the main column's pending-requests list, not below it.
-      final requestX = tester.getTopLeft(find.text('Renault Clio')).dx;
-      final scheduleX = tester.getTopLeft(find.text('Bugünün Programı')).dx;
-      expect(scheduleX, greaterThan(requestX));
+      expect(find.text('Renault Clio'), findsOneWidget);
+      // There is nothing left to sit beside the pending-requests list any
+      // more — no former sidebar card exists at any width.
+      expect(find.text('Bugünün Programı'), findsNothing);
+      expect(find.text('Servis Performansınız'), findsNothing);
     });
   });
 }
