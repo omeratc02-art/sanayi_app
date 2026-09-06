@@ -312,7 +312,11 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xl),
+              // Top inset bumped from AppSpacing.lg (16) to AppSpacing.xl
+              // (20) — the enlarged header now has noticeably more visual
+              // mass, and the old gap started reading as slightly cramped
+              // against it.
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xl),
               children: [
                 _TodayOverviewCard(
                   today: todayCount,
@@ -454,7 +458,10 @@ class _MechanicHomeHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 14, AppSpacing.lg, 16),
+          // More top/bottom breathing room than before (14/16) — the larger
+          // greeting/subtitle below needs a taller band to sit in
+          // comfortably instead of feeling compressed against the edges.
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 24, AppSpacing.lg, 26),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -465,24 +472,27 @@ class _MechanicHomeHeader extends StatelessWidget {
                   children: [
                     Text(
                       greeting,
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white),
+                      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: Colors.white),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       'Randevularınızı ve hizmet taleplerinizi yönetin.',
-                      style: TextStyle(fontSize: 12, height: 1.3, color: Colors.white.withValues(alpha: 0.88)),
+                      style: TextStyle(fontSize: 13.5, height: 1.45, color: Colors.white.withValues(alpha: 0.88)),
                     ),
                   ],
                 ),
               ),
               Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), shape: BoxShape.circle),
                 child: IconButton(
                   onPressed: onNotificationTap,
                   icon: Badge(
                     isLabelVisible: unreadChatCount > 0,
                     label: Text('$unreadChatCount'),
-                    child: const Icon(Icons.notifications_outlined, size: 23, color: Colors.white),
+                    child: const Icon(Icons.notifications_outlined, size: 28, color: Colors.white),
                   ),
                 ),
               ),
