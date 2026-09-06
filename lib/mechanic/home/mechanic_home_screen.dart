@@ -15,42 +15,43 @@ import '../appointments/data/chat_repository.dart';
 import '../appointments/mechanic_appointments_screen.dart';
 import '../appointments/mechanic_request_details_page.dart';
 import '../notifications/mechanic_notifications_screen.dart';
+import '../profile/data/mechanic_profile.dart';
 import '../profile/data/mechanic_profile_repository.dart';
 
-/// Mechanic module's "Home" tab — designed to feel like a work environment
-/// ("this is where I manage my work"), not a statistics dashboard: a
-/// compact branded header (real business name + live today's/new-request
-/// counts + a real unread-message bell badge), a deliberately de-emphasized
-/// "Bugüne Bakış" overview row (see [_TodayOverviewRow] — same four real
-/// numbers a larger stat-card grid used to show, just visually
-/// de-prioritized), a "today's schedule" quick-access banner that collapses
-/// to a one-line state on a real empty day, and the actual work — the
-/// pending-requests list — as the dominant content: one highlighted
-/// "priority" card (the newest submitted request — same one this screen
-/// has always sorted first) plus an "other requests" list, each carrying a
-/// real, restrained Bugün/Yarın/Gecikti/Yaklaşan status (a thin colored
-/// left border + small badge, never a filled card background). Every
-/// number and label here traces back to a real Firestore-backed field or
-/// live stream — see [scheduleBucketFor] for the one shared date-bucketing
-/// rule used by both the overview row and the per-request status, so they
-/// can never disagree.
+/// Mechanic module's "Home" tab — a premium work dashboard, ordered so the
+/// mechanic can read it top-to-bottom in priority order:
 ///
-/// There is no real per-request "urgent"/"acil" flag anywhere in the data
-/// model (see Appointment's field docs), and that concept was deliberately
-/// removed from this product — the priority card is labelled "Yeni Talep" /
-/// "Bugün Gelen Talep" (both honestly true of the request), never
-/// "Acil"/"Urgent", and nothing on this screen (color, icon, animation)
-/// should ever read as an emergency/alert. "Gecikti" (delayed) is a normal,
-/// muted workflow state — see [AppColors.scheduleOverdue]'s own doc
-/// comment for why it's a different red from [AppColors.emergency].
+///   1. A compact header (time-aware greeting with the real business name,
+///      a real unread-message bell badge).
+///   2. "Bugün" — a strong two-number overview (today's confirmed
+///      appointments, new requests) with upcoming/delayed as smaller
+///      secondary chips beneath — see [_TodayOverviewCard].
+///   3. "Yeni Talepler" — the actual work needing a decision, shown as real
+///      cards (vehicle, service, preferred date/time, how long ago it
+///      arrived, a clear "Talebi İncele" action) — see
+///      [_NewRequestsSection].
+///   4. "Bugünün Randevuları" — a compact timeline of today's confirmed
+///      appointments — see [_TodayAppointmentsSection].
+///   5. "Servis Performansı" — real rating/repeat-customer/on-time-rate
+///      trust metrics, deliberately last and visually smaller than the
+///      work above it — see [_ServicePerformanceSection].
+///
+/// Every number and label traces back to a real Firestore-backed field or
+/// live stream — see [scheduleBucketFor] for the one shared date-bucketing
+/// rule used by both the overview card and each request's status tag, so
+/// they can never disagree. Two things this screen deliberately does NOT
+/// show, because no real data backs them: an "Estimated Work / Revenue"
+/// figure (no per-appointment price/fee field exists anywhere in the
+/// schema) and a fabricated "urgent"/"acil" flag (see
+/// AppointmentStatus's own field docs) — "Gecikti" (delayed) is a normal,
+/// muted workflow state, not an alert; see [AppColors.scheduleOverdue]'s
+/// doc comment for why it's a different red from [AppColors.emergency].
 ///
 /// Workflow rule (unchanged): this screen shows ONLY actionable work items
 /// (pending appointment requests awaiting a decision) as collapsed
-/// previews — a card is never expandable in place. Tapping one pushes the
-/// separate MechanicRequestDetailsPage, which is the actual workspace for a
-/// request. The priority card is the one deliberate exception to "never
-/// shows the customer note" (see _PriorityRequestCard) — every other card
-/// stays a collapsed preview with no note, name, or action buttons.
+/// previews — a card is never expandable in place. Tapping one, or its
+/// "Talebi İncele" button, pushes the separate MechanicRequestDetailsPage,
+/// the actual workspace for a request.
 ///
 ///   Bell -> MechanicNotificationsScreen -> tap a notification -> Request Details
 ///   Home -> tap a request card -> Request Details
@@ -75,9 +76,8 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   // real stream MechanicAppointmentsScreen's "Tüm Randevular" tab already
   // uses (AppointmentRepository.watchAppointmentsForBusiness). Bucketed
   // client-side (see scheduleBucketFor) into the today/upcoming/overdue
-  // stat-card counts; no new Firestore query or schema field needed for
-  // these three cards, only new categorization logic over an existing
-  // stream.
+  // counts and today's timeline — no new Firestore query or schema field,
+  // only new categorization logic over an existing stream.
   StreamSubscription<List<Appointment>>? _scheduleSubscription;
   List<Appointment> _scheduleAppointments = [];
   var _isLoadingSchedule = true;
@@ -85,12 +85,21 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   StreamSubscription<List<ChatSummary>>? _unreadChatsSubscription;
   var _unreadChatCount = 0;
 
-  String? _businessName;
+  MechanicProfile? _profile;
+
+  // One-time fetches (same convention MechanicProfileScreen already uses
+  // for these same kinds of numbers), not live streams — a performance
+  // metric changing by one completed job doesn't need to update this
+  // screen in real time the way a new request or appointment does.
+  ({double averageRating, int ratedCount})? _ratingSummary;
+  int? _repeatCustomerCount;
+  double? _onTimeRate;
+  var _isLoadingPerformance = true;
 
   @override
   void initState() {
     super.initState();
-    _loadBusinessName();
+    _loadProfile();
     _loadAppointmentStreams();
     _subscribeToUnreadChats();
   }
@@ -103,12 +112,12 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadBusinessName() async {
+  Future<void> _loadProfile() async {
     final uid = firebaseAuthInstance.currentUser?.uid;
     if (uid == null) return;
     final profile = await MechanicProfileRepository().fetchProfile(uid);
     if (!mounted) return;
-    setState(() => _businessName = profile?.businessName);
+    setState(() => _profile = profile);
   }
 
   // Same businessId resolution + live-subscription pattern already used by
@@ -124,6 +133,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
       setState(() {
         _isLoadingPending = false;
         _isLoadingSchedule = false;
+        _isLoadingPerformance = false;
       });
       return;
     }
@@ -137,7 +147,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
           // no orderBy (see AppointmentRepository), so this is sorted
           // client-side by createdAt (request creation time), not by the
           // requested appointment date/time. This is also what makes the
-          // first entry the "priority" card below.
+          // first entry the "spotlighted" card in _NewRequestsSection.
           _pendingRequests = pendingRequests..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           _isLoadingPending = false;
         });
@@ -164,6 +174,27 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
         setState(() => _isLoadingSchedule = false);
       },
     );
+
+    unawaited(_loadPerformanceMetrics(myBusinessId));
+  }
+
+  // Real rating/repeat-customer/on-time numbers — no new collection, no
+  // new schema, just the existing repository methods (see
+  // AppointmentRepository.fetchRatingSummary/fetchOnTimeCompletionRate and
+  // MechanicProfileRepository.fetchRepeatCustomerCount). ratedCount == 0
+  // and onTimeRate == null both mean "no eligible data yet", kept distinct
+  // from a real 0 — see _ServicePerformanceSection for how each renders.
+  Future<void> _loadPerformanceMetrics(String businessId) async {
+    final ratingSummary = await _appointmentRepository.fetchRatingSummary(businessId);
+    final repeatCount = await MechanicProfileRepository().fetchRepeatCustomerCount(businessId);
+    final onTimeRate = await _appointmentRepository.fetchOnTimeCompletionRate(businessId);
+    if (!mounted) return;
+    setState(() {
+      _ratingSummary = ratingSummary.ratedCount > 0 ? ratingSummary : null;
+      _repeatCustomerCount = repeatCount ?? 0;
+      _onTimeRate = onTimeRate;
+      _isLoadingPerformance = false;
+    });
   }
 
   // Real unread-message count for the bell badge — the same mechanism
@@ -171,7 +202,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   // GreetingBar/MainShell), keyed by the same sender id
   // MechanicConversationPage already sends/marks-read with, so this count
   // can never disagree with what that screen considers "from the other
-  // side". Replaces the previous hardcoded Badge(label: Text('3')).
+  // side".
   void _subscribeToUnreadChats() {
     final mechanicSenderId = firebaseAuthInstance.currentUser?.uid ?? 'mechanic-demo';
     _unreadChatsSubscription = ChatRepository().watchUnreadChats(mechanicSenderId).listen(
@@ -227,8 +258,8 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
 
   // Only appointments the mechanic has actually confirmed (accepted or in
   // progress) AND that aren't already customer-verified complete count
-  // toward the today/upcoming/overdue stat cards. A still-pending request
-  // has no confirmed date commitment yet, so it can't be "today's" or
+  // toward the today/upcoming/overdue numbers. A still-pending request has
+  // no confirmed date commitment yet, so it can't be "today's" or
   // "overdue" in the schedule sense — it's already counted separately as a
   // "new request" (see _pendingRequests.length below). The tamamlanmaDurumu
   // check matters because `durum`/status stays 'kabul edildi' (accepted)
@@ -247,6 +278,20 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
         .length;
   }
 
+  // Today's confirmed appointments, earliest first — the real data source
+  // for the "Bugünün Randevuları" timeline.
+  List<Appointment> get _todaysAppointments {
+    final now = DateTime.now();
+    final todays = _scheduleAppointments
+        .where((a) => _isConfirmedActive(a) && scheduleBucketFor(a.appointmentDate, now) == ScheduleBucket.today)
+        .toList()
+      ..sort(
+        (a, b) => (a.appointmentTime.hour * 60 + a.appointmentTime.minute)
+            .compareTo(b.appointmentTime.hour * 60 + b.appointmentTime.minute),
+      );
+    return todays;
+  }
+
   @override
   Widget build(BuildContext context) {
     final todayCount = _isLoadingSchedule ? null : _countConfirmed((b) => b == ScheduleBucket.today);
@@ -255,60 +300,48 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
         ? null
         : _countConfirmed((b) => b == ScheduleBucket.tomorrow || b == ScheduleBucket.upcoming);
     final newRequestsCount = _isLoadingPending ? null : _pendingRequests.length;
-    final now = DateTime.now();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
           _MechanicHomeHeader(
-            businessName: _businessName,
-            todayCount: todayCount,
-            newRequestsCount: newRequestsCount,
+            businessName: _profile?.businessName,
             unreadChatCount: _unreadChatCount,
             onNotificationTap: _openNotifications,
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xl),
               children: [
-                _TodayOverviewRow(
+                _TodayOverviewCard(
                   today: todayCount,
                   newRequests: newRequestsCount,
                   upcoming: upcomingCount,
                   overdue: overdueCount,
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                _TodayScheduleBanner(count: todayCount, onTap: _openAppointments),
                 const SizedBox(height: AppSpacing.xxl),
-                const SectionLabel(text: 'Yeni ve Öncelikli Talepler'),
-                const SizedBox(height: AppSpacing.md),
-                if (_isLoadingPending)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (_pendingRequests.isEmpty)
-                  const _EmptyPendingRequestsState()
-                else ...[
-                  _PriorityRequestCard(
-                    request: _toRequestCardData(_pendingRequests.first),
-                    onTap: () => _openRequestDetails(_pendingRequests.first),
-                  ),
-                  if (_pendingRequests.length > 1) ...[
-                    const SizedBox(height: AppSpacing.xxl),
-                    const SectionLabel(text: 'Diğer Talepler'),
-                    const SizedBox(height: AppSpacing.md),
-                    for (var i = 1; i < _pendingRequests.length; i++) ...[
-                      _OtherRequestCard(
-                        request: _toRequestCardData(_pendingRequests[i]),
-                        bucket: scheduleBucketFor(_pendingRequests[i].appointmentDate, now),
-                        onTap: () => _openRequestDetails(_pendingRequests[i]),
-                      ),
-                      if (i < _pendingRequests.length - 1) const SizedBox(height: AppSpacing.lg),
-                    ],
-                  ],
-                ],
+                _NewRequestsSection(
+                  isLoading: _isLoadingPending,
+                  requests: _pendingRequests,
+                  toCardData: _toRequestCardData,
+                  onOpenRequest: _openRequestDetails,
+                  onViewAll: _openAppointments,
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                _TodayAppointmentsSection(
+                  isLoading: _isLoadingSchedule,
+                  appointments: _todaysAppointments,
+                  onTap: _openAppointments,
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                _ServicePerformanceSection(
+                  isLoading: _isLoadingPerformance,
+                  ratingSummary: _ratingSummary,
+                  repeatCustomerCount: _repeatCustomerCount,
+                  onTimeRate: _onTimeRate,
+                  isVerified: _profile?.isVerified ?? false,
+                ),
               ],
             ),
           ),
@@ -319,12 +352,12 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
 }
 
 /// Which day-relative bucket [appointmentDate] falls into as of [now] — the
-/// single date-comparison rule shared by the stat cards (today/upcoming/
-/// overdue counts, see _MechanicHomeScreenState._countConfirmed) and the
-/// "Diğer Talepler" list's Bugün/Yarın/Gecikti/Yaklaşan tags (see
-/// _OtherRequestCard), so the two can never disagree about what counts as
-/// "today" or "overdue". A pure function of the two dates — no status
-/// involved here; callers decide which appointments/requests it applies to.
+/// single date-comparison rule shared by the overview counts (see
+/// _MechanicHomeScreenState._countConfirmed) and each request card's
+/// Bugün/Yarın/Gecikti/Yaklaşan status (see _OtherRequestCard), so they can
+/// never disagree about what counts as "today" or "overdue". A pure
+/// function of the two dates — no status involved here; callers decide
+/// which appointments/requests it applies to.
 enum ScheduleBucket { overdue, today, tomorrow, upcoming }
 
 ScheduleBucket scheduleBucketFor(DateTime appointmentDate, DateTime now) {
@@ -371,28 +404,38 @@ String _timeAgoLabel(DateTime createdAt) {
   return '${diff.inDays} gün önce geldi';
 }
 
-/// Branded header — real business name in the greeting, real today's/new
-/// counts in the subtitle, and a bell whose badge is a real unread-message
-/// count (all null-safe: shows a neutral fallback while the underlying
-/// stream/future is still loading, never a fake number).
+// Purely a function of wall-clock time, not any Firestore data — the
+// "Good morning"/"Good afternoon" style variation the redesign asked for.
+String _timeAwareGreetingPrefix(DateTime now) {
+  final hour = now.hour;
+  if (hour < 6) return 'İyi geceler';
+  if (hour < 12) return 'Günaydın';
+  if (hour < 18) return 'İyi günler';
+  return 'İyi akşamlar';
+}
+
+/// Compact branded header — a time-aware greeting with the real business
+/// name, a static supporting line (no numbers here anymore; the real
+/// today's/new-request counts live in [_TodayOverviewCard] below instead,
+/// so they're not duplicated in two places), and a bell whose badge is a
+/// real unread-message count.
 class _MechanicHomeHeader extends StatelessWidget {
   const _MechanicHomeHeader({
     required this.businessName,
-    required this.todayCount,
-    required this.newRequestsCount,
     required this.unreadChatCount,
     required this.onNotificationTap,
   });
 
   final String? businessName;
-  final int? todayCount;
-  final int? newRequestsCount;
   final int unreadChatCount;
   final VoidCallback onNotificationTap;
 
   // Same 3-stop brand gradient PremiumHeroHeader already uses on the
   // customer-side home screen (see widgets/home/premium_hero_header.dart)
   // — reused here for visual consistency instead of inventing a new one.
+  // Kept to just this header (a compact band, not a large filled area) so
+  // the rest of the screen stays light/neutral with only small color
+  // accents, per the redesign's "avoid excessive large blue areas" ask.
   static const _gradient = LinearGradient(
     colors: [AppColors.turquoise, AppColors.primary, AppColors.primaryDark],
     begin: Alignment.topLeft,
@@ -402,10 +445,8 @@ class _MechanicHomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trimmedName = businessName?.trim();
-    final greeting = (trimmedName == null || trimmedName.isEmpty) ? 'Hoş geldiniz 👋' : 'Merhaba, $trimmedName 👋';
-    final subtitle = (todayCount == null || newRequestsCount == null)
-        ? 'Panelinize hoş geldiniz.'
-        : 'Bugün $todayCount randevunuz, $newRequestsCount yeni talebiniz var.';
+    final prefix = _timeAwareGreetingPrefix(DateTime.now());
+    final greeting = (trimmedName == null || trimmedName.isEmpty) ? '$prefix 👋' : '$prefix, $trimmedName 👋';
 
     return Container(
       width: double.infinity,
@@ -413,11 +454,7 @@ class _MechanicHomeHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          // Tighter than before — this header's job is a quick "who am I /
-          // what's the day look like" glance, not a full-height hero; the
-          // work list below needs the room instead (see this file's class
-          // doc). No eyebrow line, smaller type, tighter spacing.
-          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 12, AppSpacing.xl, 12),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 14, AppSpacing.lg, 16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -428,22 +465,25 @@ class _MechanicHomeHeader extends StatelessWidget {
                   children: [
                     Text(
                       greeting,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
-                      subtitle,
-                      style: TextStyle(fontSize: 12, height: 1.3, color: Colors.white.withValues(alpha: 0.9)),
+                      'Randevularınızı ve hizmet taleplerinizi yönetin.',
+                      style: TextStyle(fontSize: 12, height: 1.3, color: Colors.white.withValues(alpha: 0.88)),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: onNotificationTap,
-                icon: Badge(
-                  isLabelVisible: unreadChatCount > 0,
-                  label: Text('$unreadChatCount'),
-                  child: const Icon(Icons.notifications_outlined, size: 26, color: Colors.white),
+              Container(
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), shape: BoxShape.circle),
+                child: IconButton(
+                  onPressed: onNotificationTap,
+                  icon: Badge(
+                    isLabelVisible: unreadChatCount > 0,
+                    label: Text('$unreadChatCount'),
+                    child: const Icon(Icons.notifications_outlined, size: 23, color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -454,18 +494,14 @@ class _MechanicHomeHeader extends StatelessWidget {
   }
 }
 
-/// A compact "Bugüne Bakış" (Today's Overview) row — the same four real
-/// numbers the old 2x2 stat-card grid showed (today/new/upcoming/overdue,
-/// still derived from _MechanicHomeScreenState._countConfirmed and
-/// _pendingRequests.length; no metric added, removed, or recomputed here),
-/// just deliberately de-emphasized: one slim card instead of four large
-/// ones, so this reads as context for the work list below rather than the
-/// main content of the screen. '...' while the underlying stream's first
-/// value hasn't arrived yet; real 0 shown otherwise, never hidden — same
-/// "the mechanic looking at their own real numbers" reasoning
-/// MechanicProfileScreen already uses for its own unthresholded stats.
-class _TodayOverviewRow extends StatelessWidget {
-  const _TodayOverviewRow({
+/// "Bugün" — the strong, single overview card the redesign asked for
+/// instead of four visually equal numbers: two large primary stats
+/// (today's confirmed appointments, new requests) with icon badges, and
+/// two smaller secondary chips (upcoming, delayed) beneath. Same four real
+/// numbers a flatter stat row used to show — none added, removed, or
+/// recomputed here, just reordered by importance.
+class _TodayOverviewCard extends StatelessWidget {
+  const _TodayOverviewCard({
     required this.today,
     required this.newRequests,
     required this.upcoming,
@@ -479,54 +515,63 @@ class _TodayOverviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'BUGÜNE BAKIŞ',
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
-            color: AppColors.textSecondary.withValues(alpha: 0.8),
+    return PremiumSurface(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      borderRadius: AppRadius.lg,
+      border: Border.all(color: AppColors.divider),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'BUGÜN',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        PremiumSurface(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2, horizontal: AppSpacing.sm),
-          borderRadius: AppRadius.md,
-          border: Border.all(color: AppColors.divider),
-          child: Row(
+          const SizedBox(height: AppSpacing.md),
+          Row(
             children: [
               Expanded(
-                child: _MiniStat(
-                  icon: Icons.today_rounded,
+                child: _PrimaryStat(
+                  icon: Icons.event_available_rounded,
                   value: today,
-                  label: 'Bugün',
+                  label: 'Randevu',
                   color: AppColors.scheduleToday,
                 ),
               ),
-              const _MiniStatDivider(),
+              Container(
+                width: 1,
+                height: 44,
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                color: AppColors.divider,
+              ),
               Expanded(
-                child: _MiniStat(
+                child: _PrimaryStat(
                   icon: Icons.inbox_rounded,
                   value: newRequests,
-                  label: 'Yeni',
+                  label: 'Yeni Talep',
                   color: AppColors.turquoise,
                 ),
               ),
-              const _MiniStatDivider(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
               Expanded(
-                child: _MiniStat(
-                  icon: Icons.event_available_rounded,
+                child: _SecondaryStatChip(
+                  icon: Icons.event_repeat_rounded,
                   value: upcoming,
                   label: 'Yaklaşan',
                   color: AppColors.scheduleUpcoming,
                 ),
               ),
-              const _MiniStatDivider(),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: _MiniStat(
+                child: _SecondaryStatChip(
                   icon: Icons.schedule_rounded,
                   value: overdue,
                   label: 'Gecikti',
@@ -535,14 +580,14 @@ class _TodayOverviewRow extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.icon, required this.value, required this.label, required this.color});
+class _PrimaryStat extends StatelessWidget {
+  const _PrimaryStat({required this.icon, required this.value, required this.label, required this.color});
 
   final IconData icon;
   final int? value;
@@ -551,118 +596,383 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
-            Text(
-              value == null ? '...' : '$value',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-            ),
-          ],
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+          child: Icon(icon, color: color, size: 22),
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+        const SizedBox(width: AppSpacing.sm + 2),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value == null ? '...' : '$value',
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.0),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _MiniStatDivider extends StatelessWidget {
-  const _MiniStatDivider();
+class _SecondaryStatChip extends StatelessWidget {
+  const _SecondaryStatChip({required this.icon, required this.value, required this.label, required this.color});
+
+  final IconData icon;
+  final int? value;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 28, color: AppColors.divider);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(AppRadius.sm)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            value == null ? '...' : '$value',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-/// Quick-access banner into the real appointments/calendar screen — reuses
-/// MechanicAppointmentsScreen (the same screen the "Randevular" bottom-nav
-/// tab already shows) via a plain push, rather than a new route. When the
-/// real count is genuinely 0, this collapses to a compact one-line state
-/// (per this file's redesign) instead of the full card — an empty day
-/// shouldn't take as much visual room as a day with real appointments to
-/// show. [count] is only ever null (still loading) or a real number from
-/// _MechanicHomeScreenState._countConfirmed; never a placeholder.
-class _TodayScheduleBanner extends StatelessWidget {
-  const _TodayScheduleBanner({required this.count, required this.onTap});
+/// "Yeni Talepler" — the actual work needing a decision. The newest
+/// submitted request (this screen has always sorted _pendingRequests this
+/// way) gets a slightly more prominent card with a real customer note and
+/// an explicit "Talebi İncele" action; up to 2 more show underneath as
+/// compact previews; a "Tümünü Gör" link opens the full list
+/// (MechanicAppointmentsScreen, already defaulting to its "Yeni Talepler"
+/// tab) when there are more than that. Capped so this section stays
+/// scannable rather than consuming the whole screen.
+class _NewRequestsSection extends StatelessWidget {
+  const _NewRequestsSection({
+    required this.isLoading,
+    required this.requests,
+    required this.toCardData,
+    required this.onOpenRequest,
+    required this.onViewAll,
+  });
 
-  final int? count;
+  final bool isLoading;
+  final List<Appointment> requests;
+  final _RequestCardData Function(Appointment) toCardData;
+  final void Function(Appointment) onOpenRequest;
+  final VoidCallback onViewAll;
+
+  static const _maxPreview = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final previewCount = requests.length < _maxPreview ? requests.length : _maxPreview;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: SectionLabel(text: 'Yeni Talepler')),
+            if (!isLoading && requests.length > _maxPreview)
+              GestureDetector(
+                onTap: onViewAll,
+                child: Text(
+                  'Tümünü Gör (${requests.length})',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primary),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (requests.isEmpty)
+          const _EmptyPendingRequestsState()
+        else
+          for (var i = 0; i < previewCount; i++) ...[
+            i == 0
+                ? _PriorityRequestCard(request: toCardData(requests[i]), onTap: () => onOpenRequest(requests[i]))
+                : _OtherRequestCard(
+                    request: toCardData(requests[i]),
+                    bucket: scheduleBucketFor(requests[i].appointmentDate, now),
+                    onTap: () => onOpenRequest(requests[i]),
+                  ),
+            if (i < previewCount - 1) const SizedBox(height: AppSpacing.lg),
+          ],
+      ],
+    );
+  }
+}
+
+/// Compact timeline of today's confirmed appointments, earliest first — a
+/// glance-able "what does my day look like" list (time, vehicle, service).
+/// Collapses to a one-line state when the real query result is empty,
+/// rather than an empty-looking card.
+class _TodayAppointmentsSection extends StatelessWidget {
+  const _TodayAppointmentsSection({required this.isLoading, required this.appointments, required this.onTap});
+
+  final bool isLoading;
+  final List<Appointment> appointments;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (count == 0) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-          child: Row(
-            children: [
-              const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.textSecondary),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Bugün için planlanmış randevu yok',
-                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                ),
-              ),
-              // Icon-only affordance, deliberately not a text label — a
-              // text like "Randevular" here would collide with the
-              // "Randevular" bottom-nav tab's own label, ambiguous for
-              // anything (tests included) that finds by that exact text.
-              const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final subtitle = count == null ? 'Randevularınızı görüntüleyin.' : 'Bugün $count randevunuz var.';
-
-    return PremiumSurface(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      borderRadius: AppRadius.md,
-      border: Border.all(color: AppColors.divider),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionLabel(text: 'Bugünün Randevuları'),
+        const SizedBox(height: AppSpacing.md),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (appointments.isEmpty)
+          _EmptyTodayAppointmentsRow(onTap: onTap)
+        else
+          PremiumSurface(
+            onTap: onTap,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            borderRadius: AppRadius.md,
+            border: Border.all(color: AppColors.divider),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Bugünün Programı',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+                for (var i = 0; i < appointments.length; i++) ...[
+                  _AppointmentTimelineRow(appointment: appointments[i]),
+                  if (i < appointments.length - 1) const Divider(height: 1, color: AppColors.divider),
+                ],
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+      ],
+    );
+  }
+}
+
+class _EmptyTodayAppointmentsRow extends StatelessWidget {
+  const _EmptyTodayAppointmentsRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.textSecondary),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Bugün için planlanmış randevu yok',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+            ),
+            // Icon-only affordance, deliberately not a text label — a text
+            // like "Randevular" here would collide with the "Randevular"
+            // bottom-nav tab's own label, ambiguous for anything (tests
+            // included) that finds by that exact text.
+            Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AppointmentTimelineRow extends StatelessWidget {
+  const _AppointmentTimelineRow({required this.appointment});
+
+  final Appointment appointment;
+
+  @override
+  Widget build(BuildContext context) {
+    final time =
+        '${appointment.appointmentTime.hour.toString().padLeft(2, '0')}:${appointment.appointmentTime.minute.toString().padLeft(2, '0')}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              time,
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.scheduleToday),
+            ),
+          ),
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: const BoxDecoration(color: AppColors.scheduleToday, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: Text(
+              appointment.vehicleModel,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              appointment.serviceType,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Servis Performansı" — real trust/performance metrics, deliberately
+/// last in the hierarchy and visually smaller than the work sections
+/// above. Repeat-customer count is treated as a real, meaningful number
+/// (always shown, 0 included — same "the mechanic looking at their own
+/// numbers" reasoning MechanicProfileScreen already uses), not a
+/// decorative statistic. Rating and on-time-rate show "—" rather than a
+/// fabricated number when there isn't yet a single eligible completed job
+/// to compute them from.
+class _ServicePerformanceSection extends StatelessWidget {
+  const _ServicePerformanceSection({
+    required this.isLoading,
+    required this.ratingSummary,
+    required this.repeatCustomerCount,
+    required this.onTimeRate,
+    required this.isVerified,
+  });
+
+  final bool isLoading;
+  final ({double averageRating, int ratedCount})? ratingSummary;
+  final int? repeatCustomerCount;
+  final double? onTimeRate;
+  final bool isVerified;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SectionLabel(text: 'Servis Performansı'),
+            // Only shown when real — mirrors MechanicDetailPage's own
+            // isVerified-gated badge on the customer-facing side; no
+            // "unverified" badge is ever shown in the false case.
+            if (isVerified) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.verified_rounded, size: 16, color: AppColors.turquoise),
+            ],
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: _PerformanceTile(
+                  icon: Icons.star_rounded,
+                  value: ratingSummary != null ? ratingSummary!.averageRating.toStringAsFixed(1) : '—',
+                  label: ratingSummary != null ? '${ratingSummary!.ratedCount} değerlendirme' : 'Puan',
+                  color: AppColors.rating,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _PerformanceTile(
+                  icon: Icons.repeat_rounded,
+                  value: '${repeatCustomerCount ?? 0}',
+                  label: 'Tekrar Müşteri',
+                  color: AppColors.turquoise,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _PerformanceTile(
+                  icon: Icons.timer_outlined,
+                  value: onTimeRate != null ? '%${onTimeRate!.round()}' : '—',
+                  label: 'Zamanında',
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _PerformanceTile extends StatelessWidget {
+  const _PerformanceTile({required this.icon, required this.value, required this.label, required this.color});
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumSurface(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.xs),
+      borderRadius: AppRadius.md,
+      border: Border.all(color: AppColors.divider),
+      child: Column(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -717,14 +1027,14 @@ class _RequestCardData {
   final String customerNote;
 }
 
-/// The highlighted top pending request — the newest submitted one (this
+/// The spotlighted top pending request — the newest submitted one (this
 /// screen has always sorted _pendingRequests this way; no separate
 /// "urgent" concept exists in the data, see this file's class doc). Tagged
 /// honestly with what's actually true (a new/today-submitted request), not
-/// a fabricated "acil" label. Shows real elapsed time since submission and
-/// the real customer note — a deliberate, intentional reversal of this
-/// screen's older rule that pending-request cards never show the note;
-/// every other card (see _OtherRequestCard) still follows that rule.
+/// a fabricated "acil" label. Shows real elapsed time since submission, the
+/// real customer note, and an explicit "Talebi İncele" action — the one
+/// deliberate exception to "never shows the customer note"; every other
+/// card (see _OtherRequestCard) still follows that rule.
 class _PriorityRequestCard extends StatelessWidget {
   const _PriorityRequestCard({required this.request, required this.onTap});
 
@@ -777,23 +1087,9 @@ class _PriorityRequestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(Icons.directions_car_rounded, size: 22, color: AppColors.textPrimary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  request.vehicleModel,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                ),
-              ),
-              const SizedBox(
-                width: 40,
-                height: 40,
-                child: Center(child: Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary)),
-              ),
-            ],
+          Text(
+            request.vehicleModel,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 10),
           _ServiceBadge(label: request.service),
@@ -820,21 +1116,36 @@ class _PriorityRequestCard extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.turquoise,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+              ),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text('Talebi İncele', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// One collapsed preview in "Diğer Talepler" — same collapsed-preview rule
-/// as always (no customer note, name, or action buttons; those live only
-/// on MechanicRequestDetailsPage), plus a real Bugün/Yarın/Gecikti/Yaklaşan
-/// status computed from the request's own appointmentDate (see
-/// scheduleBucketFor). The status shows twice, both deliberately subtle: a
-/// thin colored left border and a small badge — never a filled/colored
-/// card background, so this stays a calm, restrained treatment rather than
-/// an alert. Same overall structure as _PriorityRequestCard (status row,
-/// then vehicle row with a chevron) so the two read as one design system.
+/// One collapsed preview beneath the spotlighted card — same
+/// collapsed-preview rule as always (no customer note, name, or action
+/// buttons; those live only on MechanicRequestDetailsPage), plus a real
+/// Bugün/Yarın/Gecikti/Yaklaşan status computed from the request's own
+/// appointmentDate (see scheduleBucketFor). The status shows twice, both
+/// deliberately subtle: a thin colored left border and a small badge —
+/// never a filled/colored card background, so this stays a calm,
+/// restrained treatment rather than an alert.
 class _OtherRequestCard extends StatelessWidget {
   const _OtherRequestCard({required this.request, required this.bucket, required this.onTap});
 

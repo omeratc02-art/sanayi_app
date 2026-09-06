@@ -253,4 +253,41 @@ class AppointmentRepository {
     final average = ratings.reduce((a, b) => a + b) / ratings.length;
     return (averageRating: double.parse(average.toStringAsFixed(1)), ratedCount: ratings.length);
   }
+
+  /// Real "did the mechanic finish by the time they committed to" rate —
+  /// derived entirely from existing fields, no new schema. Eligible
+  /// documents are the same customer-verified-complete set
+  /// fetchRatingSummary uses, further narrowed to ones that actually
+  /// recorded [Appointment.ustaTamamlamaTarihi] (older documents, from
+  /// before that field existed, have no timestamp to judge and are
+  /// excluded rather than guessed at). "On time" means the mechanic marked
+  /// it complete at or before the appointment's own scheduled end
+  /// (appointmentDate + appointmentTime + estimatedDuration) — every one of
+  /// those three fields is the same real data already used elsewhere for
+  /// this same appointment. Null (not 0%) when there is no eligible
+  /// document yet, since a 0% would falsely imply a track record of being
+  /// late rather than "no data".
+  Future<double?> fetchOnTimeCompletionRate(String businessId) async {
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('işletme_kimliği', isEqualTo: businessId)
+        .where('tamamlanmaDurumu', isEqualTo: 'dogrulanmis_tamamlandi')
+        .get();
+    final eligible = snapshot.docs
+        .map((doc) => Appointment.fromFirestore(doc.data(), doc.id))
+        .where((appointment) => appointment.ustaTamamlamaTarihi != null)
+        .toList();
+    if (eligible.isEmpty) return null;
+    final onTime = eligible.where((appointment) {
+      final scheduledEnd = DateTime(
+        appointment.appointmentDate.year,
+        appointment.appointmentDate.month,
+        appointment.appointmentDate.day,
+        appointment.appointmentTime.hour,
+        appointment.appointmentTime.minute,
+      ).add(appointment.estimatedDuration);
+      return !appointment.ustaTamamlamaTarihi!.isAfter(scheduledEnd);
+    }).length;
+    return onTime / eligible.length * 100;
+  }
 }
