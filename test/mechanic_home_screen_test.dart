@@ -19,7 +19,11 @@ import 'package:sanayi_app/widgets/common/premium_surface.dart';
 /// today's-schedule card, and the "Servis Performansınız"
 /// rating/repeat-customer/on-time card were all removed entirely — the
 /// pending-requests list is now the screen's only body content, at every
-/// width (no more two-column/sidebar layout).
+/// width (no more two-column/sidebar layout). The one deliberate exception
+/// to "real data only" is the "İşletmeniz İlgi Görüyor" weekly engagement
+/// summary card, which renders explicitly static placeholder values (127
+/// profile views, 8 requests) by product decision — see that widget's own
+/// TODO(real-data) comment in mechanic_home_screen.dart.
 void main() {
   const mechanicUid = 'test-mechanic-uid';
   const businessId = 'test-usta-isletmesi';
@@ -301,6 +305,56 @@ void main() {
         expect(find.text('Tekrar Müşteri'), findsNothing);
         expect(find.text('Zamanında Teslim'), findsNothing);
         expect(find.text('6'), findsNothing);
+      },
+    );
+  });
+
+  group('İşletmeniz İlgi Görüyor (weekly engagement summary card)', () {
+    testWidgets('Renders the header, message, both stats, and day labels with the exact static values', (
+      WidgetTester tester,
+    ) async {
+      await seedMechanicAccount();
+      await pumpScreen(tester);
+
+      expect(find.text('Bu haftanın özeti'), findsOneWidget);
+      expect(find.text('İşletmeniz ilgi görüyor 📈'), findsOneWidget);
+      expect(find.text('Daha fazla sürücü sizi keşfediyor.'), findsOneWidget);
+
+      // Exactly the two static placeholder values — 127 profile views, 8
+      // appointment requests — with their exact labels.
+      expect(find.text('127'), findsOneWidget);
+      expect(find.text('kişi işletmenizi görüntüledi'), findsOneWidget);
+      expect(find.text('8'), findsOneWidget);
+      expect(find.text('randevu talebi aldı'), findsOneWidget);
+
+      for (final day in ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']) {
+        expect(find.text(day), findsOneWidget);
+      }
+
+      // No "Tüm istatistikler" link/button anywhere on this card (or the
+      // screen at all) — the header row is just the plain label.
+      expect(find.textContaining('Tüm istatistikler'), findsNothing);
+      // No fabricated comparison percentage or extra metrics beyond what
+      // was explicitly specified.
+      expect(find.textContaining('geçen haftaya göre'), findsNothing);
+      expect(find.textContaining('tekrar tercih'), findsNothing);
+      expect(find.textContaining('güven skoru'), findsNothing);
+    });
+
+    testWidgets(
+      'Sits between the greeting hero and "Yeni Talepler" in the widget tree, not inside or under the list',
+      (WidgetTester tester) async {
+        await seedMechanicAccount();
+        await seedAppointment('req-1', appointmentDate: daysFromNow(0), createdAt: DateTime.now());
+
+        await pumpScreen(tester);
+
+        final greetingY = tester.getTopLeft(find.text('Merhaba 👋')).dy;
+        final cardHeaderY = tester.getTopLeft(find.text('Bu haftanın özeti')).dy;
+        final pendingListHeadingY = tester.getTopLeft(find.text('Yeni Talepler')).dy;
+
+        expect(cardHeaderY, greaterThan(greetingY));
+        expect(pendingListHeadingY, greaterThan(cardHeaderY));
       },
     );
   });

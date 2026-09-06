@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -30,15 +31,21 @@ import '../profile/data/mechanic_profile_repository.dart';
 ///      static subtitle, beside a purely decorative icon-based hero graphic
 ///      and a static quote line (all brand chrome, not data — the real
 ///      business name is already shown in the top bar's profile chip).
-///   3. Every pending request rendered uniformly, full-width — same size,
+///   3. [_WeeklyEngagementSummaryCard] — "İşletmeniz İlgi Görüyor": a
+///      weekly business-engagement summary (profile-view count, new
+///      request count, a small sparkline). Unlike everything else on this
+///      screen, this card is EXPLICITLY static placeholder data, by product
+///      decision — see that class's own doc comment and its
+///      TODO(real-data) comment before treating its numbers as real.
+///   4. Every pending request rendered uniformly, full-width — same size,
 ///      same style, same "Yeni Talep" tag — in one list
 ///      ([_PendingRequestsList]). There is no real distinction in the data
 ///      between the newest request and the rest (all are the same pending
 ///      status), so none is visually spotlighted over another. This is now
-///      the screen's only body content — the former sidebar ("Bugünün
-///      Programı" today's-schedule card and "Servis Performansınız"
-///      rating/repeat-customer/on-time-rate card) was removed outright, not
-///      collapsed into this column.
+///      the screen's only body content besides the summary card above it —
+///      the former sidebar ("Bugünün Programı" today's-schedule card and
+///      "Servis Performansınız" rating/repeat-customer/on-time-rate card)
+///      was removed outright, not collapsed into this column.
 ///
 /// Deliberately NOT shown, because no real data backs them: a "Bu Hafta /
 /// Toplam İş" weekly metric, a repeat-customer PERCENTAGE (this app always
@@ -234,6 +241,8 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
             const _MechanicHomeGreetingHero(),
+            const SizedBox(height: AppSpacing.xxl),
+            const _WeeklyEngagementSummaryCard(),
             const SizedBox(height: AppSpacing.xxl),
             ...mainColumnChildren,
           ],
@@ -509,6 +518,173 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
       ],
     );
   }
+}
+
+/// "İşletmeniz İlgi Görüyor" — a weekly business-engagement summary card
+/// (profile-view count, new-request count, a supporting sparkline). Renders
+/// static placeholder data by explicit product-owner decision for initial
+/// visual placement, not by omission — see the TODO(real-data) comment on
+/// [_profileViewCount]/[_appointmentRequestCount] below before wiring this
+/// up to Firestore.
+class _WeeklyEngagementSummaryCard extends StatelessWidget {
+  const _WeeklyEngagementSummaryCard();
+
+  // TODO(real-data): These are static placeholder values (127 views, 8 requests) explicitly
+  // requested by the product owner for initial visual placement. Replace with real Firestore-backed
+  // counts (e.g. profile view tracking, appointment request counts) before this ships to production.
+  static const _profileViewCount = 127;
+  static const _appointmentRequestCount = 8;
+
+  // Purely decorative shape for the sparkline below — paired with the same
+  // static placeholder decision as the two counts above, not a real
+  // day-by-day breakdown of either metric.
+  static const _weeklySparklineValues = [3.0, 5.0, 4.0, 7.0, 6.0, 9.0, 8.0];
+  static const _weekdayLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumSurface(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      borderRadius: AppRadius.lg,
+      border: Border.all(color: AppColors.divider),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bu haftanın özeti',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const Text(
+            'İşletmeniz ilgi görüyor 📈',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Daha fazla sürücü sizi keşfediyor.',
+            style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.72)),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: _EngagementStat(
+                  icon: Icons.visibility_rounded,
+                  value: '$_profileViewCount',
+                  label: 'kişi işletmenizi görüntüledi',
+                ),
+              ),
+              Container(width: 1, height: 44, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md)),
+              const Expanded(
+                child: _EngagementStat(
+                  icon: Icons.calendar_month_rounded,
+                  value: '$_appointmentRequestCount',
+                  label: 'randevu talebi aldı',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            height: 40,
+            width: double.infinity,
+            child: CustomPaint(painter: _WeeklySparklinePainter(_weeklySparklineValues)),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final label in _weekdayLabels)
+                Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One side of [_WeeklyEngagementSummaryCard]'s two-stat row — an icon, a
+/// large bold number, and a smaller secondary label underneath.
+class _EngagementStat extends StatelessWidget {
+  const _EngagementStat({required this.icon, required this.value, required this.label});
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: AppColors.turquoise),
+        const SizedBox(height: 6),
+        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 2,
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+/// Thin, minimal weekly sparkline — a supporting visual, not a dominant
+/// one. A lightweight CustomPainter rather than a charting dependency, per
+/// this feature's explicit "don't add a new heavy charting package" scope.
+class _WeeklySparklinePainter extends CustomPainter {
+  const _WeeklySparklinePainter(this.values);
+
+  final List<double> values;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+
+    final maxValue = values.reduce(math.max);
+    final minValue = values.reduce(math.min);
+    final range = maxValue == minValue ? 1.0 : maxValue - minValue;
+    final stepX = size.width / (values.length - 1);
+
+    Offset pointAt(int i) {
+      final normalized = (values[i] - minValue) / range;
+      return Offset(stepX * i, size.height - (normalized * size.height));
+    }
+
+    final linePath = Path()..moveTo(pointAt(0).dx, pointAt(0).dy);
+    for (var i = 1; i < values.length; i++) {
+      final point = pointAt(i);
+      linePath.lineTo(point.dx, point.dy);
+    }
+
+    final fillPath = Path.from(linePath)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(fillPath, Paint()..color = AppColors.turquoise.withValues(alpha: 0.08));
+
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = AppColors.turquoise
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+
+    // A small emphasized dot on the most recent (final) day, echoing the
+    // "endpoint" treatment this app already favors for charts/timelines.
+    canvas.drawCircle(pointAt(values.length - 1), 3, Paint()..color = AppColors.turquoise);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WeeklySparklinePainter oldDelegate) => oldDelegate.values != values;
 }
 
 /// Shown in place of the request card when the signed-in mechanic
