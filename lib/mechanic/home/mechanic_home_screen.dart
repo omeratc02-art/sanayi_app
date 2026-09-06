@@ -1042,11 +1042,14 @@ class _PriorityRequestCard extends StatelessWidget {
       onTap: onTap,
       padding: const EdgeInsets.all(AppSpacing.xl),
       borderRadius: AppRadius.md,
-      // A little more visual weight than _OtherRequestCard — a thin
-      // turquoise border plus a barely-there tint (never a filled/strongly
-      // colored background) — so this reads as "the most relevant item",
-      // not a separate alert-styled component.
-      color: AppColors.turquoise.withValues(alpha: 0.05),
+      // A real, solid blue fill — the brand blue already used in the
+      // header gradient — instead of the previous barely-there turquoise
+      // tint, so this reads unmistakably as "the most relevant item" at a
+      // glance. Every text/icon color below is chosen to stay legible
+      // against this fill; the note box and service badge are inverted to
+      // light-on-blue "cards within a card" rather than trying to keep
+      // their old dark-on-light treatment directly on top of the blue.
+      color: AppColors.primary,
       border: Border.all(color: AppColors.turquoise, width: 1.5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1072,7 +1075,7 @@ class _PriorityRequestCard extends StatelessWidget {
                   textAlign: TextAlign.right,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
-                  style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85)),
                 ),
               ),
             ],
@@ -1080,21 +1083,46 @@ class _PriorityRequestCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             request.vehicleModel,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
           ),
           const SizedBox(height: 10),
           _ServiceBadge(label: request.service),
           const SizedBox(height: 14),
-          _DateTimeRow(date: request.preferredDate, time: request.preferredTime),
+          // Inlined rather than reusing the shared _DateTimeRow — that
+          // widget is also used by _OtherRequestCard (out of scope for
+          // this change) with its own dark-on-light colors, which must
+          // stay exactly as they are.
+          Row(
+            children: [
+              Icon(Icons.event, size: 14, color: Colors.white.withValues(alpha: 0.85)),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  request.preferredDate,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.85)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(Icons.schedule, size: 14, color: Colors.white.withValues(alpha: 0.85)),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  request.preferredTime,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.85)),
+                ),
+              ),
+            ],
+          ),
           if (note.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.sm + 2),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Colors.white.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: AppColors.divider),
               ),
               child: Text(
                 '"$note"',
@@ -1113,8 +1141,8 @@ class _PriorityRequestCard extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.turquoise,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primaryDark,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
@@ -1261,6 +1289,11 @@ class _DateTimeRow extends StatelessWidget {
 
 /// Small rounded chip for the requested service — the card's one
 /// turquoise accent, keeping everything else neutral.
+// Only used by _PriorityRequestCard. Inverted to a white pill with
+// primaryDark text (was a turquoise-filled pill with white text) — a
+// turquoise fill would sit too close in hue to that card's own solid
+// AppColors.primary background to read as a distinct chip; white gives it
+// a clean, legible edge against the blue instead of blending into it.
 class _ServiceBadge extends StatelessWidget {
   const _ServiceBadge({required this.label});
 
@@ -1271,12 +1304,12 @@ class _ServiceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.turquoise,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.white),
+        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primaryDark),
       ),
     );
   }
