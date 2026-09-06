@@ -415,18 +415,40 @@ void main() {
     expect(find.byIcon(Icons.verified_rounded), findsNothing);
   });
 
-  testWidgets('Header shows the real SanayiGo wordmark (logo + text) and the slogan', (WidgetTester tester) async {
-    await seedMechanicAccount();
-    await pumpScreen(tester);
+  testWidgets(
+    'Header shows the real SanayiGo wordmark stacked (logo above text, not side-by-side) plus the slogan',
+    (WidgetTester tester) async {
+      await seedMechanicAccount();
+      await pumpScreen(tester);
 
-    expect(find.text('SanayiGo'), findsOneWidget);
-    expect(find.text('Güvenle Yönetin'), findsOneWidget);
-    // The real app-icon foreground art (see pubspec.yaml's assets entry),
-    // not a placeholder — same file the launcher icon is generated from.
-    final logo = tester.widget<Image>(find.byType(Image));
-    expect(logo.image, isA<AssetImage>());
-    expect((logo.image as AssetImage).assetName, 'assets/icon/app_icon_foreground.png');
-  });
+      expect(find.text('SanayiGo'), findsOneWidget);
+      expect(find.text('Güvenle Yönetin'), findsOneWidget);
+      // The real app-icon foreground art (see pubspec.yaml's assets entry),
+      // not a placeholder — same file the launcher icon is generated from.
+      // (assets/icon/sanayigo_logo.png was requested to replace this but
+      // does not exist anywhere in the project — see this file's own
+      // _logoAssetPath doc comment — so this still points at the real,
+      // existing, correctly pubspec-registered asset.)
+      final logo = tester.widget<Image>(find.byType(Image));
+      expect(logo.image, isA<AssetImage>());
+      expect((logo.image as AssetImage).assetName, 'assets/icon/app_icon_foreground.png');
+      // The asset actually loads (no broken-image errorBuilder fallback
+      // triggered) — pumpScreen's pumpAndSettle already resolved image
+      // loading, so the real Image widget having a non-null size confirms
+      // it rendered, not the errorBuilder's SizedBox.shrink().
+      expect(tester.getSize(find.byType(Image)).height, greaterThan(0));
+
+      // Stacked, not side-by-side: the logo sits above the text (smaller
+      // top offset) and the two are horizontally centered relative to each
+      // other (their horizontal centers roughly coincide, unlike a
+      // left-logo/right-text row where the text's center would sit well to
+      // the right of the logo's).
+      final logoRect = tester.getRect(find.byType(Image));
+      final textRect = tester.getRect(find.text('SanayiGo'));
+      expect(logoRect.bottom, lessThanOrEqualTo(textRect.top));
+      expect((logoRect.center.dx - textRect.center.dx).abs(), lessThan(1));
+    },
+  );
 
   testWidgets(
     "Header's today's-summary line uses the same real counts as the overview card, not a second computation",

@@ -446,8 +446,13 @@ class _MechanicHomeHeader extends StatelessWidget {
 
   // The real app icon's foreground artwork (see pubspec.yaml's assets
   // entry) — a transparent-background car+wrench mark, the same art used
-  // to generate the launcher icon. Reused as-is for the wordmark row
-  // rather than a new/placeholder image.
+  // to generate the launcher icon. A newer assets/icon/sanayigo_logo.png
+  // was requested to replace this, but that file does not exist anywhere
+  // in the project (checked: not on disk, not tracked by git, not
+  // gitignored) — pointing at it would just reproduce the exact
+  // "asset does not exist" failure this change is fixing. Swap this
+  // constant (and pubspec.yaml's assets: entry) to sanayigo_logo.png once
+  // that file is actually added.
   static const _logoAssetPath = 'assets/icon/app_icon_foreground.png';
 
   // Same 3-stop brand gradient PremiumHeroHeader already uses on the
@@ -493,10 +498,27 @@ class _MechanicHomeHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    // Stacked, not side-by-side — logo on top, "SanayiGo"
+                    // centered directly beneath it. The Column's own
+                    // crossAxisAlignment.center only centers the image/text
+                    // relative to each other; the block as a whole still
+                    // sits flush-left, matching the outer left-aligned
+                    // Column below it (greeting/subtitle/summary).
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Image.asset(_logoAssetPath, height: 22, fit: BoxFit.contain),
-                        const SizedBox(width: 6),
+                        Image.asset(
+                          _logoAssetPath,
+                          height: 22,
+                          fit: BoxFit.contain,
+                          // Resilience only — falls back to just the
+                          // "SanayiGo" text (no broken-image icon) if the
+                          // asset is ever missing again. Not a substitute
+                          // for actually fixing/registering the real file.
+                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           'SanayiGo',
                           style: TextStyle(
