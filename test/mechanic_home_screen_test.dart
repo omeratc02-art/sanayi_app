@@ -10,13 +10,16 @@ import 'package:sanayi_app/utils/firebase_instances.dart';
 import 'package:sanayi_app/widgets/common/premium_surface.dart';
 
 /// MechanicHomeScreen was rebuilt to match a visual reference mockup (top
-/// bar, greeting hero, stats row, a responsive two-column body) while
+/// bar, a fixed static greeting hero, a responsive two-column body) while
 /// keeping every value real: business name, unread-message count, today's
 /// confirmed-appointment count, new-request count, rating/repeat-customer/
 /// on-time metrics, and isVerified. These tests assert the real data
 /// renders correctly and that nothing fabricated (a weekly total, a
 /// repeat-customer percentage, a stock vehicle/profile photo, a 4th bottom
-/// nav tab) ever appears.
+/// nav tab) ever appears. The stats row (today/new-requests/rating) was
+/// removed entirely — those real values still render elsewhere on this
+/// screen (the pending-requests list, the performance card), just not in
+/// their own dedicated row any more.
 void main() {
   const mechanicUid = 'test-mechanic-uid';
   const businessId = 'test-usta-isletmesi';
@@ -93,21 +96,10 @@ void main() {
     return DateTime(target.year, target.month, target.day, 12);
   }
 
-  // Mirrors mechanic_home_screen.dart's own _timeAwareGreetingPrefix (a
-  // private top-level function, not reachable from here) so these tests
-  // stay correct regardless of what time of day the suite actually runs.
-  String expectedGreetingPrefix() {
-    final hour = DateTime.now().hour;
-    if (hour < 6) return 'İyi geceler';
-    if (hour < 12) return 'Günaydın';
-    if (hour < 18) return 'İyi günler';
-    return 'İyi akşamlar';
-  }
-
   // Narrow (phone-width, stacked layout) by default — this screen has a
-  // lot of vertical content (top bar, hero, stats, the pending-requests
-  // list, schedule card, performance card), and a plain ListView still
-  // needs each item within the viewport/cache extent to actually build it.
+  // lot of vertical content (top bar, hero, the pending-requests list,
+  // schedule card, performance card), and a plain ListView still needs
+  // each item within the viewport/cache extent to actually build it.
   Future<void> pumpScreen(WidgetTester tester, {double width = 390, double height = 3200}) async {
     tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1.0;
@@ -140,7 +132,7 @@ void main() {
       await pumpScreen(tester);
 
       expect(find.text('SanayiGo'), findsOneWidget);
-      expect(find.text('Ustanın Gücü, Yolda Güven'), findsOneWidget);
+      expect(find.text('Güvenle Büyüyen İşletmeler'), findsOneWidget);
       expect(find.descendant(of: find.byType(Badge), matching: find.text('1')), findsOneWidget);
     });
 
@@ -232,25 +224,44 @@ void main() {
   });
 
   group('Greeting', () {
-    testWidgets('Shows the real time-aware greeting with the real business name', (WidgetTester tester) async {
+    testWidgets('Shows the fixed "Merhaba 👋" greeting and fixed subtitle, regardless of business name', (
+      WidgetTester tester,
+    ) async {
       await seedMechanicAccount(name: 'Güven Oto Bakım');
       await pumpScreen(tester);
 
-      expect(find.text('${expectedGreetingPrefix()}, Güven Oto Bakım 👋'), findsOneWidget);
-      expect(find.text('${expectedGreetingPrefix()} 👋'), findsNothing);
+      expect(find.text('Merhaba 👋'), findsOneWidget);
+      expect(find.text('İşletme Paneline Hoş Geldiniz'), findsOneWidget);
+      // The business name is never repeated into the greeting itself — it
+      // already appears once, in the top bar's profile chip.
+      expect(find.text('Güven Oto Bakım'), findsOneWidget);
     });
 
-    testWidgets('Falls back to a generic greeting when there is no mechanicAccounts profile', (
+    testWidgets('Shows the same fixed greeting when there is no mechanicAccounts profile at all', (
       WidgetTester tester,
     ) async {
       await pumpScreen(tester);
 
-      expect(find.text('${expectedGreetingPrefix()} 👋'), findsOneWidget);
+      expect(find.text('Merhaba 👋'), findsOneWidget);
+      expect(find.text('İşletme Paneline Hoş Geldiniz'), findsOneWidget);
+    });
+
+    testWidgets('No longer shows the old time-aware prefixes or the old tagline/subtitle text', (
+      WidgetTester tester,
+    ) async {
+      await seedMechanicAccount(name: 'Güven Oto Bakım');
+      await pumpScreen(tester);
+
+      for (final oldPrefix in ['İyi geceler', 'Günaydın', 'İyi günler', 'İyi akşamlar']) {
+        expect(find.textContaining(oldPrefix), findsNothing);
+      }
+      expect(find.text('Ustanın Gücü, Yolda Güven'), findsNothing);
+      expect(find.text('Randevularınızı ve hizmet taleplerinizi yönetin.'), findsNothing);
     });
   });
 
   group('Stats row', () {
-    testWidgets('Shows real live counts and real rating, with no hardcoded mock content', (
+    testWidgets('The stats row is gone entirely — no leftover today/new-requests/rating stat widgets', (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount();
@@ -265,73 +276,16 @@ void main() {
 
       await pumpScreen(tester);
 
-      expect(find.text('Bugün / Randevu'), findsOneWidget);
-      // Appears twice: the stats row's own label, and the unified pending-
-      // requests list's section heading (also "Yeni Talepler" now that
-      // there's no separate "Son Talepler" split — see SCOPE item 6).
-      expect(find.text('Yeni Talepler'), findsNWidgets(2));
-      // Both counts are 1, plus the plain "Müşteri Puanı" stat label
-      // (rating summary is null — no rated jobs yet) also happens to read
-      // "Müşteri Puanı" with no parenthetical, same as the performance
-      // card's own label in that same no-data state — 2 in total.
-      expect(find.text('1'), findsNWidgets(2));
-      expect(find.text('—'), findsWidgets); // rating value + on-time value, both no data yet
-      expect(find.textContaining('Ahmet Yılmaz'), findsNothing);
-      expect(find.text('Önemli Gelişmeler'), findsNothing);
-      expect(find.textContaining('Bu Hafta'), findsNothing);
-      expect(find.textContaining('Toplam İş'), findsNothing);
-    });
-
-    testWidgets("Shows '...' placeholders while loading, never null or a fabricated number", (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-
-      tester.view.physicalSize = const Size(390, 3200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      // A single pump (not pumpAndSettle) — catches the very first frame,
-      // before resolveMyBusinessId()/the appointment streams resolve, when
-      // todayCount/newRequestsCount are still null.
-      await tester.pumpWidget(const MaterialApp(home: MechanicHomeScreen()));
-
-      expect(find.text('...'), findsNWidgets(2));
-      expect(find.textContaining('null'), findsNothing);
-
-      await tester.pumpAndSettle();
-    });
-
-    // Finds the small dot indicator by its actual decoration (a tiny
-    // circle in the muted scheduleOverdue color) rather than a widget
-    // type, since it's a plain, unlabeled Container — the same "calm, not
-    // alarming" color this file already uses for "Gecikti" elsewhere.
-    Finder findDotIndicator() => find.byWidgetPredicate((widget) {
-      if (widget is! Container) return false;
-      final decoration = widget.decoration;
-      if (decoration is! BoxDecoration) return false;
-      return decoration.shape == BoxShape.circle && decoration.color == AppColors.scheduleOverdue;
-    });
-
-    testWidgets('Shows a small dot indicator only when the real new-requests count is > 0', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await seedAppointment('req-1', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
-
-      await pumpScreen(tester);
-
-      expect(findDotIndicator(), findsOneWidget);
-    });
-
-    testWidgets('Shows no dot indicator when the new-requests count is 0', (WidgetTester tester) async {
-      await seedMechanicAccount();
-      await pumpScreen(tester);
-
-      expect(findDotIndicator(), findsNothing);
-      // The stat itself still shows a real 0, not hidden.
-      expect(find.text('0'), findsWidgets);
+      expect(find.text('Bugün / Randevu'), findsNothing);
+      // "Yeni Talepler" now appears exactly once — the pending-requests
+      // list's own section heading — since the stats row that used to
+      // share this exact text is gone.
+      expect(find.text('Yeni Talepler'), findsOneWidget);
+      // "Müşteri Puanı" still appears once (rating summary is null — no
+      // rated jobs yet, so the performance card's own label has no
+      // parenthetical) — but only from the performance card now, not
+      // doubled up with the removed stats row's own copy of the same text.
+      expect(find.text('Müşteri Puanı'), findsOneWidget);
     });
   });
 
@@ -414,7 +368,7 @@ void main() {
 
       await pumpScreen(tester);
 
-      expect(find.text('Yeni Talepler'), findsNWidgets(2)); // stats label + list heading
+      expect(find.text('Yeni Talepler'), findsOneWidget); // list heading (no stats row any more)
       expect(find.text('Renault Clio'), findsOneWidget);
       expect(find.text('Yeni Talep'), findsOneWidget);
       expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
@@ -530,10 +484,10 @@ void main() {
       await seedMechanicAccount();
       await pumpScreen(tester);
 
-      // 3 in total: the stats row's own "Müşteri Puanı" value, plus the
-      // performance card's rating value and on-time value — none
-      // fabricated as a 0/0%, since there's no completed job yet.
-      expect(find.text('—'), findsNWidgets(3));
+      // 2 in total: the performance card's rating value and on-time value
+      // — none fabricated as a 0/0%, since there's no completed job yet.
+      // (No stats row any more to contribute a third.)
+      expect(find.text('—'), findsNWidgets(2));
     });
   });
 

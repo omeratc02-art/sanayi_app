@@ -26,14 +26,11 @@ import '../profile/data/mechanic_profile_repository.dart';
 ///      tagline, the real unread-message bell badge, and a profile chip
 ///      (real business name + real isVerified badge, neutral icon avatar —
 ///      no fabricated photo).
-///   2. [_MechanicHomeGreetingHero] — the real time-aware greeting +
-///      subtitle, beside a purely decorative icon-based hero graphic and a
-///      static quote line (brand chrome, not data).
-///   3. [_MechanicHomeStatsRow] — today's confirmed-appointment count,
-///      new-request count (a small dot when > 0 — never red/alert
-///      styling, same "workflow state, not an emergency" principle as
-///      [AppColors.scheduleOverdue]), and real average rating.
-///   4. A responsive two-column body (stacks below [_twoColumnBreakpoint],
+///   2. [_MechanicHomeGreetingHero] — a fixed "Merhaba 👋" greeting +
+///      static subtitle, beside a purely decorative icon-based hero graphic
+///      and a static quote line (all brand chrome, not data — the real
+///      business name is already shown in the top bar's profile chip).
+///   3. A responsive two-column body (stacks below [_twoColumnBreakpoint],
 ///      side by side above it):
 ///        - Main column: every pending request rendered uniformly — same
 ///          size, same style, same "Yeni Talep" tag — in one list
@@ -288,13 +285,6 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
       (appointment.status == AppointmentStatus.accepted || appointment.status == AppointmentStatus.inProgress) &&
       appointment.tamamlanmaDurumu != 'dogrulanmis_tamamlandi';
 
-  int _countConfirmed(bool Function(ScheduleBucket) matchesBucket) {
-    final now = DateTime.now();
-    return _scheduleAppointments
-        .where((a) => _isConfirmedActive(a) && matchesBucket(scheduleBucketFor(a.appointmentDate, now)))
-        .length;
-  }
-
   // Today's confirmed appointments, earliest first — the real data source
   // for the "Bugünün Programı" card.
   List<Appointment> get _todaysAppointments {
@@ -311,8 +301,6 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final todayCount = _isLoadingSchedule ? null : _countConfirmed((b) => b == ScheduleBucket.today);
-    final newRequestsCount = _isLoadingPending ? null : _pendingRequests.length;
     final businessName = _profile?.businessName;
     final isVerified = _profile?.isVerified ?? false;
 
@@ -363,13 +351,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
               onNotificationTap: _openNotifications,
             ),
             const SizedBox(height: AppSpacing.xl),
-            _MechanicHomeGreetingHero(businessName: businessName),
-            const SizedBox(height: AppSpacing.xl),
-            _MechanicHomeStatsRow(
-              todayCount: todayCount,
-              newRequestsCount: newRequestsCount,
-              ratingSummary: _ratingSummary,
-            ),
+            const _MechanicHomeGreetingHero(),
             const SizedBox(height: AppSpacing.xxl),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -432,16 +414,6 @@ String _timeAgoLabel(DateTime createdAt) {
   if (diff.inMinutes < 60) return '${diff.inMinutes} dakika önce geldi';
   if (diff.inHours < 24) return '${diff.inHours} saat önce geldi';
   return '${diff.inDays} gün önce geldi';
-}
-
-// Purely a function of wall-clock time, not any Firestore data — the
-// "Good morning"/"Good afternoon" style greeting variation.
-String _timeAwareGreetingPrefix(DateTime now) {
-  final hour = now.hour;
-  if (hour < 6) return 'İyi geceler';
-  if (hour < 12) return 'Günaydın';
-  if (hour < 18) return 'İyi günler';
-  return 'İyi akşamlar';
 }
 
 /// Top bar — logo badge + "SanayiGo" wordmark with a static tagline, the
@@ -532,7 +504,7 @@ class _MechanicHomeTopBar extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Ustanın Gücü, Yolda Güven',
+                'Güvenle Büyüyen İşletmeler',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 // Was fontSize 10.5/textSecondary (unweighted) — a touch
@@ -619,14 +591,13 @@ class _MechanicHomeTopBar extends StatelessWidget {
 }
 
 /// Greeting + a purely decorative hero graphic. The greeting/subtitle are
-/// real (time-aware prefix + real business name); the hero graphic and
-/// quote are static brand chrome, not data — an icon composition rather
-/// than a stock photo, since no real "car in a service bay" image exists
-/// in this project's assets.
+/// now fixed, static brand chrome — not time-aware and not personalized with
+/// the business name, which is already shown in the top bar's profile chip
+/// (see [_MechanicHomeTopBar]). The hero graphic and quote are likewise
+/// static — an icon composition rather than a stock photo, since no real
+/// "car in a service bay" image exists in this project's assets.
 class _MechanicHomeGreetingHero extends StatelessWidget {
-  const _MechanicHomeGreetingHero({required this.businessName});
-
-  final String? businessName;
+  const _MechanicHomeGreetingHero();
 
   static const _heroGradient = LinearGradient(
     colors: [AppColors.turquoise, AppColors.primaryDark],
@@ -636,10 +607,6 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trimmedName = businessName?.trim();
-    final prefix = _timeAwareGreetingPrefix(DateTime.now());
-    final greeting = (trimmedName == null || trimmedName.isEmpty) ? '$prefix 👋' : '$prefix, $trimmedName 👋';
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -648,8 +615,8 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                greeting,
+              const Text(
+                'Merhaba 👋',
                 // Was fontSize 22/w800 — AppColors.textPrimary is already
                 // this app's darkest neutral token (near-black), so the
                 // color itself was already correct/maximally dark; the
@@ -657,11 +624,11 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
                 // up to w900 (the heaviest weight the variable font
                 // supports) with a slightly larger size, so it reads as the
                 // unmistakably dominant element on this row.
-                style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 4),
               Text(
-                'Randevularınızı ve hizmet taleplerinizi yönetin.',
+                'İşletme Paneline Hoş Geldiniz',
                 // Was fontSize 13.5/textSecondary (unweighted). Still
                 // clearly secondary to the greeting above, but darker
                 // (textPrimary at reduced alpha, rather than the lighter
@@ -700,111 +667,6 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Compact stats row — today's confirmed-appointment count, new-request
-/// count (a small dot when > 0), and real average rating. Every value is
-/// the same one already computed in _MechanicHomeScreenState.build().
-class _MechanicHomeStatsRow extends StatelessWidget {
-  const _MechanicHomeStatsRow({required this.todayCount, required this.newRequestsCount, required this.ratingSummary});
-
-  final int? todayCount;
-  final int? newRequestsCount;
-  final ({double averageRating, int ratedCount})? ratingSummary;
-
-  @override
-  Widget build(BuildContext context) {
-    return PremiumSurface(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
-      borderRadius: AppRadius.lg,
-      border: Border.all(color: AppColors.divider),
-      child: Row(
-        children: [
-          Expanded(
-            child: _StatItem(
-              icon: Icons.event_available_rounded,
-              value: todayCount == null ? '...' : '$todayCount',
-              label: 'Bugün / Randevu',
-              color: AppColors.scheduleToday,
-            ),
-          ),
-          Container(width: 1, height: 34, color: AppColors.divider),
-          Expanded(
-            child: _StatItem(
-              icon: Icons.inbox_rounded,
-              value: newRequestsCount == null ? '...' : '$newRequestsCount',
-              label: 'Yeni Talepler',
-              color: AppColors.turquoise,
-              // A small, calm dot — never red-alarming animation — the
-              // same "honest, no fabricated urgency" principle this file
-              // already applies to "Gecikti" elsewhere.
-              showDot: (newRequestsCount ?? 0) > 0,
-            ),
-          ),
-          Container(width: 1, height: 34, color: AppColors.divider),
-          Expanded(
-            child: _StatItem(
-              icon: Icons.star_rounded,
-              value: ratingSummary != null ? ratingSummary!.averageRating.toStringAsFixed(1) : '—',
-              label: 'Müşteri Puanı',
-              color: AppColors.rating,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-    this.showDot = false,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-  final bool showDot;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(icon, size: 20, color: color),
-            if (showDot)
-              Positioned(
-                right: -3,
-                top: -2,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(color: AppColors.scheduleOverdue, shape: BoxShape.circle),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
         ),
       ],
     );
