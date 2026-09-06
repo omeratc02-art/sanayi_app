@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
@@ -316,6 +318,8 @@ void main() {
       await seedMechanicAccount();
       await pumpScreen(tester);
 
+      // Header row now has a small chart icon to the left of the label.
+      expect(find.byIcon(Icons.insights_rounded), findsOneWidget);
       expect(find.text('Bu haftanın özeti'), findsOneWidget);
       expect(find.text('İşletmeniz ilgi görüyor 📈'), findsOneWidget);
       expect(find.text('Daha fazla sürücü sizi keşfediyor.'), findsOneWidget);
@@ -341,6 +345,34 @@ void main() {
       expect(find.textContaining('güven skoru'), findsNothing);
     });
 
+    testWidgets('Each stat is now its own visually distinct mini-card, not sharing a single divider', (
+      WidgetTester tester,
+    ) async {
+      await seedMechanicAccount();
+      await pumpScreen(tester);
+
+      // Each stat (eye-icon/127 and calendar-icon/8) renders inside its own
+      // PremiumSurface mini-card now — 3 PremiumSurfaces total on this
+      // card's own area: the outer card plus the two nested stat cards.
+      expect(find.byIcon(Icons.visibility_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.calendar_month_rounded), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((widget) => widget is PremiumSurface && widget.color == AppColors.background),
+        findsNWidgets(2),
+      );
+      // The old shared vertical-divider Container (1px wide, 44 tall,
+      // AppColors.divider) between the two stats is gone — each mini-card's
+      // own border now provides the separation instead.
+      expect(
+        find.byWidgetPredicate((widget) {
+          if (widget is! Container) return false;
+          final constraints = widget.constraints;
+          return constraints != null && constraints.maxWidth == 1 && constraints.maxHeight == 44;
+        }),
+        findsNothing,
+      );
+    });
+
     testWidgets(
       'Sits between the greeting hero and "Yeni Talepler" in the widget tree, not inside or under the list',
       (WidgetTester tester) async {
@@ -357,6 +389,35 @@ void main() {
         expect(pendingListHeadingY, greaterThan(cardHeaderY));
       },
     );
+
+    testWidgets('No overflow at a narrow phone width or a wider width, with the new mini-card layout', (
+      WidgetTester tester,
+    ) async {
+      await seedMechanicAccount();
+
+      await pumpScreen(tester, width: 360);
+      expect(tester.takeException(), isNull);
+      expect(find.text('127'), findsOneWidget);
+      expect(find.text('8'), findsOneWidget);
+
+      await pumpScreen(tester, width: 900, height: 1400);
+      expect(tester.takeException(), isNull);
+      expect(find.text('127'), findsOneWidget);
+      expect(find.text('8'), findsOneWidget);
+    });
+
+    test('The TODO(real-data) placeholder-data comment and its exact static values are still present in source', () {
+      final source = File('lib/mechanic/home/mechanic_home_screen.dart').readAsStringSync();
+
+      expect(
+        source,
+        contains(
+          '// TODO(real-data): These are static placeholder values (127 views, 8 requests) explicitly',
+        ),
+      );
+      expect(source, contains('static const _profileViewCount = 127;'));
+      expect(source, contains('static const _appointmentRequestCount = 8;'));
+    });
   });
 
   group('Yeni Talepler (unified pending-requests list)', () {
