@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sanayi_app/mechanic/home/mechanic_home_screen.dart';
 import 'package:sanayi_app/theme/app_theme.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
+import 'package:sanayi_app/widgets/common/premium_surface.dart';
 
 /// MechanicHomeScreen was rebuilt to match a visual reference mockup (top
 /// bar, greeting hero, stats row, a responsive two-column body) while
@@ -104,7 +105,7 @@ void main() {
   }
 
   // Narrow (phone-width, stacked layout) by default — this screen has a
-  // lot of vertical content (top bar, hero, stats, priority card, recent
+  // lot of vertical content (top bar, hero, stats, the pending-requests
   // list, schedule card, performance card), and a plain ListView still
   // needs each item within the viewport/cache extent to actually build it.
   Future<void> pumpScreen(WidgetTester tester, {double width = 390, double height = 3200}) async {
@@ -222,7 +223,10 @@ void main() {
       await pumpScreen(tester);
 
       expect(find.text('Bugün / Randevu'), findsOneWidget);
-      expect(find.text('Yeni Talepler'), findsOneWidget);
+      // Appears twice: the stats row's own label, and the unified pending-
+      // requests list's section heading (also "Yeni Talepler" now that
+      // there's no separate "Son Talepler" split — see SCOPE item 6).
+      expect(find.text('Yeni Talepler'), findsNWidgets(2));
       // Both counts are 1, plus the plain "Müşteri Puanı" stat label
       // (rating summary is null — no rated jobs yet) also happens to read
       // "Müşteri Puanı" with no parenthetical, same as the performance
@@ -288,9 +292,9 @@ void main() {
     });
   });
 
-  group('Priority card', () {
+  group('Yeni Talepler (unified pending-requests list)', () {
     testWidgets(
-      'Spotlights the newest request honestly (no "Acil"/urgent label), with real elapsed time, note, and vehicle',
+      'Every pending request renders identically (same tag, same row style) regardless of how recently it arrived',
       (WidgetTester tester) async {
         await seedMechanicAccount();
         await seedAppointment(
@@ -298,13 +302,15 @@ void main() {
           appointmentDate: daysFromNow(2),
           createdAt: DateTime.now().subtract(const Duration(days: 2)),
           customerNote: 'Klimadan garip bir koku geliyor.',
+          vehicleModel: 'Volkswagen Golf',
+          serviceType: 'Fren Bakımı',
         );
         await seedAppointment(
           'req-newest',
           appointmentDate: daysFromNow(0),
-          // Exactly "now" — a small offset like "2 hours ago" is only
-          // reliably "today" depending on wall-clock time at test run,
-          // which can cross midnight. Zero offset is same-day always.
+          // Exactly "now" — the newest-arrived request. There is no
+          // separate "just arrived" label any more — every request, this
+          // one included, gets the same plain "Yeni Talep" tag.
           createdAt: DateTime.now(),
           customerNote: 'Frenlerden ses geliyor, kontrol edebilir misiniz?',
           vehicleModel: 'Opel Astra',
@@ -312,41 +318,64 @@ void main() {
 
         await pumpScreen(tester);
 
+        // Both requests show up, with real vehicle/service data.
         expect(find.text('Opel Astra'), findsOneWidget);
-        expect(find.text('Bugün Gelen Talep'), findsOneWidget);
-        expect(find.textContaining('geldi'), findsWidgets);
-        expect(find.text('"Frenlerden ses geliyor, kontrol edebilir misiniz?"'), findsOneWidget);
-        expect(find.text('Talebi İncele'), findsOneWidget);
+        expect(find.text('Volkswagen Golf'), findsOneWidget);
+        expect(find.text('Fren Bakımı'), findsOneWidget);
 
-        // No fabricated urgency label anywhere on this screen.
+        // Uniform tagging — exactly the plain "Yeni Talep" text for both,
+        // never the old "Bugün Gelen Talep" variant that used to single
+        // out the newest one.
+        expect(find.text('Yeni Talep'), findsNWidgets(2));
+        expect(find.text('Bugün Gelen Talep'), findsNothing);
+
+        // Uniform action affordance — the same chevron on every row, not
+        // a large button on one row and nothing on the rest.
+        expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+
+        // Real elapsed time still shows for each row (the newest reads
+        // "az önce", the older one in days).
+        expect(find.textContaining('geldi'), findsNWidgets(2));
+
+        // The old spotlighted-card-only elements are gone entirely: no big
+        // CTA button, no customer-note preview, no "Diğer N talebi gör"
+        // link, no fabricated urgency label.
+        expect(find.text('Talebi İncele'), findsNothing);
+        expect(find.textContaining('"'), findsNothing); // no note preview
+        expect(find.textContaining('talebi gör'), findsNothing);
         expect(find.textContaining('Acil'), findsNothing);
         expect(find.textContaining('ACİL'), findsNothing);
 
-        // One other pending request exists beyond the spotlighted one.
-        expect(find.text('Diğer 1 talebi gör'), findsOneWidget);
+        // No lingering solid-blue "priority" card background anywhere in
+        // the list.
+        expect(
+          find.byWidgetPredicate((widget) {
+            if (widget is! PremiumSurface) return false;
+            return widget.color == AppColors.primary;
+          }),
+          findsNothing,
+        );
       },
     );
 
-    testWidgets('Shows no "Diğer N talebi gör" link when there is only one pending request', (
+    testWidgets('A single pending request still renders in the list, uniformly, not hidden or specially framed', (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount();
-      await seedAppointment('req-only', appointmentDate: daysFromNow(0), createdAt: DateTime.now());
+      await seedAppointment(
+        'req-only',
+        appointmentDate: daysFromNow(0),
+        createdAt: DateTime.now(),
+        vehicleModel: 'Renault Clio',
+      );
 
       await pumpScreen(tester);
 
-      expect(find.textContaining('talebi gör'), findsNothing);
-    });
-
-    testWidgets('A request with no customer note omits the quote block entirely for that card', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await seedAppointment('req-no-note', appointmentDate: daysFromNow(0), createdAt: DateTime.now());
-
-      await pumpScreen(tester);
-
-      expect(find.textContaining('"'), findsNothing);
+      expect(find.text('Yeni Talepler'), findsNWidgets(2)); // stats label + list heading
+      expect(find.text('Renault Clio'), findsOneWidget);
+      expect(find.text('Yeni Talep'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+      expect(find.text('Talebi İncele'), findsNothing);
     });
 
     testWidgets('Shows the real empty state when there are zero pending requests', (WidgetTester tester) async {
@@ -356,54 +385,11 @@ void main() {
       expect(find.text('Bekleyen talebiniz yok.'), findsOneWidget);
       expect(find.text('Talebi İncele'), findsNothing);
     });
-  });
-
-  group('Son Talepler (recent requests list)', () {
-    testWidgets('Shows requests beyond the spotlighted one, each with a real elapsed time and a Yeni Talep tag', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await seedAppointment(
-        'req-newest',
-        appointmentDate: daysFromNow(0),
-        createdAt: DateTime.now(),
-        vehicleModel: 'Opel Astra',
-      );
-      await seedAppointment(
-        'req-second',
-        appointmentDate: daysFromNow(1),
-        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-        vehicleModel: 'Volkswagen Golf',
-        serviceType: 'Fren Bakımı',
-      );
-
-      await pumpScreen(tester);
-
-      expect(find.text('Son Talepler'), findsOneWidget);
-      expect(find.text('Volkswagen Golf'), findsOneWidget);
-      expect(find.text('Fren Bakımı'), findsOneWidget);
-      expect(find.text('Yeni Talep'), findsOneWidget); // one recent row -> one tag
-      expect(find.textContaining('saat önce geldi'), findsOneWidget);
-      // The spotlighted request itself is not duplicated into this list.
-      expect(find.text('Opel Astra'), findsOneWidget);
-    });
-
-    testWidgets('Does not render at all when there is only the spotlighted request', (WidgetTester tester) async {
-      await seedMechanicAccount();
-      await seedAppointment('req-only', appointmentDate: daysFromNow(0), createdAt: DateTime.now());
-
-      await pumpScreen(tester);
-
-      expect(find.text('Son Talepler'), findsNothing);
-    });
 
     testWidgets('Caps the preview at 3 and shows a real "Tümünü Gör (N)" overflow count beyond that', (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount();
-      // 1 spotlighted + 4 more = 5 pending total; the recent list previews
-      // only 3 of those 4, with an overflow link showing the real total
-      // "other" count (4).
       await seedAppointment('req-0', appointmentDate: daysFromNow(0), createdAt: DateTime.now());
       await seedAppointment(
         'req-1',
@@ -420,17 +406,11 @@ void main() {
         appointmentDate: daysFromNow(1),
         createdAt: DateTime.now().subtract(const Duration(hours: 3)),
       );
-      await seedAppointment(
-        'req-4',
-        appointmentDate: daysFromNow(1),
-        createdAt: DateTime.now().subtract(const Duration(hours: 4)),
-      );
 
       await pumpScreen(tester);
 
-      expect(find.text('Yeni Talep'), findsNWidgets(3)); // only 3 previewed
+      expect(find.text('Yeni Talep'), findsNWidgets(3)); // only 3 of the real 4 previewed
       expect(find.text('Tümünü Gör (4)'), findsOneWidget);
-      expect(find.text('Diğer 4 talebi gör'), findsOneWidget);
     });
   });
 
@@ -530,10 +510,11 @@ void main() {
 
       expect(tester.takeException(), isNull);
       // Stacked: the sidebar's "Bugünün Programı" card renders below the
-      // main column's priority card, not beside it.
-      final priorityY = tester.getTopLeft(find.text('Talebi İncele')).dy;
+      // main column's pending-requests list, not beside it. 'Renault Clio'
+      // is seedAppointment's default vehicle model for 'req-1'.
+      final requestY = tester.getTopLeft(find.text('Renault Clio')).dy;
       final scheduleY = tester.getTopLeft(find.text('Bugünün Programı')).dy;
-      expect(scheduleY, greaterThan(priorityY));
+      expect(scheduleY, greaterThan(requestY));
     });
 
     testWidgets('Renders a true two-column layout with no overflow at a wide (tablet/desktop) width', (
@@ -546,11 +527,10 @@ void main() {
 
       expect(tester.takeException(), isNull);
       // Side by side: the sidebar's "Bugünün Programı" title sits to the
-      // right of the priority card's own content, roughly at the same
-      // vertical position rather than far below it.
-      final priorityX = tester.getTopLeft(find.text('Talebi İncele')).dx;
+      // right of the main column's pending-requests list, not below it.
+      final requestX = tester.getTopLeft(find.text('Renault Clio')).dx;
       final scheduleX = tester.getTopLeft(find.text('Bugünün Programı')).dx;
-      expect(scheduleX, greaterThan(priorityX));
+      expect(scheduleX, greaterThan(requestX));
     });
   });
 }

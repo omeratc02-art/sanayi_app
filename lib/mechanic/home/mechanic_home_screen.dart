@@ -35,9 +35,11 @@ import '../profile/data/mechanic_profile_repository.dart';
 ///      [AppColors.scheduleOverdue]), and real average rating.
 ///   4. A responsive two-column body (stacks below [_twoColumnBreakpoint],
 ///      side by side above it):
-///        - Main column: the spotlighted newest request
-///          ([_PriorityRequestCard]) plus a "Son Talepler" preview list
-///          ([_RecentRequestsList]) of the rest.
+///        - Main column: every pending request rendered uniformly — same
+///          size, same style, same "Yeni Talep" tag — in one list
+///          ([_PendingRequestsList]). There is no real distinction in the
+///          data between the newest request and the rest (all are the same
+///          pending status), so none is visually spotlighted over another.
 ///        - Sidebar: today's confirmed appointments
 ///          ([_TodayScheduleCard]) and real rating/repeat-customer/
 ///          on-time-rate trust metrics ([_ServicePerformanceCard]).
@@ -322,23 +324,13 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
         )
       else if (_pendingRequests.isEmpty)
         const _EmptyPendingRequestsState()
-      else ...[
-        _PriorityRequestCard(
-          request: _toRequestCardData(_pendingRequests.first),
-          onTap: () => _openRequestDetails(_pendingRequests.first),
-          otherCount: _pendingRequests.length - 1,
-          onViewOthers: _openAppointments,
+      else
+        _PendingRequestsList(
+          requests: _pendingRequests,
+          toCardData: _toRequestCardData,
+          onOpenRequest: _openRequestDetails,
+          onViewAll: _openAppointments,
         ),
-        if (_pendingRequests.length > 1) ...[
-          const SizedBox(height: AppSpacing.xxl),
-          _RecentRequestsList(
-            requests: _pendingRequests.skip(1).toList(),
-            toCardData: _toRequestCardData,
-            onOpenRequest: _openRequestDetails,
-            onViewAll: _openAppointments,
-          ),
-        ],
-      ],
     ];
 
     final sidebarColumnChildren = <Widget>[
@@ -816,204 +808,14 @@ class _RequestCardData {
   final String customerNote;
 }
 
-/// The spotlighted newest pending request — the newest submitted one (this
-/// screen has always sorted _pendingRequests this way; no separate
-/// "urgent" concept exists in the data, see this file's class doc). Tagged
-/// honestly with what's actually true (a new/today-submitted request), not
-/// a fabricated "acil" label. Shows real elapsed time since submission, the
-/// real customer note, an explicit "Talebi İncele" action, and — when more
-/// pending requests exist — a "Diğer N talebi gör" link.
-class _PriorityRequestCard extends StatelessWidget {
-  const _PriorityRequestCard({
-    required this.request,
-    required this.onTap,
-    required this.otherCount,
-    required this.onViewOthers,
-  });
-
-  final _RequestCardData request;
-  final VoidCallback onTap;
-  final int otherCount;
-  final VoidCallback onViewOthers;
-
-  @override
-  Widget build(BuildContext context) {
-    final isFromToday = isSameDay(request.createdAt, DateTime.now());
-    final tagLabel = isFromToday ? 'Bugün Gelen Talep' : 'Yeni Talep';
-    final note = request.customerNote.trim();
-
-    return PremiumSurface(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      borderRadius: AppRadius.md,
-      // A real, solid blue fill — the brand blue already used in the top
-      // bar/hero — instead of a light tint, so this reads unmistakably as
-      // "the most relevant item" at a glance. Every text/icon color below
-      // is chosen to stay legible against this fill.
-      color: AppColors.primary,
-      border: Border.all(color: AppColors.turquoise, width: 1.5),
-      child: Stack(
-        children: [
-          // Decorative accent icon only — purely visual chrome matching
-          // the reference mockup's document/chat icon accent, not a real
-          // data element.
-          Positioned(
-            right: -8,
-            top: -8,
-            child: Icon(Icons.chat_bubble_rounded, size: 64, color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: AppColors.turquoise, borderRadius: BorderRadius.circular(20)),
-                    child: Text(
-                      tagLabel,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Expanded + ellipsis rather than Spacer — the tag's
-                  // longer "Bugün Gelen Talep" variant plus this label can
-                  // otherwise overflow on narrow phone widths; this
-                  // guarantees the row never overflows regardless of
-                  // tag/time text length.
-                  Expanded(
-                    child: Text(
-                      _timeAgoLabel(request.createdAt),
-                      textAlign: TextAlign.right,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                request.vehicleModel,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
-              ),
-              const SizedBox(height: 10),
-              _ServiceBadge(label: request.service),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Icon(Icons.event, size: 14, color: Colors.white.withValues(alpha: 0.85)),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      request.preferredDate,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.85)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(Icons.schedule, size: 14, color: Colors.white.withValues(alpha: 0.85)),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      request.preferredTime,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.85)),
-                    ),
-                  ),
-                ],
-              ),
-              if (note.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.sm + 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Text(
-                    '"$note"',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.textSecondary,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: onTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primaryDark,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
-                  ),
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: const Text('Talebi İncele', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                ),
-              ),
-              if (otherCount > 0) ...[
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: onViewOthers,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Diğer $otherCount talebi gör',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.9)),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded, size: 13, color: Colors.white.withValues(alpha: 0.9)),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Small rounded chip for the requested service — the priority card's one
-/// turquoise-family accent, inverted to a white pill with primaryDark text
-/// so it doesn't blend into that card's own solid blue background.
-class _ServiceBadge extends StatelessWidget {
-  const _ServiceBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primaryDark),
-      ),
-    );
-  }
-}
-
-/// "Son Talepler" — a compact preview of the pending requests beneath the
-/// spotlighted one (i.e. excluding it), capped so this stays scannable. A
+/// All pending requests, rendered uniformly — no item is visually bigger,
+/// more colorful, or more prominent than another, since there is no real
+/// distinction in the data between the newest request and the rest (every
+/// one is the same "pending" status). Capped so this stays scannable; a
 /// "Tümünü Gör" link opens the full list (MechanicAppointmentsScreen,
 /// already defaulting to its "Yeni Talepler" tab) when there are more.
-class _RecentRequestsList extends StatelessWidget {
-  const _RecentRequestsList({
+class _PendingRequestsList extends StatelessWidget {
+  const _PendingRequestsList({
     required this.requests,
     required this.toCardData,
     required this.onOpenRequest,
@@ -1036,7 +838,7 @@ class _RecentRequestsList extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Expanded(child: SectionLabel(text: 'Son Talepler')),
+            const Expanded(child: SectionLabel(text: 'Yeni Talepler')),
             if (requests.length > _maxPreview)
               GestureDetector(
                 onTap: onViewAll,
@@ -1055,7 +857,7 @@ class _RecentRequestsList extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < previewCount; i++) ...[
-                _RecentRequestRow(request: toCardData(requests[i]), onTap: () => onOpenRequest(requests[i])),
+                _PendingRequestRow(request: toCardData(requests[i]), onTap: () => onOpenRequest(requests[i])),
                 if (i < previewCount - 1) const Divider(height: 1, color: AppColors.divider),
               ],
             ],
@@ -1066,8 +868,12 @@ class _RecentRequestsList extends StatelessWidget {
   }
 }
 
-class _RecentRequestRow extends StatelessWidget {
-  const _RecentRequestRow({required this.request, required this.onTap});
+/// One uniform row — every pending request gets exactly this treatment
+/// (vehicle, service, real elapsed time since submitted, a "Yeni Talep"
+/// tag, and a chevron as the only "tap for details" affordance), regardless
+/// of how recently it arrived.
+class _PendingRequestRow extends StatelessWidget {
+  const _PendingRequestRow({required this.request, required this.onTap});
 
   final _RequestCardData request;
   final VoidCallback onTap;
@@ -1145,6 +951,10 @@ class _RecentRequestRow extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(width: 4),
+            // The same small "tap for details" affordance on every row —
+            // no row gets a large button while the rest get nothing.
+            const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textSecondary),
           ],
         ),
       ),
