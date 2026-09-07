@@ -32,12 +32,14 @@ import '../profile/data/mechanic_profile_repository.dart';
 ///      and a static quote line (all brand chrome, not data — the real
 ///      business name is already shown in the top bar's profile chip).
 ///   3. [_WeeklyEngagementSummaryCard] — "İşletmeniz İlgi Görüyor": a
-///      weekly business-engagement summary. The new-request count is real
-///      (AppointmentRepository.watchRecentAppointmentRequestCount, last 7
-///      days). The profile-view count and the sparkline are still
-///      EXPLICITLY static placeholder data, by product decision — see that
-///      class's own doc comment and its TODO(real-data) comment before
-///      treating those two as real.
+///      weekly business-engagement summary. Both counts are real: the
+///      new-request count (AppointmentRepository.watchRecentAppointmentRequestCount,
+///      last 7 days) and the profile-view count
+///      (MechanicProfileRepository.watchProfileViewCount/recordProfileView,
+///      incremented from a customer opening MechanicDetailPage — see that
+///      repository method's own doc comment for the daily-uniqueness/
+///      owner-exclusion rules). Only the sparkline shape is still a static
+///      placeholder — a separate, still-open task.
 ///   4. Every pending request rendered uniformly, full-width — same size,
 ///      same style, same "Yeni Talep" tag — in one list
 ///      ([_PendingRequestsList]). There is no real distinction in the data
@@ -84,6 +86,11 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   StreamSubscription<int>? _recentRequestCountSubscription;
   int? _recentRequestCount;
 
+  // Same null-while-loading convention as _recentRequestCount above. See
+  // MechanicProfileRepository.watchProfileViewCount.
+  StreamSubscription<int>? _profileViewCountSubscription;
+  int? _profileViewCount;
+
   StreamSubscription<List<ChatSummary>>? _unreadChatsSubscription;
   var _unreadChatCount = 0;
 
@@ -95,12 +102,14 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
     _loadProfile();
     _loadAppointmentStreams();
     _subscribeToUnreadChats();
+    _subscribeToProfileViewCount();
   }
 
   @override
   void dispose() {
     _pendingRequestsSubscription?.cancel();
     _recentRequestCountSubscription?.cancel();
+    _profileViewCountSubscription?.cancel();
     _unreadChatsSubscription?.cancel();
     super.dispose();
   }
@@ -179,6 +188,30 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
       },
       onError: (Object error) {
         debugPrint('MECHANIC HOME UNREAD CHATS ERROR: $error');
+      },
+    );
+  }
+
+  // Real live profileViewCount for the signed-in mechanic's own account —
+  // see MechanicProfileRepository.watchProfileViewCount/recordProfileView.
+  // A separate subscription (own uid lookup, like _subscribeToUnreadChats
+  // above) rather than folding into _loadProfile's one-time fetch, since
+  // this needs to be live: a customer viewing this business's detail page
+  // while the mechanic happens to have this screen open should update the
+  // count without a manual refresh.
+  void _subscribeToProfileViewCount() {
+    final uid = firebaseAuthInstance.currentUser?.uid;
+    if (uid == null) return;
+    _profileViewCountSubscription = MechanicProfileRepository().watchProfileViewCount(uid).listen(
+      (count) {
+        if (!mounted) return;
+        setState(() => _profileViewCount = count);
+      },
+      onError: (Object error) {
+        // Same convention as the other *_ERROR debugPrints in this state
+        // class: log the real exception, leave _profileViewCount as-is
+        // (null on first failure) rather than a fabricated fallback.
+        debugPrint('MECHANIC HOME PROFILE VIEW COUNT ERROR: $error');
       },
     );
   }
@@ -264,7 +297,10 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             const SizedBox(height: AppSpacing.xxl),
             const _MechanicHomeGreetingHero(),
             const SizedBox(height: AppSpacing.lg),
-            _WeeklyEngagementSummaryCard(appointmentRequestCount: _recentRequestCount),
+            _WeeklyEngagementSummaryCard(
+              profileViewCount: _profileViewCount,
+              appointmentRequestCount: _recentRequestCount,
+            ),
             const SizedBox(height: AppSpacing.xxl),
             ...mainColumnChildren,
           ],
@@ -505,30 +541,32 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
 }
 
 /// "İşletmeniz İlgi Görüyor" — a weekly business-engagement summary card
-/// (profile-view count, new-request count, a supporting sparkline). The
-/// new-request count ([appointmentRequestCount]) is real — passed in by
-/// [_MechanicHomeScreenState] from
-/// AppointmentRepository.watchRecentAppointmentRequestCount. The profile-view
-/// count and the sparkline shape are still static placeholder data by
-/// explicit product-owner decision, not by omission — see the
-/// TODO(real-data) comment on [_profileViewCount] below before wiring those
-/// up to Firestore.
+/// (profile-view count, new-request count, a supporting sparkline). Both
+/// counts are real now, passed in by [_MechanicHomeScreenState]:
+/// [profileViewCount] from MechanicProfileRepository.watchProfileViewCount/
+/// recordProfileView (incremented from MechanicDetailPage — see that
+/// repository method's own doc comment for the full daily-uniqueness/
+/// owner-exclusion design), [appointmentRequestCount] from
+/// AppointmentRepository.watchRecentAppointmentRequestCount. Only the
+/// sparkline shape below is still a static placeholder (a separate,
+/// still-open task — it isn't yet tied to either real count's actual
+/// day-by-day history).
 class _WeeklyEngagementSummaryCard extends StatelessWidget {
-  const _WeeklyEngagementSummaryCard({required this.appointmentRequestCount});
+  const _WeeklyEngagementSummaryCard({required this.profileViewCount, required this.appointmentRequestCount});
+
+  /// Real count of profile views in the current implementation's tracked
+  /// history (see MechanicProfileRepository.watchProfileViewCount) — null
+  /// while that stream is still loading (or if it errored), never a
+  /// stale/fabricated number.
+  final int? profileViewCount;
 
   /// Real count of appointment requests created in the last 7 days — null
   /// while AppointmentRepository.watchRecentAppointmentRequestCount is still
   /// loading (or if it errored), never a stale/fabricated number.
   final int? appointmentRequestCount;
 
-  // TODO(real-data): This is a static placeholder value (127 views) explicitly requested by the
-  // product owner for initial visual placement. Replace with real Firestore-backed profile-view
-  // tracking before this ships to production. (The appointment-request stat below it is now real
-  // — see AppointmentRepository.watchRecentAppointmentRequestCount.)
-  static const _profileViewCount = 127;
-
-  // Purely decorative shape for the sparkline below — paired with the same
-  // static placeholder decision as _profileViewCount above, not a real
+  // Purely decorative shape for the sparkline below — this one is still a
+  // static placeholder (unlike both real counts above), not a real
   // day-by-day breakdown of either metric.
   static const _weeklySparklineValues = [3.0, 5.0, 4.0, 7.0, 6.0, 9.0, 8.0];
   static const _weekdayLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -595,10 +633,13 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Expanded(
+                    Expanded(
+                      // Not const any more — profileViewCount is a real
+                      // runtime value (null while loading), not a
+                      // compile-time constant.
                       child: _EngagementStat(
                         icon: Icons.visibility_rounded,
-                        value: '$_profileViewCount',
+                        value: profileViewCount == null ? '...' : '$profileViewCount',
                         label: 'kişi işletmenizi görüntüledi',
                       ),
                     ),

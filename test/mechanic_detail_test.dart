@@ -123,4 +123,66 @@ void main() {
       expect(find.text('₺200 - ₺400'), findsOneWidget);
     },
   );
+
+  testWidgets('Opening the detail page as a real signed-in customer records a real profile view', (
+    WidgetTester tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Ara'));
+    await tester.pumpAndSettle();
+
+    final searchScope = find.byType(SearchTab);
+    await tester.tap(find.descendant(of: searchScope, matching: find.text('Hızlı Lastikçi')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MechanicDetailPage), findsOneWidget);
+
+    // recordProfileView's transaction runs as a real (non-faked) async
+    // write kicked off from initState — pumpAndSettle above already let it
+    // resolve, but this confirms it against the real seeded document
+    // rather than trusting timing alone.
+    final matches = await firestoreInstance
+        .collection('mechanicAccounts')
+        .where('businessId', isEqualTo: 'hizli-lastikci')
+        .get();
+    expect(matches.docs, hasLength(1));
+    expect((matches.docs.single.data()['profileViewCount'] as num?)?.toInt(), 1);
+  });
+
+  testWidgets('Opening the detail page while signed out does not record a profile view', (
+    WidgetTester tester,
+  ) async {
+    firebaseAuthInstance = MockFirebaseAuth(signedIn: false);
+    firestoreInstance = FakeFirebaseFirestore();
+    await seedMechanicAccounts(firestoreInstance);
+
+    tester.view.physicalSize = const Size(400, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MechanicDetailPage(
+          mechanic: Mechanic(
+            name: 'Hızlı Lastikçi',
+            rating: 4.7,
+            reviewCount: 96,
+            phone: '0212 667 45 09',
+            address: 'Fatih Mah. Lastikçiler Sok. No:5, Konya',
+            priceMin: 200,
+            priceMax: 380,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final matches = await firestoreInstance
+        .collection('mechanicAccounts')
+        .where('businessId', isEqualTo: 'hizli-lastikci')
+        .get();
+    expect((matches.docs.single.data()['profileViewCount'] as num?)?.toInt() ?? 0, 0);
+  });
 }

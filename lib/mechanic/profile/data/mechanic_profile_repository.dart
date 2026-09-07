@@ -73,4 +73,83 @@ class MechanicProfileRepository {
     }
     return null;
   }
+
+  /// Live profileViewCount for the signed-in mechanic's own account — the
+  /// real data source for the mechanic home screen's "İşletmeniz İlgi
+  /// Görüyor" card (see mechanic_home_screen.dart's
+  /// _WeeklyEngagementSummaryCard). Reads the same mechanicAccounts/{uid}
+  /// document [fetchProfile] already reads once, just as a live stream
+  /// instead, so a new view recorded elsewhere (see [recordProfileView])
+  /// shows up without the mechanic needing to manually refresh. 0 (not
+  /// null) once the document itself exists but has never had a view
+  /// recorded — a real, known zero, not "unknown"; "unknown/still loading"
+  /// is represented by the Stream not having emitted yet, which the caller
+  /// already models as a nullable field starting null.
+  Stream<int> watchProfileViewCount(String uid) {
+    return _firestore
+        .collection('mechanicAccounts')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => doc.data()?['profileViewCount'] as int? ?? 0);
+  }
+
+  /// Records one real profile view of [businessId] by [customerId] — the
+  /// write path behind [watchProfileViewCount]. A deliberate no-op (no
+  /// writes at all) in three cases, matching the agreed product design
+  /// exactly:
+  ///   - [customerId] is null/empty — no signed-in Firebase Auth customer,
+  ///     so there's no real per-customer identity to dedupe against
+  ///     (anonymous/guest views are never counted).
+  ///   - No matching, non-archived mechanicAccounts document for
+  ///     [businessId] exists.
+  ///   - [customerId] equals the business's own owning uid — the
+  ///     mechanicAccounts document id itself IS the owning mechanic's
+  ///     Firebase Auth uid (see [fetchProfile]; there is no separate stored
+  ///     "owner uid" field), so the business owner viewing their own
+  ///     profile never counts as a view.
+  ///
+  /// Otherwise, at most one view per (customer, business, calendar day)
+  /// counts: a small marker document at
+  /// mechanicAccounts/{businessDocId}/dailyViewers/{customerId}_{yyyy-MM-dd}
+  /// records that this customer has already been counted today (a new day
+  /// is a new document id, so the count resets naturally the next day
+  /// without any cleanup job). The marker write and the profileViewCount
+  /// increment happen inside one Firestore transaction, so a failure
+  /// partway through can never increment the counter without the marker
+  /// (or vice versa) — see firestore.rules' own dailyViewers/
+  /// profileViewCount rules for how this exact one-per-day guarantee is
+  /// also enforced server-side, not just here: the marker collection only
+  /// grants `create` (never `update`), so Firestore itself rejects a
+  /// second same-day write as an unauthorized update, independent of
+  /// whether this client-side check ever runs.
+  Future<void> recordProfileView({required String businessId, required String? customerId}) async {
+    if (customerId == null || customerId.isEmpty) return;
+
+    final matches = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
+    QueryDocumentSnapshot<Map<String, dynamic>>? businessDoc;
+    for (final doc in matches.docs) {
+      if (doc.data()['archived'] == true) continue;
+      businessDoc = doc;
+      break;
+    }
+    if (businessDoc == null) return;
+    if (businessDoc.id == customerId) return;
+
+    final today = DateTime.now();
+    final dayKey =
+        '${today.year.toString().padLeft(4, '0')}-'
+        '${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
+    final viewerDocRef = businessDoc.reference.collection('dailyViewers').doc('${customerId}_$dayKey');
+    final businessDocRef = businessDoc.reference;
+
+    await _firestore.runTransaction((transaction) async {
+      // All reads before any writes — required by Firestore transactions.
+      final viewerDoc = await transaction.get(viewerDocRef);
+      if (viewerDoc.exists) return; // Already counted today — a real no-op.
+
+      transaction.set(viewerDocRef, {'customerId': customerId, 'viewedAt': FieldValue.serverTimestamp()});
+      transaction.update(businessDocRef, {'profileViewCount': FieldValue.increment(1)});
+    });
+  }
 }

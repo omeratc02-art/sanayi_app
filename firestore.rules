@@ -28,20 +28,81 @@ service cloud.firestore {
       allow create: if true;
       allow delete: if true;
 
-      // Updating any field other than isVerified is unchanged (still
-      // open). Changing isVerified specifically — the admin
-      // approve/unapprove action from AdminApprovalScreen — requires the
-      // caller's own UID to exist in `admins`. This is what stops both the
-      // mechanic account owner and any other authenticated user from
-      // flipping their own (or anyone else's) verified status after the
-      // fact; only the one-time value set at registration is exempt (see
-      // the `create` branch above).
+      // Two independent gates, ANDed together — each one only constrains
+      // an update that actually touches its own field; an update touching
+      // neither field trivially satisfies both and stays exactly as open
+      // as before.
+      //
+      // isVerified — unchanged from before: the admin approve/unapprove
+      // action from AdminApprovalScreen requires the caller's own UID to
+      // exist in `admins`. This is what stops both the mechanic account
+      // owner and any other authenticated user from flipping their own
+      // (or anyone else's) verified status after the fact; only the
+      // one-time value set at registration is exempt (see the `create`
+      // branch above).
+      //
+      // profileViewCount — new, for MechanicProfileRepository.recordProfileView
+      // (see mechanic_home_screen.dart's "İşletmeniz İlgi Görüyor" card).
+      // Every other field on this document stays exactly as open-write as
+      // before (this branch only fires when profileViewCount itself is
+      // among the changed keys); this one field specifically requires: a
+      // signed-in caller, who is NOT this document's own owner (a business
+      // can't inflate its own view count), touching profileViewCount alone
+      // (diff().affectedKeys().hasOnly — no other field may ride along on
+      // this write), moving it by exactly +1 (never an arbitrary value, and
+      // ('profileViewCount' in resource.data) handles the field not
+      // existing yet on a business's very first recorded view). This alone
+      // can't prove the caller also wrote a same-day dailyViewers marker in
+      // the same transaction — Firestore rules don't reliably expose one
+      // write's effect to another write's rule evaluation within the same
+      // commit, so this rule doesn't attempt that cross-check — but the
+      // dailyViewers rules below independently guarantee the real
+      // one-view-per-customer-per-day cap regardless of what this field
+      // alone permits; the two together are the actual enforcement, not
+      // this branch on its own.
       allow update: if
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
-        || (
-          request.auth != null &&
-          exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
+          || (
+            request.auth != null &&
+            exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+          )
+        )
+        &&
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['profileViewCount'])
+          || (
+            request.auth != null &&
+            request.auth.uid != uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['profileViewCount']) &&
+            request.resource.data.profileViewCount ==
+              (('profileViewCount' in resource.data) ? resource.data.profileViewCount : 0) + 1
+          )
         );
+
+      // Dedup marker for one real profile view per (customer, calendar
+      // day) — see MechanicProfileRepository.recordProfileView's own doc
+      // comment for the full design. `customerId` is a real field on the
+      // marker itself (not just embedded in the document id string) so it
+      // can be checked directly here: it must equal the caller's own uid,
+      // so nobody can record a view "as" a different customer, and the
+      // caller may never be this business's own owner. Deliberately NO
+      // `allow update` (or explicit `allow update: if false`, same
+      // effect): the marker's own document id already encodes the
+      // customer+day (see recordProfileView), so a second write attempt
+      // for a day already recorded is evaluated by Firestore as an update
+      // to an existing document, not a create — and with no update
+      // permission granted, that second write is rejected outright. This
+      // is what makes "at most one counted view per customer per business
+      // per day" a real server-side guarantee, not merely a client-side
+      // courtesy check that a modified client could skip.
+      match /dailyViewers/{viewerId} {
+        allow create: if
+          request.auth != null &&
+          request.auth.uid != uid &&
+          request.resource.data.customerId == request.auth.uid;
+        allow read, update, delete: if false;
+      }
     }
 
     // Gates access to admin-only app features (currently: AdminApprovalScreen's

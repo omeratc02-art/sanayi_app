@@ -23,11 +23,14 @@ import 'package:sanayi_app/widgets/common/premium_surface.dart';
 /// pending-requests list is now the screen's only body content, at every
 /// width (no more two-column/sidebar layout). The one deliberate exception
 /// to "real data only" is the "İşletmeniz İlgi Görüyor" weekly engagement
-/// summary card's profile-view count (127, still an explicit static
-/// placeholder by product decision — see that widget's own TODO(real-data)
-/// comment in mechanic_home_screen.dart) and its sparkline shape. The
-/// card's appointment-request count is real now — a live 7-day count from
-/// AppointmentRepository.watchRecentAppointmentRequestCount.
+/// summary card's sparkline shape, still a static placeholder. Both of the
+/// card's stats are real now: the appointment-request count (a live 7-day
+/// count from AppointmentRepository.watchRecentAppointmentRequestCount) and
+/// the profile-view count (a live count from
+/// MechanicProfileRepository.watchProfileViewCount, incremented via
+/// recordProfileView from MechanicDetailPage — see
+/// test/mechanic_profile_repository_test.dart for that write path's own
+/// dedicated tests).
 void main() {
   const mechanicUid = 'test-mechanic-uid';
   const businessId = 'test-usta-isletmesi';
@@ -329,13 +332,12 @@ void main() {
 
   group('İşletmeniz İlgi Görüyor (weekly engagement summary card)', () {
     testWidgets(
-      'Renders the header, message, day labels, the still-placeholder 127 stat, and the real appointment-'
-      'request count',
+      'Renders the header, message, day labels, and both real stats (profile views, appointment requests)',
       (WidgetTester tester) async {
         await seedMechanicAccount();
         // 2 real appointment requests, both within the last 7 days — the
-        // real data source for the second stat (see the dedicated 7-day
-        // window test below for the exclusion boundary itself).
+        // real data source for that stat (see the dedicated 7-day window
+        // test below for the exclusion boundary itself).
         await seedAppointment('req-1', appointmentDate: daysFromNow(1), createdAt: DateTime.now());
         await seedAppointment(
           'req-2',
@@ -349,16 +351,20 @@ void main() {
         expect(find.text('İşletmeniz ilgi görüyor 📈'), findsOneWidget);
         expect(find.text('Daha fazla sürücü sizi keşfediyor.'), findsOneWidget);
 
-        // 127 is still the static placeholder (separate, still-open task —
-        // see the TODO(real-data) comment). "2" is the real count of the
-        // two appointments just seeded above, not a hardcoded number.
-        expect(find.text('127'), findsOneWidget);
+        // "0" is the real profileViewCount — no customer has viewed this
+        // business's MechanicDetailPage in this test (see
+        // mechanic_profile_repository_test.dart for the write path's own
+        // dedicated coverage). "2" is the real count of the two
+        // appointments just seeded above.
+        expect(find.text('0'), findsOneWidget);
         expect(find.text('kişi işletmenizi görüntüledi'), findsOneWidget);
         expect(find.text('2'), findsOneWidget);
         expect(find.text('kişi randevu talebi oluşturdu'), findsOneWidget);
         expect(find.text('randevu talebi aldı'), findsNothing);
-        // The old hardcoded "8" is gone — it would only coincidentally
-        // reappear if exactly 8 requests existed, which isn't the case here.
+        // The old hardcoded placeholders are gone — "127"/"8" would only
+        // coincidentally reappear if those exact real counts happened,
+        // which isn't the case here.
+        expect(find.text('127'), findsNothing);
         expect(find.text('8'), findsNothing);
 
         for (final day in ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']) {
@@ -375,6 +381,26 @@ void main() {
         expect(find.textContaining('güven skoru'), findsNothing);
       },
     );
+
+    testWidgets('Shows the real profileViewCount once a customer has actually viewed this business', (
+      WidgetTester tester,
+    ) async {
+      await seedMechanicAccount();
+      // Simulates a real recorded view — the same write MechanicDetailPage's
+      // initState triggers via MechanicProfileRepository.recordProfileView
+      // (see mechanic_profile_repository_test.dart for that method's own
+      // direct tests); this screen just needs to prove it reads the real
+      // field back correctly.
+      await firestoreInstance.collection('mechanicAccounts').doc(mechanicUid).update({'profileViewCount': 3});
+
+      await pumpScreen(tester);
+
+      // "3" is the real profileViewCount just written above. Not asserting
+      // the sibling appointment-request stat's absence here — with no
+      // appointments seeded in this test, that one legitimately also
+      // renders "0", which isn't what this test is checking.
+      expect(find.text('3'), findsOneWidget);
+    });
 
     testWidgets(
       'The appointment-request stat only counts requests created in the last 7 days — an older one is excluded, '
@@ -400,7 +426,7 @@ void main() {
       },
     );
 
-    testWidgets("Shows '...' (not a stale/fabricated number) while the real count is still loading", (
+    testWidgets("Shows '...' (not stale/fabricated numbers) on both stats while the real counts are still loading", (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount();
@@ -411,10 +437,13 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       // A single pump (not pumpAndSettle) — catches the very first frame,
-      // before resolveMyBusinessId()/the count stream resolve.
+      // before resolveMyBusinessId()/the profile lookup/either count
+      // stream resolve. Both stats start null now (profileViewCount and
+      // appointmentRequestCount), so both show '...'.
       await tester.pumpWidget(const MaterialApp(home: MechanicHomeScreen()));
 
-      expect(find.text('...'), findsOneWidget);
+      expect(find.text('...'), findsNWidgets(2));
+      expect(find.text('127'), findsNothing);
       expect(find.text('8'), findsNothing);
 
       await tester.pumpAndSettle();
@@ -495,12 +524,12 @@ void main() {
         expect(tintedHeaderFinder, findsOneWidget);
 
         // The tinted header block's bottom edge sits above (a smaller dy
-        // than) the "127" stat, the appointment-request stat (found by its
-        // label rather than its value, since that value is real data now,
-        // not a fixed "8"), the sparkline, and the weekday labels below it
-        // — proving the tint doesn't extend into the body.
+        // than) both stats (found by their labels rather than their
+        // values, since both values are real data now, not fixed
+        // "127"/"8"), the sparkline, and the weekday labels below it —
+        // proving the tint doesn't extend into the body.
         final headerBottomY = tester.getBottomLeft(tintedHeaderFinder).dy;
-        final profileViewsY = tester.getTopLeft(find.text('127')).dy;
+        final profileViewsY = tester.getTopLeft(find.text('kişi işletmenizi görüntüledi')).dy;
         final appointmentsY = tester.getTopLeft(find.text('kişi randevu talebi oluşturdu')).dy;
         final dayLabelY = tester.getTopLeft(find.text('Pzt')).dy;
 
@@ -543,31 +572,29 @@ void main() {
 
       await pumpScreen(tester, width: 360);
       expect(tester.takeException(), isNull);
-      expect(find.text('127'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget); // real profileViewCount — no view recorded in this test
       expect(find.text('1'), findsOneWidget);
       expect(find.text('kişi randevu talebi oluşturdu'), findsOneWidget);
 
       await pumpScreen(tester, width: 900, height: 1400);
       expect(tester.takeException(), isNull);
-      expect(find.text('127'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('kişi randevu talebi oluşturdu'), findsOneWidget);
     });
 
     test(
-      'The TODO(real-data) comment and 127 placeholder are still present in source; the old hardcoded '
-      '_appointmentRequestCount is gone entirely',
+      'Both old hardcoded placeholder constants (_profileViewCount = 127, _appointmentRequestCount) and their '
+      'TODO(real-data) comments are gone entirely from source — both stats are wired to real data now',
       () {
         final source = File('lib/mechanic/home/mechanic_home_screen.dart').readAsStringSync();
 
-        expect(
-          source,
-          contains(
-            '// TODO(real-data): This is a static placeholder value (127 views) explicitly requested by the',
-          ),
-        );
-        expect(source, contains('static const _profileViewCount = 127;'));
+        expect(source, isNot(contains('_profileViewCount = 127')));
         expect(source, isNot(contains('_appointmentRequestCount')));
+        expect(source, isNot(contains('TODO(real-data)')));
+        // The real constructor param + repository wiring are still there.
+        expect(source, contains('required this.profileViewCount'));
+        expect(source, contains('MechanicProfileRepository().watchProfileViewCount'));
       },
     );
   });

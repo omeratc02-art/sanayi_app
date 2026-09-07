@@ -5,6 +5,7 @@ import '../../mechanic/profile/data/mechanic_profile_repository.dart';
 import '../../models/mechanic.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/chat_id.dart';
+import '../../utils/firebase_instances.dart';
 import '../../widgets/mechanic_detail/detail_action_bar.dart';
 import '../../widgets/mechanic_detail/open_status_badge.dart';
 import '../../widgets/mechanic_detail/stat_tile.dart';
@@ -14,10 +15,41 @@ import '../../widgets/verified_jobs_badge.dart';
 import '../booking/appointment_request_page.dart';
 import '../service_listing/reviews_page.dart';
 
-class MechanicDetailPage extends StatelessWidget {
+class MechanicDetailPage extends StatefulWidget {
   const MechanicDetailPage({super.key, required this.mechanic});
 
   final Mechanic mechanic;
+
+  @override
+  State<MechanicDetailPage> createState() => _MechanicDetailPageState();
+}
+
+class _MechanicDetailPageState extends State<MechanicDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    _recordProfileView();
+  }
+
+  // Fire-and-forget — a failed view-count write must never block or
+  // interrupt browsing this page. Real signed-in customer only
+  // (firebaseAuthInstance.currentUser?.uid, not resolveCustomerId()'s
+  // 'customer-demo' fallback used elsewhere in this app for booking/chat —
+  // that fallback is exactly the anonymous/guest case this feature must
+  // NOT count); MechanicProfileRepository.recordProfileView itself is a
+  // no-op for a null/empty customerId, the business owner viewing their
+  // own profile, or a repeat view from the same customer already counted
+  // today. Errors are logged, not swallowed silently — same debugPrint
+  // convention already used for other non-critical background writes
+  // (see e.g. mechanic_home_screen.dart's *_ERROR debugPrints).
+  void _recordProfileView() {
+    MechanicProfileRepository()
+        .recordProfileView(
+          businessId: mechanicChatId(widget.mechanic.name),
+          customerId: firebaseAuthInstance.currentUser?.uid,
+        )
+        .catchError((Object error) => debugPrint('MECHANIC DETAIL PROFILE VIEW ERROR: $error'));
+  }
 
   void _showFeedback(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -27,6 +59,7 @@ class MechanicDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mechanic = widget.mechanic;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
