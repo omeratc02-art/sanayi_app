@@ -139,6 +139,9 @@ void main() {
 
       expect(find.text('SanayiGo'), findsOneWidget);
       expect(find.text('Güvenle Büyüyen İşletmeler'), findsOneWidget);
+      // Bumped up from 11 so it reads proportionate to the logo beside it.
+      final tagline = tester.widget<Text>(find.text('Güvenle Büyüyen İşletmeler'));
+      expect(tagline.style?.fontSize, 12);
       expect(find.descendant(of: find.byType(Badge), matching: find.text('1')), findsOneWidget);
     });
 
@@ -266,6 +269,17 @@ void main() {
       expect(find.text('Ustanın Gücü, Yolda Güven'), findsNothing);
       expect(find.text('Randevularınızı ve hizmet taleplerinizi yönetin.'), findsNothing);
     });
+
+    testWidgets('The old "İyi bakım, daha uzun yollar." promo card is gone entirely — no remnant of it anywhere', (
+      WidgetTester tester,
+    ) async {
+      await seedMechanicAccount();
+      await pumpScreen(tester);
+
+      expect(find.textContaining('İyi bakım'), findsNothing);
+      expect(find.textContaining('daha uzun yollar'), findsNothing);
+      expect(find.byIcon(Icons.directions_car_filled_rounded), findsNothing);
+    });
   });
 
   group('Removed sidebar cards', () {
@@ -365,13 +379,13 @@ void main() {
         expect(eyeIcon.color, calendarIcon.color);
 
         // Each icon sits in its own small rounded chip container — exactly
-        // 2 of them, both with the identical 32x32 turquoise-tint/rounded
+        // 2 of them, both with the identical 36x36 turquoise-tint/rounded
         // style (one shared style source, per _EngagementStat).
         expect(
           find.byWidgetPredicate((widget) {
             if (widget is! Container) return false;
             final constraints = widget.constraints;
-            if (constraints == null || constraints.maxWidth != 32 || constraints.maxHeight != 32) return false;
+            if (constraints == null || constraints.maxWidth != 36 || constraints.maxHeight != 36) return false;
             final decoration = widget.decoration;
             if (decoration is! BoxDecoration) return false;
             return decoration.color == AppColors.turquoise.withValues(alpha: 0.1) &&
@@ -379,6 +393,9 @@ void main() {
           }),
           findsNWidgets(2),
         );
+        // Both icons are 18px — sized up from the chip's earlier 16px, in
+        // proportion with the chip's own 32->36 increase.
+        expect(eyeIcon.size, 18);
 
         // The thin vertical divider between the two stats (1px wide, 44
         // tall, AppColors.divider) is still there — the two stats stay
@@ -409,7 +426,7 @@ void main() {
           if (widget is! Container) return false;
           final decoration = widget.decoration;
           if (decoration is! BoxDecoration) return false;
-          return decoration.color == AppColors.primary.withValues(alpha: 0.05) &&
+          return decoration.color == AppColors.primary.withValues(alpha: 0.09) &&
               decoration.borderRadius ==
                   const BorderRadius.only(
                     topLeft: Radius.circular(AppRadius.lg),

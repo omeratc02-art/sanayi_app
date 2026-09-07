@@ -239,9 +239,9 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
               unreadChatCount: _unreadChatCount,
               onNotificationTap: _openNotifications,
             ),
-            const SizedBox(height: AppSpacing.xl),
-            const _MechanicHomeGreetingHero(),
             const SizedBox(height: AppSpacing.xxl),
+            const _MechanicHomeGreetingHero(),
+            const SizedBox(height: AppSpacing.lg),
             const _WeeklyEngagementSummaryCard(),
             const SizedBox(height: AppSpacing.xxl),
             ...mainColumnChildren,
@@ -354,13 +354,14 @@ class _MechanicHomeTopBar extends StatelessWidget {
                 'Güvenle Büyüyen İşletmeler',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                // Was fontSize 10.5/textSecondary (unweighted) — a touch
-                // bigger, semibold, and a darker gray (textPrimary at
+                // Was fontSize 10.5/textSecondary (unweighted), then 11 —
+                // bumped once more so it reads proportionate to the logo
+                // beside it, semibold, and a darker gray (textPrimary at
                 // reduced alpha, rather than the lighter textSecondary
                 // token) so it no longer nearly disappears next to the
                 // strengthened wordmark above it.
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary.withValues(alpha: 0.75),
                 ),
@@ -437,82 +438,43 @@ class _MechanicHomeTopBar extends StatelessWidget {
   }
 }
 
-/// Greeting + a purely decorative hero graphic. The greeting/subtitle are
-/// now fixed, static brand chrome — not time-aware and not personalized with
-/// the business name, which is already shown in the top bar's profile chip
-/// (see [_MechanicHomeTopBar]). The hero graphic and quote are likewise
-/// static — an icon composition rather than a stock photo, since no real
-/// "car in a service bay" image exists in this project's assets.
+/// Greeting block — fixed, static brand chrome, not time-aware and not
+/// personalized with the business name, which is already shown in the top
+/// bar's profile chip (see [_MechanicHomeTopBar]). No decorative side
+/// graphic/promo any more — this is just the greeting + subtitle text.
 class _MechanicHomeGreetingHero extends StatelessWidget {
   const _MechanicHomeGreetingHero();
 
-  static const _heroGradient = LinearGradient(
-    colors: [AppColors.turquoise, AppColors.primaryDark],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Merhaba 👋',
-                // Was fontSize 22/w800 — AppColors.textPrimary is already
-                // this app's darkest neutral token (near-black), so the
-                // color itself was already correct/maximally dark; the
-                // faintness read as a weight problem instead, so this goes
-                // up to w900 (the heaviest weight the variable font
-                // supports) with a slightly larger size, so it reads as the
-                // unmistakably dominant element on this row.
-                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'İşletme Paneline Hoş Geldiniz',
-                // Was fontSize 13.5/textSecondary (unweighted). Still
-                // clearly secondary to the greeting above, but darker
-                // (textPrimary at reduced alpha, rather than the lighter
-                // textSecondary token) and semibold so it holds up instead
-                // of nearly disappearing.
-                style: TextStyle(
-                  fontSize: 13.5,
-                  height: 1.4,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary.withValues(alpha: 0.72),
-                ),
-              ),
-            ],
-          ),
+        const Text(
+          'Merhaba 👋',
+          // Was fontSize 22/w800 — AppColors.textPrimary is already
+          // this app's darkest neutral token (near-black), so the
+          // color itself was already correct/maximally dark; the
+          // faintness read as a weight problem instead, so this goes
+          // up to w900 (the heaviest weight the variable font
+          // supports) with a slightly larger size, so it reads as the
+          // unmistakably dominant element on this row.
+          style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
         ),
-        const SizedBox(width: AppSpacing.md),
-        Container(
-          width: 96,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(gradient: _heroGradient, borderRadius: BorderRadius.circular(AppRadius.md)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.directions_car_filled_rounded, color: Colors.white, size: 26),
-              const SizedBox(height: 6),
-              Text(
-                'İyi bakım,\ndaha uzun yollar.',
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: TextStyle(
-                  fontSize: 9,
-                  height: 1.3,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.95),
-                ),
-              ),
-            ],
+        const SizedBox(height: 4),
+        Text(
+          'İşletme Paneline Hoş Geldiniz',
+          // Was fontSize 13.5/textSecondary (unweighted). Still
+          // clearly secondary to the greeting above, but darker
+          // (textPrimary at reduced alpha, rather than the lighter
+          // textSecondary token) and semibold so it holds up instead
+          // of nearly disappearing.
+          style: TextStyle(
+            fontSize: 13.5,
+            height: 1.4,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary.withValues(alpha: 0.72),
           ),
         ),
       ],
@@ -564,7 +526,9 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
+              // Was 0.05 — bumped up so the strip reads as clearly visible
+              // rather than pale, while staying soft (not saturated/loud).
+              color: AppColors.primary.withValues(alpha: 0.09),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppRadius.lg),
                 topRight: Radius.circular(AppRadius.lg),
@@ -665,7 +629,10 @@ class _EngagementStat extends StatelessWidget {
   final String value;
   final String label;
 
-  static const _iconChipSize = 32.0;
+  // Was 32/16 — bumped up proportionally (modest increase, same 2:1
+  // chip-to-icon ratio) so the icon isn't cramped inside its chip.
+  static const _iconChipSize = 36.0;
+  static const _iconSize = 18.0;
 
   @override
   Widget build(BuildContext context) {
@@ -684,7 +651,7 @@ class _EngagementStat extends StatelessWidget {
                 color: AppColors.turquoise.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: Icon(icon, size: 16, color: AppColors.turquoise),
+              child: Icon(icon, size: _iconSize, color: AppColors.turquoise),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
