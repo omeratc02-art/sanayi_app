@@ -282,9 +282,9 @@
     "semantic_hash": "1fc94de1c981ff68f01b44789333cd0e"
   },
   "lib/mechanic/home/mechanic_home_screen.dart": {
-    "mtime": 1788771966.6441028,
-    "seen": 1788772421.6034076,
-    "ast_hash": "74de8dcbb017f969781be537f84adc76",
+    "mtime": 1788772983.4596522,
+    "seen": 1788773552.4716477,
+    "ast_hash": "275822c38bdafe1c22f18169e3aef38c",
     "semantic_hash": ""
   },
   "lib/mechanic/notifications/mechanic_notifications_screen.dart": {
@@ -1266,9 +1266,9 @@
     "semantic_hash": ""
   },
   "test/mechanic_home_screen_test.dart": {
-    "mtime": 1788772177.4554808,
-    "seen": 1788772421.6041367,
-    "ast_hash": "5955248beba3dc1a50b3632db18f0fa5",
+    "mtime": 1788773051.5520456,
+    "seen": 1788773552.472307,
+    "ast_hash": "da9165bd2f8665a8f43d4e6a4b12060e",
     "semantic_hash": ""
   },
   "test/mechanic_profile_screen_test.dart": {
