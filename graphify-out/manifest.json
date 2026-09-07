@@ -294,10 +294,10 @@
     "semantic_hash": "b856a7795adf88923739adffdafecd55"
   },
   "lib/mechanic/profile/data/mechanic_profile.dart": {
-    "mtime": 1786552789.2530606,
-    "seen": 1788509668.3180413,
-    "ast_hash": "a7ccfd1502ea4115701230545af51f76",
-    "semantic_hash": "a7ccfd1502ea4115701230545af51f76"
+    "mtime": 1788795262.097754,
+    "seen": 1788803908.473244,
+    "ast_hash": "254b973a875bb49a5ab6b356ab6e1dda",
+    "semantic_hash": ""
   },
   "lib/mechanic/profile/data/mechanic_profile_repository.dart": {
     "mtime": 1788779893.0707567,
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "lib/mechanic/profile/mechanic_profile_screen.dart": {
-    "mtime": 1788643279.2461247,
-    "seen": 1788646006.3096435,
-    "ast_hash": "5ac5166a1548553f619d60b62f6ebb69",
+    "mtime": 1788795362.7438903,
+    "seen": 1788803908.4732563,
+    "ast_hash": "b1d17c0fd99f4635e4b6b0436c4801ee",
     "semantic_hash": ""
   },
   "lib/models/appointment_request.dart": {
@@ -1272,9 +1272,9 @@
     "semantic_hash": ""
   },
   "test/mechanic_profile_screen_test.dart": {
-    "mtime": 1788643545.1801171,
-    "seen": 1788646006.310272,
-    "ast_hash": "0036d70635d4073a19c9eab43b8086f3",
+    "mtime": 1788803370.2149987,
+    "seen": 1788803908.4739087,
+    "ast_hash": "9e76225d4cb76184e8bc90556fbc0273",
     "semantic_hash": ""
   },
   "android/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png": {

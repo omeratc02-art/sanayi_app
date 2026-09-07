@@ -31,7 +31,7 @@ void main() {
     firestoreInstance = FakeFirebaseFirestore();
   });
 
-  Future<void> seedProfile({int? repeatCustomerCount, List<String>? hizmetler}) {
+  Future<void> seedProfile({int? repeatCustomerCount, List<String>? hizmetler, String? coverPhotoUrl}) {
     return firestoreInstance.collection('mechanicAccounts').doc(uid).set({
       'businessId': businessId,
       'name': 'Test Usta İşletmesi',
@@ -41,6 +41,7 @@ void main() {
       'isVerified': true,
       if (repeatCustomerCount != null) 'repeatCustomerCount': repeatCustomerCount,
       if (hizmetler != null) 'hizmetler': hizmetler,
+      if (coverPhotoUrl != null) 'coverPhotoUrl': coverPhotoUrl,
     });
   }
 
@@ -191,5 +192,158 @@ void main() {
     expect(find.text('Randevu Al'), findsNothing);
     expect(find.textContaining('tercih edilme'), findsNothing);
     expect(find.textContaining('kupon'), findsNothing);
+  });
+
+  testWidgets('No copy-to-clipboard or open-in-maps icons anywhere on the screen', (WidgetTester tester) async {
+    await seedProfile();
+    await pumpScreen(tester);
+
+    expect(find.byIcon(Icons.copy), findsNothing);
+    expect(find.byIcon(Icons.copy_outlined), findsNothing);
+    expect(find.byIcon(Icons.content_copy), findsNothing);
+    expect(find.byIcon(Icons.map), findsNothing);
+    expect(find.byIcon(Icons.map_outlined), findsNothing);
+  });
+
+  group('Cover photo', () {
+    testWidgets('Shows the gradient fallback header (no Image widget) when no cover photo has been uploaded yet', (
+      WidgetTester tester,
+    ) async {
+      await seedProfile();
+      await pumpScreen(tester);
+
+      expect(find.byType(Image), findsNothing);
+      // The gradient fallback's own decorative icon avatar (the only
+      // storefront icon in this state — the photo variant's separate
+      // overlapping avatar only exists once a real photo is shown).
+      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      // The upload trigger is present even in the fallback state — an
+      // upload has to be able to start from "no photo yet".
+      expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
+    });
+
+    testWidgets('Displays the real cover photo (a real NetworkImage at the real uploaded URL) when coverPhotoUrl exists', (
+      WidgetTester tester,
+    ) async {
+      const url = 'https://storage.googleapis.com/sanayi-omer-tr.firebasestorage.app/mechanic_covers/test-usta-isletmesi/cover.jpg';
+      await seedProfile(coverPhotoUrl: url);
+
+      tester.view.physicalSize = const Size(400, 2000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(const MaterialApp(home: MechanicProfileScreen()));
+      // Not pumpAndSettle: Image.network never resolves against a real
+      // network in this test environment, and its loadingBuilder's
+      // indeterminate CircularProgressIndicator would spin forever and
+      // make pumpAndSettle time out. A few bounded pumps are enough for
+      // the profile fetch (a plain Future, not the network image itself)
+      // to resolve and the Image widget to be built and inspectable —
+      // checking its configured NetworkImage URL doesn't require the
+      // fetch to actually complete.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      final image = tester.widget<Image>(find.byType(Image));
+      expect(image.image, isA<NetworkImage>());
+      expect((image.image as NetworkImage).url, url);
+      // The overlapping circular avatar only exists in this photo variant.
+      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
+    });
+  });
+
+  group('İşletme Hakkında', () {
+    testWidgets('Renders the real template sentence for the seeded profile', (WidgetTester tester) async {
+      await seedProfile(hizmetler: ['Lastik Değişimi', 'Balans Ayarı']);
+      await pumpScreen(tester);
+
+      expect(find.text('İşletme Hakkında'), findsOneWidget);
+      expect(
+        find.text(
+          "Test Usta İşletmesi, Konya'da hizmet veren bir özel servistir. "
+          'Lastik Değişimi ve Balans Ayarı hizmetleri sunmaktadır.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('The sentence genuinely changes for a different profile (different name/location/services)', (
+      WidgetTester tester,
+    ) async {
+      await firestoreInstance.collection('mechanicAccounts').doc(uid).set({
+        'businessId': businessId,
+        'name': 'Öztürk Elektrik',
+        'email': 'usta@example.com',
+        'address': 'Beyhekim Mah. Akücüler Sok. No:11, İstanbul',
+        'hizmetler': ['Akü Değişimi', 'Far Ayarı'],
+      });
+      await pumpScreen(tester);
+
+      expect(
+        find.text("Öztürk Elektrik, İstanbul'da hizmet veren bir özel servistir. Akü Değişimi ve Far Ayarı hizmetleri sunmaktadır."),
+        findsOneWidget,
+      );
+      // Not a stale/fixed sentence from the other test's profile.
+      expect(find.textContaining('Test Usta İşletmesi'), findsNothing);
+      expect(find.textContaining('Konya'), findsNothing);
+    });
+
+    testWidgets('Still renders (with the location clause gracefully omitted) when there is no real address', (
+      WidgetTester tester,
+    ) async {
+      await firestoreInstance.collection('mechanicAccounts').doc(uid).set({
+        'businessId': businessId,
+        'name': 'Yeni Usta',
+        'email': 'usta@example.com',
+      });
+      await pumpScreen(tester);
+
+      expect(find.text('Yeni Usta, hizmet veren bir özel servistir.'), findsOneWidget);
+    });
+  });
+
+  group('businessAboutText (unit)', () {
+    test('Includes the real city (parsed from the address) and a natural join of real hizmetler', () {
+      final text = businessAboutText(
+        businessName: 'Hızlı Lastikçi',
+        address: 'Fatih Mah. Lastikçiler Sok. No:5, Konya',
+        hizmetler: const ['Lastik Değişimi', 'Balans Ayarı'],
+      );
+      expect(
+        text,
+        "Hızlı Lastikçi, Konya'da hizmet veren bir özel servistir. Lastik Değişimi ve Balans Ayarı hizmetleri sunmaktadır.",
+      );
+    });
+
+    test('Omits the location clause gracefully (no dangling "da) when there is no real address', () {
+      final text = businessAboutText(businessName: 'Test Usta', address: null, hizmetler: const []);
+      expect(text, 'Test Usta, hizmet veren bir özel servistir.');
+    });
+
+    test('Omits the second sentence entirely when hizmetler is empty', () {
+      final text = businessAboutText(businessName: 'Test Usta', address: 'Merkez, İstanbul', hizmetler: const []);
+      expect(text, "Test Usta, İstanbul'da hizmet veren bir özel servistir.");
+    });
+
+    test('Two different real profiles produce genuinely different sentences, not a fixed template output', () {
+      final a = businessAboutText(businessName: 'Hızlı Lastikçi', address: 'Konya', hizmetler: const ['Lastik Değişimi']);
+      final b = businessAboutText(
+        businessName: 'Öztürk Elektrik',
+        address: 'İstanbul',
+        hizmetler: const ['Akü', 'Far Ayarı', 'Kablo Tesisatı'],
+      );
+
+      expect(a, isNot(equals(b)));
+      expect(a, contains('Hızlı Lastikçi'));
+      expect(a, contains('Konya'));
+      expect(b, contains('Öztürk Elektrik'));
+      expect(b, contains('İstanbul'));
+      // 3+ items join with commas between all but the last two, "ve"
+      // between the last two — real natural-list phrasing, not a flat join.
+      expect(b, contains('Akü, Far Ayarı ve Kablo Tesisatı'));
+    });
   });
 }

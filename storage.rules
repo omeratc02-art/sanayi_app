@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // A mechanic's own cover photo — see
+    // MechanicProfileRepository.uploadCoverPhoto — always written to
+    // exactly this one path per business (a fresh upload overwrites the
+    // previous file rather than accumulating new ones), so the match
+    // pattern is the literal filename, not a wildcard, keeping this from
+    // ever becoming a general-purpose upload target under the same
+    // businessId prefix.
+    //
+    // Read is public — the same "open read" posture already used for
+    // mechanicAccounts and every other customer-facing asset in this app;
+    // a shop's cover photo is meant to be seen by any customer browsing
+    // MechanicDetailPage, signed in or not.
+    //
+    // Write requires the caller to be signed in AND to own the exact
+    // mechanicAccounts document whose businessId matches this path's
+    // {businessId} segment — read live via firestore.get(), mirroring the
+    // same one-uid-one-business invariant firestore.rules' own
+    // mechanicAccounts rules already rely on. This is what stops a
+    // mechanic from uploading (or overwriting) another business's cover
+    // photo, even though the businessId itself is a predictable slug, not
+    // a secret. contentType/size are also constrained as basic hygiene —
+    // an image only, capped at 10MB.
+    match /mechanic_covers/{businessId}/cover.jpg {
+      allow read: if true;
+      allow write: if request.auth != null
+        && firestore.exists(/databases/(default)/documents/mechanicAccounts/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/mechanicAccounts/$(request.auth.uid)).data.businessId == businessId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

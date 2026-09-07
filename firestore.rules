@@ -28,10 +28,10 @@ service cloud.firestore {
       allow create: if true;
       allow delete: if true;
 
-      // Two independent gates, ANDed together — each one only constrains
+      // Three independent gates, ANDed together — each one only constrains
       // an update that actually touches its own field; an update touching
-      // neither field trivially satisfies both and stays exactly as open
-      // as before.
+      // none of them trivially satisfies all three and stays exactly as
+      // open as before.
       //
       // isVerified — unchanged from before: the admin approve/unapprove
       // action from AdminApprovalScreen requires the caller's own UID to
@@ -60,6 +60,14 @@ service cloud.firestore {
       // one-view-per-customer-per-day cap regardless of what this field
       // alone permits; the two together are the actual enforcement, not
       // this branch on its own.
+      //
+      // coverPhotoUrl — new, for MechanicProfileRepository.uploadCoverPhoto
+      // (see mechanic_profile_screen.dart's cover-photo upload). Unlike
+      // profileViewCount, this one requires the caller to BE this
+      // document's own owner (request.auth.uid == uid) — only a mechanic
+      // may set their own cover photo, never anyone else's — mirroring the
+      // same ownership check storage.rules applies to the actual file
+      // upload itself.
       allow update: if
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
@@ -78,6 +86,11 @@ service cloud.firestore {
             request.resource.data.profileViewCount ==
               (('profileViewCount' in resource.data) ? resource.data.profileViewCount : 0) + 1
           )
+        )
+        &&
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coverPhotoUrl'])
+          || (request.auth != null && request.auth.uid == uid)
         );
 
       // Dedup marker for one real profile view per (customer, calendar

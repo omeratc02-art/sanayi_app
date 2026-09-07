@@ -18,6 +18,7 @@ class MechanicProfile {
     this.rating,
     this.reviewCount,
     this.hizmetler = const [],
+    this.coverPhotoUrl,
   });
 
   /// Firebase Auth UID — same as the mechanicAccounts/{uid} document id.
@@ -53,6 +54,13 @@ class MechanicProfile {
   /// state, not "unknown".
   final List<String> hizmetler;
 
+  /// Real Firebase Storage download URL for this business's uploaded cover
+  /// photo (see MechanicProfileRepository.uploadCoverPhoto — one file at
+  /// mechanic_covers/{businessId}/cover.jpg, this field always points at
+  /// its current download URL). Null means "no photo uploaded yet", a real
+  /// state to render a fallback for, never a broken-image placeholder.
+  final String? coverPhotoUrl;
+
   factory MechanicProfile.fromFirestore(String uid, Map<String, dynamic> data) {
     final rating = data['rating'];
     return MechanicProfile(
@@ -66,6 +74,7 @@ class MechanicProfile {
       rating: rating is num ? rating.toDouble() : null,
       reviewCount: data['reviewCount'] as int?,
       hizmetler: (data['hizmetler'] as List<dynamic>?)?.whereType<String>().toList() ?? const [],
+      coverPhotoUrl: data['coverPhotoUrl'] as String?,
     );
   }
 }

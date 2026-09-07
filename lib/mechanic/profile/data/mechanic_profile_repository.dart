@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../../utils/firebase_instances.dart';
 import 'mechanic_profile.dart';
@@ -12,9 +15,21 @@ import 'mechanic_profile.dart';
 /// used exactly as before by identity.dart's resolveMyBusinessId and by
 /// the appointments security rules' exists() checks.
 class MechanicProfileRepository {
-  MechanicProfileRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? firestoreInstance;
+  MechanicProfileRepository({FirebaseFirestore? firestore, FirebaseStorage? storage})
+    : _firestore = firestore ?? firestoreInstance,
+      _storageOverride = storage;
 
   final FirebaseFirestore _firestore;
+
+  // Deliberately NOT resolved eagerly in the constructor (unlike
+  // _firestore above) — every other method on this repository
+  // (fetchProfile, fetchRepeatCustomerCount, watchProfileViewCount, ...)
+  // never touches Storage at all, so constructing a MechanicProfileRepository
+  // for one of those must not force firebaseStorageInstance's real
+  // FirebaseStorage.instance to be evaluated. This getter defers that
+  // until something actually calls uploadCoverPhoto.
+  final FirebaseStorage? _storageOverride;
+  FirebaseStorage get _storage => _storageOverride ?? firebaseStorageInstance;
 
   /// Null when there's no mechanicAccounts/{uid} document at all (not
   /// signed in as a registered mechanic) — distinct from a document that
@@ -151,5 +166,29 @@ class MechanicProfileRepository {
       transaction.set(viewerDocRef, {'customerId': customerId, 'viewedAt': FieldValue.serverTimestamp()});
       transaction.update(businessDocRef, {'profileViewCount': FieldValue.increment(1)});
     });
+  }
+
+  /// Uploads [bytes] as [businessId]'s real cover photo — one file per
+  /// business at Firebase Storage path mechanic_covers/{businessId}/cover.jpg;
+  /// a fresh upload simply overwrites whatever was there before (this
+  /// screen only ever needs the current photo, not a history of old ones).
+  /// On success, writes the resulting real download URL to
+  /// mechanicAccounts/{uid}.coverPhotoUrl and returns it — [uid] and
+  /// [businessId] are passed separately (rather than resolved here via a
+  /// query like recordProfileView does) because the caller
+  /// (mechanic_profile_screen.dart) already has its own already-fetched
+  /// MechanicProfile with both, so a second lookup would be redundant.
+  ///
+  /// Throws on failure (a real Storage/network/permission error) rather
+  /// than swallowing it — the caller is responsible for catching this,
+  /// logging it (see mechanic_profile_screen.dart's debugPrint convention),
+  /// and showing the mechanic real error feedback instead of a fake
+  /// success state.
+  Future<String> uploadCoverPhoto({required String uid, required String businessId, required Uint8List bytes}) async {
+    final ref = _storage.ref('mechanic_covers/$businessId/cover.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    final url = await ref.getDownloadURL();
+    await _firestore.collection('mechanicAccounts').doc(uid).update({'coverPhotoUrl': url});
+    return url;
   }
 }

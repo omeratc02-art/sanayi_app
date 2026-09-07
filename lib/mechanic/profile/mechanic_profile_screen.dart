@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../data/mock_data.dart';
 import '../../models/mechanic.dart';
@@ -32,6 +33,7 @@ class MechanicProfileScreen extends StatefulWidget {
 class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
   bool _loading = true;
   MechanicProfile? _profile;
+  var _uploadingCoverPhoto = false;
 
   @override
   void initState() {
@@ -60,6 +62,46 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
     return null;
   }
 
+  // Real Firebase Storage upload — this is a user-visible action the
+  // mechanic explicitly triggered (unlike e.g. MechanicDetailPage's
+  // fire-and-forget view-count recording), so it shows a real loading
+  // state (_uploadingCoverPhoto) and a real error message on failure
+  // rather than running silently. After a successful upload, re-runs
+  // _load() rather than patching _profile locally, so the photo shown is
+  // always exactly what Firestore actually has, not an optimistic guess.
+  Future<void> _pickAndUploadCoverPhoto() async {
+    final profile = _profile;
+    if (profile == null || _uploadingCoverPhoto) return;
+
+    final XFile? picked;
+    try {
+      picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1600);
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE COVER PHOTO PICK ERROR: $error');
+      return;
+    }
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingCoverPhoto = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      await MechanicProfileRepository().uploadCoverPhoto(
+        uid: profile.uid,
+        businessId: profile.businessId,
+        bytes: bytes,
+      );
+      await _load();
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE COVER PHOTO UPLOAD ERROR: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kapak fotoğrafı yüklenemedi. Lütfen tekrar deneyin.')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingCoverPhoto = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,7 +111,12 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
             ? const Center(child: CircularProgressIndicator())
             : _profile == null
             ? const _NoProfileState()
-            : _ProfileBody(profile: _profile!, fallback: _fallbackMechanic(_profile!.businessId)),
+            : _ProfileBody(
+                profile: _profile!,
+                fallback: _fallbackMechanic(_profile!.businessId),
+                isUploadingCoverPhoto: _uploadingCoverPhoto,
+                onPickCoverPhoto: _pickAndUploadCoverPhoto,
+              ),
       ),
     );
   }
@@ -106,13 +153,21 @@ class _NoProfileState extends StatelessWidget {
 }
 
 class _ProfileBody extends StatelessWidget {
-  const _ProfileBody({required this.profile, required this.fallback});
+  const _ProfileBody({
+    required this.profile,
+    required this.fallback,
+    required this.isUploadingCoverPhoto,
+    required this.onPickCoverPhoto,
+  });
 
   final MechanicProfile profile;
 
   /// The matching MockData catalog entry, if any — used only to fill in
   /// fields this specific account's real document doesn't have yet.
   final Mechanic? fallback;
+
+  final bool isUploadingCoverPhoto;
+  final VoidCallback onPickCoverPhoto;
 
   String? _mergedField(String? real, String? fallbackValue) => (real == null || real.isEmpty) ? fallbackValue : real;
 
@@ -128,7 +183,14 @@ class _ProfileBody extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        _ProfileHeader(businessName: profile.businessName, address: address, isVerified: isVerified),
+        _ProfileHeader(
+          businessName: profile.businessName,
+          address: address,
+          isVerified: isVerified,
+          coverPhotoUrl: profile.coverPhotoUrl,
+          isUploadingCoverPhoto: isUploadingCoverPhoto,
+          onPickCoverPhoto: onPickCoverPhoto,
+        ),
         Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
@@ -150,14 +212,12 @@ class _ProfileBody extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 _ContactCard(icon: Icons.location_on_outlined, label: 'Adres', value: address),
               ],
-              // No "İşletme Hakkında" description card: there is no real
-              // free-text business-description field anywhere in this
-              // account's Firestore document or in the Mechanic/MockData
-              // fallback (only short labels like specialty/category exist,
-              // which are already shown elsewhere) — per this redesign's
-              // explicit "don't fabricate, don't silently substitute
-              // something else" instruction, this section is left out
-              // rather than rendering a paragraph that isn't real.
+              const SizedBox(height: AppSpacing.xxl),
+              const SectionLabel(text: 'İşletme Hakkında'),
+              const SizedBox(height: AppSpacing.md),
+              _AboutCard(
+                text: businessAboutText(businessName: profile.businessName, address: address, hizmetler: services),
+              ),
               if (services.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xxl),
                 _ServiceChipsSection(services: services),
@@ -170,22 +230,108 @@ class _ProfileBody extends StatelessWidget {
   }
 }
 
-/// Cover-banner header — name, location, and the real isVerified badge
-/// (reusing this app's own established "Doğrulanmış Servis" wording/style,
-/// the same badge shown on the top bar and MechanicDetailPage, rather than
-/// inventing new copy). The icon standing in for a cover photo is
-/// deliberate, not a placeholder-by-omission: no mechanic cover-photo field
-/// exists anywhere in Firestore (see mechanic_home_screen.dart's own
-/// avatar/logo comments for this same, already-established "no fabricated
-/// photo" convention), so a neutral icon on a brand-gradient background is
-/// used instead, exactly like every other "photo slot" elsewhere in this
-/// app.
+/// Builds a natural Turkish "İşletme Hakkında" sentence purely from real
+/// fields already on [MechanicProfile] (or its MockData fallback) —
+/// businessName, a city parsed best-effort from the free-text [address]
+/// (its last comma-separated segment), and [hizmetler]. There is no
+/// free-text description field anywhere in this account's Firestore
+/// document, so this is deliberately template-composed rather than
+/// reading/displaying one — every word here traces back to a real field,
+/// nothing is a hardcoded example. Public (not private) so it's directly
+/// unit-testable without pumping the whole widget tree.
+String businessAboutText({required String businessName, required String? address, required List<String> hizmetler}) {
+  final city = _cityFromAddress(address);
+  final locationClause = city == null ? '' : "$city'da ";
+  final buffer = StringBuffer('$businessName, ${locationClause}hizmet veren bir özel servistir.');
+  if (hizmetler.isNotEmpty) {
+    buffer.write(' ${_naturalList(hizmetler)} hizmetleri sunmaktadır.');
+  }
+  return buffer.toString();
+}
+
+/// Best-effort city extraction from a free-text address like "Test Sanayi
+/// Sitesi, Konya" — the last non-empty comma-separated segment. Null (not
+/// a guess) when there's no address at all, so [businessAboutText] can
+/// omit the location clause gracefully instead of writing "'da" with
+/// nothing before it.
+String? _cityFromAddress(String? address) {
+  if (address == null || address.trim().isEmpty) return null;
+  final last = address.split(',').last.trim();
+  return last.isEmpty ? null : last;
+}
+
+/// "Motor, Fren Sistemi ve Klima" — real Turkish list phrasing (comma
+/// between all but the last two items, "ve" between the last two) rather
+/// than a flat comma join.
+String _naturalList(List<String> items) {
+  if (items.length == 1) return items.first;
+  return '${items.sublist(0, items.length - 1).join(', ')} ve ${items.last}';
+}
+
+class _AboutCard extends StatelessWidget {
+  const _AboutCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumSurface(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      borderRadius: AppRadius.md,
+      border: Border.all(color: AppColors.divider),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.turquoise.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.storefront_outlined, size: 20, color: AppColors.turquoise),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13, height: 1.5, color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Cover header — either the mechanic's own real uploaded photo (see
+/// MechanicProfileRepository.uploadCoverPhoto/coverPhotoUrl), or, when
+/// none has been uploaded yet, the same gradient-with-icon fallback this
+/// screen always used before this feature existed (a real "no photo yet"
+/// state, never a fabricated stock photo — see this class's own history
+/// for that established "no fabricated photo" convention). Either variant
+/// shows the real isVerified badge (reusing this app's own established
+/// "Doğrulanmış Servis" wording, same as the top bar/MechanicDetailPage)
+/// and a small camera button that triggers the real upload flow — visible
+/// in both states, since uploading the *first* photo has to start from
+/// the fallback state.
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.businessName, required this.address, required this.isVerified});
+  const _ProfileHeader({
+    required this.businessName,
+    required this.address,
+    required this.isVerified,
+    required this.coverPhotoUrl,
+    required this.isUploadingCoverPhoto,
+    required this.onPickCoverPhoto,
+  });
 
   final String businessName;
   final String? address;
   final bool isVerified;
+  final String? coverPhotoUrl;
+  final bool isUploadingCoverPhoto;
+  final VoidCallback onPickCoverPhoto;
 
   static const _coverGradient = LinearGradient(
     colors: [AppColors.turquoise, AppColors.primaryDark],
@@ -193,8 +339,39 @@ class _ProfileHeader extends StatelessWidget {
     end: Alignment.bottomRight,
   );
 
+  static const _coverPhotoHeight = 200.0;
+  static const _avatarSize = 72.0;
+  static const _editButtonSize = 36.0;
+
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = coverPhotoUrl != null && coverPhotoUrl!.isNotEmpty;
+    return hasPhoto ? _buildWithPhoto(coverPhotoUrl!) : _buildGradientFallback();
+  }
+
+  Widget _editButton() {
+    return GestureDetector(
+      onTap: isUploadingCoverPhoto ? null : onPickCoverPhoto,
+      child: Container(
+        width: _editButtonSize,
+        height: _editButtonSize,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 8, offset: const Offset(0, 2))],
+        ),
+        child: isUploadingCoverPhoto
+            ? const Padding(
+                padding: EdgeInsets.all(9),
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.turquoise),
+              )
+            : const Icon(Icons.camera_alt_outlined, size: 18, color: AppColors.turquoise),
+      ),
+    );
+  }
+
+  Widget _buildGradientFallback() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xxl),
@@ -205,59 +382,168 @@ class _ProfileHeader extends StatelessWidget {
           bottomRight: Radius.circular(AppRadius.xl),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), shape: BoxShape.circle),
-            child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 32),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            businessName,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
-          ),
-          if (address != null && address!.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.location_on_outlined, size: 14, color: Colors.white.withValues(alpha: 0.85)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    address!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85)),
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), shape: BoxShape.circle),
+                child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 32),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                businessName,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+              ),
+              if (address != null && address!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: Colors.white.withValues(alpha: 0.85)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        address!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-          if (isVerified) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(20),
+              if (isVerified) ...[
+                const SizedBox(height: AppSpacing.sm),
+                const _VerifiedBadge(onGradient: true),
+              ],
+            ],
+          ),
+          Positioned(right: 0, bottom: 0, child: _editButton()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWithPhoto(String url) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: _coverPhotoHeight,
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                // Falls back to a plain neutral block (not a broken-image
+                // icon, not a stock photo) if the real URL fails to load —
+                // logged so a real failure is diagnosable, same convention
+                // as this file's other *_ERROR debugPrints.
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('MECHANIC PROFILE COVER PHOTO LOAD ERROR: $error');
+                  return Container(color: AppColors.divider);
+                },
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    color: AppColors.divider,
+                    alignment: Alignment.center,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  );
+                },
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+            Container(
+              width: double.infinity,
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                _avatarSize / 2 + AppSpacing.sm,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.verified_rounded, size: 14, color: Colors.white),
-                  SizedBox(width: 4),
                   Text(
-                    'Doğrulanmış Servis',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                    businessName,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                   ),
+                  if (address != null && address!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            address!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (isVerified) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const _VerifiedBadge(onGradient: false),
+                  ],
                 ],
               ),
             ),
           ],
+        ),
+        Positioned(
+          left: AppSpacing.xl,
+          top: _coverPhotoHeight - _avatarSize / 2,
+          child: Container(
+            width: _avatarSize,
+            height: _avatarSize,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.primaryDark,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+            ),
+            child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 32),
+          ),
+        ),
+        Positioned(right: AppSpacing.lg, top: _coverPhotoHeight - _editButtonSize - AppSpacing.md, child: _editButton()),
+      ],
+    );
+  }
+}
+
+class _VerifiedBadge extends StatelessWidget {
+  const _VerifiedBadge({required this.onGradient});
+
+  final bool onGradient;
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = onGradient ? Colors.white.withValues(alpha: 0.18) : AppColors.scheduleTodayBackground;
+    final foregroundColor = onGradient ? Colors.white : AppColors.turquoise;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_rounded, size: 14, color: foregroundColor),
+          const SizedBox(width: 4),
+          Text(
+            'Doğrulanmış Servis',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: foregroundColor),
+          ),
         ],
       ),
     );
