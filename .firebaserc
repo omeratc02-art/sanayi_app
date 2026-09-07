@@ -2,6 +2,14 @@
   "projects": {
     "default": "sanayi-omer-tr"
   },
-  "targets": {},
+  "targets": {
+    "sanayi-omer-tr": {
+      "storage": {
+        "rules": [
+          "sanayi-omer-tr.firebasestorage.app"
+        ]
+      }
+    }
+  },
   "etags": {}
 }
