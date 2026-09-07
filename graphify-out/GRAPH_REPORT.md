@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2456 nodes · 3466 edges · 157 communities (128 shown, 23 thin omitted)
+- 2455 nodes · 3466 edges · 156 communities (128 shown, 23 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 33 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5f80c1a3`
+- Built from commit: `91426970`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -172,12 +172,12 @@
 2. `Win32Window` - 24 edges
 3. `/graphify command` - 14 edges
 4. `MessageHandler` - 12 edges
-5. `Mechanic` - 10 edges
-6. `FlutterWindow` - 10 edges
-7. `Create` - 10 edges
-8. `WndProc` - 10 edges
-9. `scripts` - 9 edges
-10. `MessageHandler` - 9 edges
+5. `FlutterWindow` - 10 edges
+6. `WndProc` - 10 edges
+7. `Mechanic` - 10 edges
+8. `Create` - 10 edges
+9. `MessageHandler` - 9 edges
+10. `scripts` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `flutter run Device-Offline Failure (attempt 1)` --semantically_similar_to--> `flutter run Device-Offline Failure (attempt 2)`  [INFERRED] [semantically similar]
@@ -202,7 +202,7 @@
 - **Flutter Desktop Runner Build Pattern (Linux/Windows)** — linux_cmakelists_runner_target, linux_runner_cmakelists_runner_executable, windows_cmakelists_runner_target, windows_runner_cmakelists_runner_executable [INFERRED 0.85]
 - **Graph Query & Self-Improving Recall Loop** — claude_skills_graphify_references_query_query_flow, claude_skills_graphify_references_query_path_flow, claude_skills_graphify_references_query_explain_flow, claude_skills_graphify_references_query_save_result_command, claude_skills_graphify_references_query_reflect_command [INFERRED 0.85]
 
-## Communities (157 total, 23 thin omitted)
+## Communities (156 total, 23 thin omitted)
 
 ### Community 0 - "mechanic_appointments_screen.dart"
 Cohesion: 0.02
@@ -721,8 +721,8 @@ Nodes (24): AdminApprovalScreen, _AdminApprovalScreenState, _CompletionActionBar
   pubspec.yaml · relation: references
 
 ## Knowledge Gaps
-- **1521 isolated node(s):** `name`, `build`, `build:watch`, `serve`, `shell` (+1516 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1722 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **1521 isolated node(s):** `AppointmentRepository`, `_firestore`, `_collection`, `newAppointmentId`, `saveAppointment` (+1516 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1721 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -731,12 +731,12 @@ _Questions this graph is uniquely positioned to answer:_
 - **What is the exact relationship between `social_auth.dart googleSignInButton() (referenced, path uncertain)` and `google_sign_in_web Dependency`?**
   _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
 - **Why does `_` connect `_` to `../../utils/firebase_instances.dart`, `chat_repository.dart`, `mechanic.dart`, `google_sign_in_button_stub.dart`, `pending_booking_vehicle.dart`, `firebase_instances.dart`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+  _High betweenness centrality (0.010) - this node is a cross-community bridge._
+- **Why does `ClaimConflictException` connect `ClaimConflictException` to `mechanic_login_page.dart`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **Why does `Mechanic` connect `mechanic_list_tile.dart` to `mechanic_profile_screen.dart`, `customer_conversation_list_page.dart`, `customer_conversation_page.dart`, `appointment_request_page.dart`, `service_center_card.dart`, `mechanic_detail_page.dart`, `mechanic_login_page.dart`, `mechanic.dart`, `reviews_page.dart`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
-- **Why does `Appointment` connect `appointments_tab.dart` to `appointment.dart`, `mechanic_request_details_page.dart`, `mechanic_appointment_details_page.dart`, `mechanic_conversation_page.dart`, `appointment_calendar_view.dart`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **What connects `name`, `build`, `build:watch` to the rest of the system?**
+- **What connects `AppointmentRepository`, `_firestore`, `_collection` to the rest of the system?**
   _1521 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `mechanic_appointments_screen.dart` be split into smaller, more focused modules?**
   _Cohesion score 0.022727272727272728 - nodes in this community are weakly interconnected._

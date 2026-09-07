@@ -8298,17 +8298,6 @@
       "source_location": null
     },
     {
-      "id": "ts_jest_ts_jest",
-      "label": "ts-jest",
-      "_origin": "ast",
-      "community": 156,
-      "community_name": "ts-jest",
-      "confidence": "EXTRACTED",
-      "file_type": "code",
-      "norm_label": "ts-jest",
-      "source_file": "ts-jest"
-    },
-    {
       "id": "data_appointment_dart",
       "label": "data/appointment.dart",
       "_origin": "ast",
@@ -22268,12 +22257,12 @@
     },
     {
       "id": "utils_firebase_instances_dart",
-      "label": "../../utils/firebase_instances.dart",
+      "label": "../../../utils/firebase_instances.dart",
       "_origin": "ast",
       "community": 69,
       "community_name": "../../utils/firebase_instances.dart",
       "file_type": "code",
-      "norm_label": "../../utils/firebase_instances.dart",
+      "norm_label": "../../../utils/firebase_instances.dart",
       "source_file": null,
       "source_location": null
     },
@@ -66385,5 +66374,5 @@
       "source_file": ".claude/skills/graphify/references/query.md"
     }
   ],
-  "built_at_commit": "5f80c1a3a7cbeca9261854b4ed05a12ca16ea0f9"
+  "built_at_commit": "914269706edf3fa0809c62550e84a1ac87174456"
 }
