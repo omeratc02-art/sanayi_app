@@ -196,6 +196,29 @@ class AppointmentRepository {
     );
   }
 
+  /// Live count of appointment requests created for [businessId] in the
+  /// last 7 days — the real data source for the mechanic home screen's
+  /// "İşletmeniz İlgi Görüyor" weekly summary card (see
+  /// _WeeklyEngagementSummaryCard). Deliberately built as a client-side
+  /// count over the same equality-only businessId query
+  /// watchAppointmentsForBusiness already uses, rather than a server-side
+  /// range query on oluşturulma_tarihi: combining a range filter with the
+  /// işletme_kimliği equality filter would be the first compound
+  /// range+equality query anywhere in this codebase, and this project has
+  /// no firestore.indexes.json / index-deploy step (see firebase.json) —
+  /// such a query would very likely throw FAILED_PRECONDITION ("the query
+  /// requires an index") against the real Firestore project, a failure the
+  /// fake_cloud_firestore test double used across this app's tests would
+  /// not catch. The client-side count avoids that risk while still being a
+  /// live stream (updates as new requests arrive or old ones age out of the
+  /// window), not a one-time snapshot.
+  Stream<int> watchRecentAppointmentRequestCount(String businessId) {
+    return watchAppointmentsForBusiness(businessId).map((appointments) {
+      final cutoff = DateTime.now().subtract(const Duration(days: 7));
+      return appointments.where((appointment) => appointment.createdAt.isAfter(cutoff)).length;
+    });
+  }
+
   /// Live counterpart to the customer side's session-only state
   /// (AppointmentRequestStore) — every appointment belonging to one
   /// customer, so a mechanic's accepted/declined decision (or any other

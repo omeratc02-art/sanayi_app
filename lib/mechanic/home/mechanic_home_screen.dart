@@ -32,11 +32,12 @@ import '../profile/data/mechanic_profile_repository.dart';
 ///      and a static quote line (all brand chrome, not data — the real
 ///      business name is already shown in the top bar's profile chip).
 ///   3. [_WeeklyEngagementSummaryCard] — "İşletmeniz İlgi Görüyor": a
-///      weekly business-engagement summary (profile-view count, new
-///      request count, a small sparkline). Unlike everything else on this
-///      screen, this card is EXPLICITLY static placeholder data, by product
-///      decision — see that class's own doc comment and its
-///      TODO(real-data) comment before treating its numbers as real.
+///      weekly business-engagement summary. The new-request count is real
+///      (AppointmentRepository.watchRecentAppointmentRequestCount, last 7
+///      days). The profile-view count and the sparkline are still
+///      EXPLICITLY static placeholder data, by product decision — see that
+///      class's own doc comment and its TODO(real-data) comment before
+///      treating those two as real.
 ///   4. Every pending request rendered uniformly, full-width — same size,
 ///      same style, same "Yeni Talep" tag — in one list
 ///      ([_PendingRequestsList]). There is no real distinction in the data
@@ -78,6 +79,11 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   List<Appointment> _pendingRequests = [];
   var _isLoadingPending = true;
 
+  // Null while loading (or if the stream errors) — never a stale/fabricated
+  // number. See AppointmentRepository.watchRecentAppointmentRequestCount.
+  StreamSubscription<int>? _recentRequestCountSubscription;
+  int? _recentRequestCount;
+
   StreamSubscription<List<ChatSummary>>? _unreadChatsSubscription;
   var _unreadChatCount = 0;
 
@@ -94,6 +100,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
   @override
   void dispose() {
     _pendingRequestsSubscription?.cancel();
+    _recentRequestCountSubscription?.cancel();
     _unreadChatsSubscription?.cancel();
     super.dispose();
   }
@@ -138,6 +145,21 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
         debugPrint('MECHANIC HOME PENDING REQUESTS ERROR: $error');
         if (!mounted) return;
         setState(() => _isLoadingPending = false);
+      },
+    );
+
+    _recentRequestCountSubscription?.cancel();
+    _recentRequestCountSubscription = _appointmentRepository.watchRecentAppointmentRequestCount(myBusinessId).listen(
+      (count) {
+        if (!mounted) return;
+        setState(() => _recentRequestCount = count);
+      },
+      onError: (Object error) {
+        // Same convention as the pending-requests error above: log the real
+        // exception, then leave _recentRequestCount as-is (null on first
+        // failure) rather than falling back to a fabricated number — the
+        // card shows its loading affordance instead of a stale/fake count.
+        debugPrint('MECHANIC HOME RECENT REQUEST COUNT ERROR: $error');
       },
     );
   }
@@ -242,7 +264,7 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             const SizedBox(height: AppSpacing.xxl),
             const _MechanicHomeGreetingHero(),
             const SizedBox(height: AppSpacing.lg),
-            const _WeeklyEngagementSummaryCard(),
+            _WeeklyEngagementSummaryCard(appointmentRequestCount: _recentRequestCount),
             const SizedBox(height: AppSpacing.xxl),
             ...mainColumnChildren,
           ],
@@ -483,22 +505,30 @@ class _MechanicHomeGreetingHero extends StatelessWidget {
 }
 
 /// "İşletmeniz İlgi Görüyor" — a weekly business-engagement summary card
-/// (profile-view count, new-request count, a supporting sparkline). Renders
-/// static placeholder data by explicit product-owner decision for initial
-/// visual placement, not by omission — see the TODO(real-data) comment on
-/// [_profileViewCount]/[_appointmentRequestCount] below before wiring this
+/// (profile-view count, new-request count, a supporting sparkline). The
+/// new-request count ([appointmentRequestCount]) is real — passed in by
+/// [_MechanicHomeScreenState] from
+/// AppointmentRepository.watchRecentAppointmentRequestCount. The profile-view
+/// count and the sparkline shape are still static placeholder data by
+/// explicit product-owner decision, not by omission — see the
+/// TODO(real-data) comment on [_profileViewCount] below before wiring those
 /// up to Firestore.
 class _WeeklyEngagementSummaryCard extends StatelessWidget {
-  const _WeeklyEngagementSummaryCard();
+  const _WeeklyEngagementSummaryCard({required this.appointmentRequestCount});
 
-  // TODO(real-data): These are static placeholder values (127 views, 8 requests) explicitly
-  // requested by the product owner for initial visual placement. Replace with real Firestore-backed
-  // counts (e.g. profile view tracking, appointment request counts) before this ships to production.
+  /// Real count of appointment requests created in the last 7 days — null
+  /// while AppointmentRepository.watchRecentAppointmentRequestCount is still
+  /// loading (or if it errored), never a stale/fabricated number.
+  final int? appointmentRequestCount;
+
+  // TODO(real-data): This is a static placeholder value (127 views) explicitly requested by the
+  // product owner for initial visual placement. Replace with real Firestore-backed profile-view
+  // tracking before this ships to production. (The appointment-request stat below it is now real
+  // — see AppointmentRepository.watchRecentAppointmentRequestCount.)
   static const _profileViewCount = 127;
-  static const _appointmentRequestCount = 8;
 
   // Purely decorative shape for the sparkline below — paired with the same
-  // static placeholder decision as the two counts above, not a real
+  // static placeholder decision as _profileViewCount above, not a real
   // day-by-day breakdown of either metric.
   static const _weeklySparklineValues = [3.0, 5.0, 4.0, 7.0, 6.0, 9.0, 8.0];
   static const _weekdayLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -578,13 +608,16 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
                       color: AppColors.divider,
                       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     ),
-                    const Expanded(
+                    Expanded(
+                      // Not const any more — appointmentRequestCount is a
+                      // real runtime value (null while loading), not a
+                      // compile-time constant.
                       child: _EngagementStat(
                         icon: Icons.calendar_month_rounded,
-                        value: '$_appointmentRequestCount',
-                        // "8" itself is the bold number in the icon+number
-                        // row above this label (unchanged) — this label
-                        // completes the sentence to read "8 kişi randevu
+                        value: appointmentRequestCount == null ? '...' : '$appointmentRequestCount',
+                        // The number itself is the bold value in the
+                        // icon+number row above this label — this label
+                        // completes the sentence to read "N kişi randevu
                         // talebi oluşturdu", the same value-then-label
                         // pattern the eye stat already uses.
                         label: 'kişi randevu talebi oluşturdu',
