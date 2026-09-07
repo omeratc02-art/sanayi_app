@@ -318,18 +318,20 @@ void main() {
       await seedMechanicAccount();
       await pumpScreen(tester);
 
-      // Header row now has a small chart icon to the left of the label.
-      expect(find.byIcon(Icons.insights_rounded), findsOneWidget);
       expect(find.text('Bu haftanın özeti'), findsOneWidget);
       expect(find.text('İşletmeniz ilgi görüyor 📈'), findsOneWidget);
       expect(find.text('Daha fazla sürücü sizi keşfediyor.'), findsOneWidget);
 
       // Exactly the two static placeholder values — 127 profile views, 8
-      // appointment requests — with their exact labels.
+      // appointment requests — with their exact labels. The "8" stat's
+      // label reads "kişi randevu talebi oluşturdu" — combined with the
+      // separate bold "8" value right above it, this reads as the full
+      // sentence "8 kişi randevu talebi oluşturdu".
       expect(find.text('127'), findsOneWidget);
       expect(find.text('kişi işletmenizi görüntüledi'), findsOneWidget);
       expect(find.text('8'), findsOneWidget);
-      expect(find.text('randevu talebi aldı'), findsOneWidget);
+      expect(find.text('kişi randevu talebi oluşturdu'), findsOneWidget);
+      expect(find.text('randevu talebi aldı'), findsNothing);
 
       for (final day in ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']) {
         expect(find.text(day), findsOneWidget);
@@ -345,33 +347,36 @@ void main() {
       expect(find.textContaining('güven skoru'), findsNothing);
     });
 
-    testWidgets('Each stat is now its own visually distinct mini-card, not sharing a single divider', (
-      WidgetTester tester,
-    ) async {
-      await seedMechanicAccount();
-      await pumpScreen(tester);
+    testWidgets(
+      'Both stats share the exact same icon size/color (one style source, no per-stat divergence), separated '
+      'by the original thin vertical divider',
+      (WidgetTester tester) async {
+        await seedMechanicAccount();
+        await pumpScreen(tester);
 
-      // Each stat (eye-icon/127 and calendar-icon/8) renders inside its own
-      // PremiumSurface mini-card now — 3 PremiumSurfaces total on this
-      // card's own area: the outer card plus the two nested stat cards.
-      expect(find.byIcon(Icons.visibility_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.calendar_month_rounded), findsOneWidget);
-      expect(
-        find.byWidgetPredicate((widget) => widget is PremiumSurface && widget.color == AppColors.background),
-        findsNWidgets(2),
-      );
-      // The old shared vertical-divider Container (1px wide, 44 tall,
-      // AppColors.divider) between the two stats is gone — each mini-card's
-      // own border now provides the separation instead.
-      expect(
-        find.byWidgetPredicate((widget) {
-          if (widget is! Container) return false;
-          final constraints = widget.constraints;
-          return constraints != null && constraints.maxWidth == 1 && constraints.maxHeight == 44;
-        }),
-        findsNothing,
-      );
-    });
+        expect(find.byIcon(Icons.visibility_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.calendar_month_rounded), findsOneWidget);
+
+        // Both icons render through the same _EngagementStat widget — same
+        // size, same color — for both the eye stat and the calendar stat.
+        final eyeIcon = tester.widget<Icon>(find.byIcon(Icons.visibility_rounded));
+        final calendarIcon = tester.widget<Icon>(find.byIcon(Icons.calendar_month_rounded));
+        expect(eyeIcon.size, calendarIcon.size);
+        expect(eyeIcon.color, calendarIcon.color);
+
+        // The thin vertical divider between the two stats (1px wide, 44
+        // tall, AppColors.divider) is back — no per-stat card/background/
+        // border was introduced.
+        expect(
+          find.byWidgetPredicate((widget) {
+            if (widget is! Container) return false;
+            final constraints = widget.constraints;
+            return constraints != null && constraints.maxWidth == 1 && constraints.maxHeight == 44;
+          }),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
       'Sits between the greeting hero and "Yeni Talepler" in the widget tree, not inside or under the list',
@@ -390,7 +395,7 @@ void main() {
       },
     );
 
-    testWidgets('No overflow at a narrow phone width or a wider width, with the new mini-card layout', (
+    testWidgets('No overflow at a narrow phone width or a wider width', (
       WidgetTester tester,
     ) async {
       await seedMechanicAccount();

@@ -544,100 +544,69 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumSurface(
-      // Zero here (was AppSpacing.lg uniformly) — the header band below
-      // needs to sit flush against the card's own top edge so its top
-      // corners can share the card's rounding (Material's own clip, from
-      // this borderRadius, rounds the band for free). Every other section
-      // restores its own padding explicitly below.
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       borderRadius: AppRadius.lg,
+      // Very subtle bluish tint (reusing the app's own brand-blue token at
+      // low alpha, rather than a raw Colors.blue) — the only background
+      // change requested; everything else in this card stays exactly as it
+      // was before, on plain white.
+      color: AppColors.primary.withValues(alpha: 0.04),
       border: Border.all(color: AppColors.divider),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header band — a soft tint of the app's own brand blue, reading
-          // as a header strip the headline/subtitle sit on top of, distinct
-          // from the plain white body below (stats + chart).
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.07),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppRadius.lg),
-                topRight: Radius.circular(AppRadius.lg),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.insights_rounded, size: 14, color: AppColors.textSecondary),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Bu haftanın özeti',
-                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  'İşletmeniz ilgi görüyor 📈',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Daha fazla sürücü sizi keşfediyor.',
-                  style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.72)),
-                ),
-              ],
-            ),
+          const Text(
+            'Bu haftanın özeti',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Each stat is now its own self-contained mini-card (see
-                // _EngagementStat) — the old shared vertical divider between
-                // them is gone, since each one's own border now does that job.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Expanded(
-                      child: _EngagementStat(
-                        icon: Icons.visibility_rounded,
-                        value: '$_profileViewCount',
-                        label: 'kişi işletmenizi görüntüledi',
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    const Expanded(
-                      child: _EngagementStat(
-                        icon: Icons.calendar_month_rounded,
-                        value: '$_appointmentRequestCount',
-                        label: 'randevu talebi aldı',
-                      ),
-                    ),
-                  ],
+          const SizedBox(height: AppSpacing.sm),
+          const Text(
+            'İşletmeniz ilgi görüyor 📈',
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Daha fazla sürücü sizi keşfediyor.',
+            style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.72)),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: _EngagementStat(
+                  icon: Icons.visibility_rounded,
+                  value: '$_profileViewCount',
+                  label: 'kişi işletmenizi görüntüledi',
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  height: 40,
-                  width: double.infinity,
-                  child: CustomPaint(painter: _WeeklySparklinePainter(_weeklySparklineValues)),
+              ),
+              Container(width: 1, height: 44, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md)),
+              const Expanded(
+                child: _EngagementStat(
+                  icon: Icons.calendar_month_rounded,
+                  value: '$_appointmentRequestCount',
+                  // "8" itself is the separate bold value above this label
+                  // (unchanged) — this label completes the sentence to read
+                  // "8 kişi randevu talebi oluşturdu", the same
+                  // value-then-label pattern the eye stat already uses.
+                  label: 'kişi randevu talebi oluşturdu',
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    for (final label in _weekdayLabels)
-                      Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            height: 40,
+            width: double.infinity,
+            child: CustomPaint(painter: _WeeklySparklinePainter(_weeklySparklineValues)),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final label in _weekdayLabels)
+                Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            ],
           ),
         ],
       ),
@@ -645,11 +614,11 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
   }
 }
 
-/// One of [_WeeklyEngagementSummaryCard]'s two stats — its own mini-card (a
-/// lighter [PremiumSurface] variant, tinted with [AppColors.background]
-/// rather than plain white, so it reads as nested inside the outer card),
-/// laid out horizontally: a large icon as the visual anchor on the left,
-/// the bold number and its secondary label stacked to its right.
+/// One side of [_WeeklyEngagementSummaryCard]'s two-stat row — an icon, a
+/// large bold number, and a smaller secondary label underneath. Both stats
+/// share this exact same widget/style definition (icon size, color,
+/// spacing), so the eye stat and the calendar stat can never visually
+/// diverge — there is nothing per-stat to keep in sync by hand.
 class _EngagementStat extends StatelessWidget {
   const _EngagementStat({required this.icon, required this.value, required this.label});
 
@@ -659,36 +628,20 @@ class _EngagementStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumSurface(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      borderRadius: AppRadius.md,
-      color: AppColors.background,
-      border: Border.all(color: AppColors.divider),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, size: 28, color: AppColors.turquoise),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  maxLines: 2,
-                  style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: AppColors.turquoise),
+        const SizedBox(height: 6),
+        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 2,
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+      ],
     );
   }
 }
