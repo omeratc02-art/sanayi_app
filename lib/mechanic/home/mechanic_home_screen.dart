@@ -544,69 +544,106 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumSurface(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      // Zero here — the header block below needs to sit flush against the
+      // card's own top edge so its top corners can share the card's
+      // rounding. PremiumSurface's own `color` is left unset (defaults to
+      // AppColors.surface/white), since the tint must NOT cover the whole
+      // card — only the header block below applies it, on its own
+      // Container, scoped to just that area.
+      padding: EdgeInsets.zero,
       borderRadius: AppRadius.lg,
-      // Very subtle bluish tint (reusing the app's own brand-blue token at
-      // low alpha, rather than a raw Colors.blue) — the only background
-      // change requested; everything else in this card stays exactly as it
-      // was before, on plain white.
-      color: AppColors.primary.withValues(alpha: 0.04),
       border: Border.all(color: AppColors.divider),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Bu haftanın özeti',
-            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'İşletmeniz ilgi görüyor 📈',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'Daha fazla sürücü sizi keşfediyor.',
-            style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.72)),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(
-                child: _EngagementStat(
-                  icon: Icons.visibility_rounded,
-                  value: '$_profileViewCount',
-                  label: 'kişi işletmenizi görüntüledi',
-                ),
-              ),
-              Container(width: 1, height: 44, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md)),
-              const Expanded(
-                child: _EngagementStat(
-                  icon: Icons.calendar_month_rounded,
-                  value: '$_appointmentRequestCount',
-                  // "8" itself is the separate bold value above this label
-                  // (unchanged) — this label completes the sentence to read
-                  // "8 kişi randevu talebi oluşturdu", the same
-                  // value-then-label pattern the eye stat already uses.
-                  label: 'kişi randevu talebi oluşturdu',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            height: 40,
+          // Header zone — the ONLY tinted part of this card. A flat,
+          // low-alpha Container (not PremiumSurface's own `color`, which
+          // would otherwise tint the whole card) so the tint stays scoped
+          // to exactly this block.
+          Container(
             width: double.infinity,
-            child: CustomPaint(painter: _WeeklySparklinePainter(_weeklySparklineValues)),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppRadius.lg),
+                topRight: Radius.circular(AppRadius.lg),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bu haftanın özeti',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                const Text(
+                  'İşletmeniz ilgi görüyor 📈',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Daha fazla sürücü sizi keşfediyor.',
+                  style: TextStyle(fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.72)),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (final label in _weekdayLabels)
-                Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-            ],
+          // Body zone — plain white (PremiumSurface's own default surface
+          // color), no tint: both stat numbers, the sparkline, and the
+          // weekday labels all sit here.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(
+                      child: _EngagementStat(
+                        icon: Icons.visibility_rounded,
+                        value: '$_profileViewCount',
+                        label: 'kişi işletmenizi görüntüledi',
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 44,
+                      color: AppColors.divider,
+                      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    ),
+                    const Expanded(
+                      child: _EngagementStat(
+                        icon: Icons.calendar_month_rounded,
+                        value: '$_appointmentRequestCount',
+                        // "8" itself is the bold number in the icon+number
+                        // row above this label (unchanged) — this label
+                        // completes the sentence to read "8 kişi randevu
+                        // talebi oluşturdu", the same value-then-label
+                        // pattern the eye stat already uses.
+                        label: 'kişi randevu talebi oluşturdu',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  height: 40,
+                  width: double.infinity,
+                  child: CustomPaint(painter: _WeeklySparklinePainter(_weeklySparklineValues)),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    for (final label in _weekdayLabels)
+                      Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -614,11 +651,13 @@ class _WeeklyEngagementSummaryCard extends StatelessWidget {
   }
 }
 
-/// One side of [_WeeklyEngagementSummaryCard]'s two-stat row — an icon, a
-/// large bold number, and a smaller secondary label underneath. Both stats
-/// share this exact same widget/style definition (icon size, color,
-/// spacing), so the eye stat and the calendar stat can never visually
-/// diverge — there is nothing per-stat to keep in sync by hand.
+/// One side of [_WeeklyEngagementSummaryCard]'s two-stat row: the icon (in
+/// its own small rounded chip) sits inline to the left of the bold number,
+/// both vertically centered, with the secondary label underneath that row.
+/// Both stats share this exact same widget/style definition (icon chip
+/// size/radius/fill, number size, spacing), so the eye stat and the
+/// calendar stat can never visually diverge — there is nothing per-stat to
+/// keep in sync by hand.
 class _EngagementStat extends StatelessWidget {
   const _EngagementStat({required this.icon, required this.value, required this.label});
 
@@ -626,16 +665,32 @@ class _EngagementStat extends StatelessWidget {
   final String value;
   final String label;
 
+  static const _iconChipSize = 32.0;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: AppColors.turquoise),
-        const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-        const SizedBox(height: 2),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: _iconChipSize,
+              height: _iconChipSize,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.turquoise.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(icon, size: 16, color: AppColors.turquoise),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+          ],
+        ),
+        const SizedBox(height: 4),
         Text(
           label,
           maxLines: 2,

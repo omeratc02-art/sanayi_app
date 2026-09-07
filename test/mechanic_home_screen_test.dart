@@ -348,8 +348,8 @@ void main() {
     });
 
     testWidgets(
-      'Both stats share the exact same icon size/color (one style source, no per-stat divergence), separated '
-      'by the original thin vertical divider',
+      'Both stats share the exact same icon chip style (size, radius, fill) and icon size/color, separated by '
+      'the original thin vertical divider',
       (WidgetTester tester) async {
         await seedMechanicAccount();
         await pumpScreen(tester);
@@ -364,9 +364,26 @@ void main() {
         expect(eyeIcon.size, calendarIcon.size);
         expect(eyeIcon.color, calendarIcon.color);
 
+        // Each icon sits in its own small rounded chip container — exactly
+        // 2 of them, both with the identical 32x32 turquoise-tint/rounded
+        // style (one shared style source, per _EngagementStat).
+        expect(
+          find.byWidgetPredicate((widget) {
+            if (widget is! Container) return false;
+            final constraints = widget.constraints;
+            if (constraints == null || constraints.maxWidth != 32 || constraints.maxHeight != 32) return false;
+            final decoration = widget.decoration;
+            if (decoration is! BoxDecoration) return false;
+            return decoration.color == AppColors.turquoise.withValues(alpha: 0.1) &&
+                decoration.borderRadius == BorderRadius.circular(AppRadius.sm);
+          }),
+          findsNWidgets(2),
+        );
+
         // The thin vertical divider between the two stats (1px wide, 44
-        // tall, AppColors.divider) is back — no per-stat card/background/
-        // border was introduced.
+        // tall, AppColors.divider) is still there — the two stats stay
+        // side by side, only each one's internal icon+number layout
+        // changed.
         expect(
           find.byWidgetPredicate((widget) {
             if (widget is! Container) return false;
@@ -374,6 +391,51 @@ void main() {
             return constraints != null && constraints.maxWidth == 1 && constraints.maxHeight == 44;
           }),
           findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'Only the header text block is tinted blue — the two stat numbers, chart, and weekday labels sit on '
+      'plain white below it',
+      (WidgetTester tester) async {
+        await seedMechanicAccount();
+        await pumpScreen(tester);
+
+        // Exactly one tinted Container — the header block wrapping "Bu
+        // haftanın özeti" / the headline / the subtitle — with top-only
+        // rounded corners matching the card's own radius.
+        final tintedHeaderFinder = find.byWidgetPredicate((widget) {
+          if (widget is! Container) return false;
+          final decoration = widget.decoration;
+          if (decoration is! BoxDecoration) return false;
+          return decoration.color == AppColors.primary.withValues(alpha: 0.05) &&
+              decoration.borderRadius ==
+                  const BorderRadius.only(
+                    topLeft: Radius.circular(AppRadius.lg),
+                    topRight: Radius.circular(AppRadius.lg),
+                  );
+        });
+        expect(tintedHeaderFinder, findsOneWidget);
+
+        // The tinted header block's bottom edge sits above (a smaller dy
+        // than) the "127"/"8" stat numbers, the sparkline, and the weekday
+        // labels below it — proving the tint doesn't extend into the body.
+        final headerBottomY = tester.getBottomLeft(tintedHeaderFinder).dy;
+        final profileViewsY = tester.getTopLeft(find.text('127')).dy;
+        final appointmentsY = tester.getTopLeft(find.text('8')).dy;
+        final dayLabelY = tester.getTopLeft(find.text('Pzt')).dy;
+
+        expect(profileViewsY, greaterThan(headerBottomY));
+        expect(appointmentsY, greaterThan(headerBottomY));
+        expect(dayLabelY, greaterThan(headerBottomY));
+
+        // The outer PremiumSurface itself carries no tint any more (its
+        // `color` param is unset, defaulting to plain white) — only the
+        // header Container above does.
+        expect(
+          find.byWidgetPredicate((widget) => widget is PremiumSurface && widget.color != null),
+          findsNothing,
         );
       },
     );
