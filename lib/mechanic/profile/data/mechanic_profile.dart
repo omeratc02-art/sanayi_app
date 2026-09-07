@@ -17,6 +17,7 @@ class MechanicProfile {
     this.isVerified = false,
     this.rating,
     this.reviewCount,
+    this.hizmetler = const [],
   });
 
   /// Firebase Auth UID — same as the mechanicAccounts/{uid} document id.
@@ -43,6 +44,15 @@ class MechanicProfile {
   final double? rating;
   final int? reviewCount;
 
+  /// Structured sub-services this business offers (e.g. ['Motor', 'Fren
+  /// Sistemi']) — the same real `hizmetler` field
+  /// mechanic_login_page.dart's registration/claim flow already writes to
+  /// this exact document (see models/mechanic.dart's own [Mechanic.hizmetler]
+  /// for the customer-facing counterpart of this same field). Empty, not
+  /// null, for an account that hasn't set any yet — a real "nothing listed"
+  /// state, not "unknown".
+  final List<String> hizmetler;
+
   factory MechanicProfile.fromFirestore(String uid, Map<String, dynamic> data) {
     final rating = data['rating'];
     return MechanicProfile(
@@ -55,6 +65,7 @@ class MechanicProfile {
       isVerified: data['isVerified'] as bool? ?? false,
       rating: rating is num ? rating.toDouble() : null,
       reviewCount: data['reviewCount'] as int?,
+      hizmetler: (data['hizmetler'] as List<dynamic>?)?.whereType<String>().toList() ?? const [],
     );
   }
 }
