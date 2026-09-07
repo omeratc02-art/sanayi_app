@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "randevular",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "`işletme_kimliği`", "order": "ASCENDING" },
+        { "fieldPath": "`oluşturulma_tarihi`", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -199,24 +199,29 @@ class AppointmentRepository {
   /// Live count of appointment requests created for [businessId] in the
   /// last 7 days — the real data source for the mechanic home screen's
   /// "İşletmeniz İlgi Görüyor" weekly summary card (see
-  /// _WeeklyEngagementSummaryCard). Deliberately built as a client-side
-  /// count over the same equality-only businessId query
-  /// watchAppointmentsForBusiness already uses, rather than a server-side
-  /// range query on oluşturulma_tarihi: combining a range filter with the
-  /// işletme_kimliği equality filter would be the first compound
-  /// range+equality query anywhere in this codebase, and this project has
-  /// no firestore.indexes.json / index-deploy step (see firebase.json) —
-  /// such a query would very likely throw FAILED_PRECONDITION ("the query
-  /// requires an index") against the real Firestore project, a failure the
-  /// fake_cloud_firestore test double used across this app's tests would
-  /// not catch. The client-side count avoids that risk while still being a
-  /// live stream (updates as new requests arrive or old ones age out of the
-  /// window), not a one-time snapshot.
+  /// _WeeklyEngagementSummaryCard). A real server-side compound query —
+  /// equality on işletme_kimliği + a range filter on oluşturulma_tarihi
+  /// (both confirmed against Appointment.fromFirestore/toFirestore, the
+  /// exact Firestore field names, not just the Dart property names) —
+  /// backed by the composite index declared in firestore.indexes.json
+  /// (deployed via `firebase deploy --only firestore:indexes`). This used
+  /// to be a client-side count over the unfiltered watchAppointmentsForBusiness
+  /// stream, specifically because that index/deploy infrastructure didn't
+  /// exist yet; now that it does, the filtering happens in Firestore itself
+  /// rather than pulling every appointment for the business over the wire.
+  /// A plain `.snapshots()` mapped to `.docs.length` rather than an
+  /// aggregate `.count()` query, since `.count()` has no live/streaming
+  /// counterpart in this project's cloud_firestore version — this still
+  /// updates live as requests arrive or age out of the 7-day window, it's
+  /// just not using the aggregate-query API.
   Stream<int> watchRecentAppointmentRequestCount(String businessId) {
-    return watchAppointmentsForBusiness(businessId).map((appointments) {
-      final cutoff = DateTime.now().subtract(const Duration(days: 7));
-      return appointments.where((appointment) => appointment.createdAt.isAfter(cutoff)).length;
-    });
+    final cutoff = Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 7)));
+    return _firestore
+        .collection(_collection)
+        .where('işletme_kimliği', isEqualTo: businessId)
+        .where('oluşturulma_tarihi', isGreaterThanOrEqualTo: cutoff)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
   }
 
   /// Live counterpart to the customer side's session-only state
