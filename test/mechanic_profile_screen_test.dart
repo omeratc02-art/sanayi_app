@@ -31,7 +31,12 @@ void main() {
     firestoreInstance = FakeFirebaseFirestore();
   });
 
-  Future<void> seedProfile({int? repeatCustomerCount, List<String>? hizmetler, String? coverPhotoUrl}) {
+  Future<void> seedProfile({
+    int? repeatCustomerCount,
+    List<String>? hizmetler,
+    String? coverPhotoUrl,
+    List<String?>? galleryPhotoUrls,
+  }) {
     return firestoreInstance.collection('mechanicAccounts').doc(uid).set({
       'businessId': businessId,
       'name': 'Test Usta İşletmesi',
@@ -42,6 +47,7 @@ void main() {
       if (repeatCustomerCount != null) 'repeatCustomerCount': repeatCustomerCount,
       if (hizmetler != null) 'hizmetler': hizmetler,
       if (coverPhotoUrl != null) 'coverPhotoUrl': coverPhotoUrl,
+      if (galleryPhotoUrls != null) 'galleryPhotoUrls': galleryPhotoUrls,
     });
   }
 
@@ -253,6 +259,82 @@ void main() {
       expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
       expect(find.byIcon(Icons.camera_alt_outlined), findsOneWidget);
     });
+  });
+
+  group('Gallery photos', () {
+    const galleryUrl0 =
+        'https://storage.googleapis.com/sanayi-omer-tr.firebasestorage.app/mechanic_gallery/test-mechanic-uid/0.jpg';
+    const galleryUrl2 =
+        'https://storage.googleapis.com/sanayi-omer-tr.firebasestorage.app/mechanic_gallery/test-mechanic-uid/2.jpg';
+
+    testWidgets('Shows the real photo for a filled gallery slot', (WidgetTester tester) async {
+      await seedProfile(galleryPhotoUrls: [galleryUrl0, null, null]);
+      await pumpScreen(tester);
+
+      expect(find.text('Fotoğraflar'), findsOneWidget);
+      // No cover photo seeded, so this is the only real Image on screen —
+      // proves it's specifically the gallery slot rendering it, not some
+      // other photo.
+      final images = tester.widgetList<Image>(find.byType(Image)).toList();
+      expect(images, hasLength(1));
+      expect(images.single.image, isA<NetworkImage>());
+      expect((images.single.image as NetworkImage).url, galleryUrl0);
+    });
+
+    testWidgets('Shows the "Fotoğraf Ekle" add tile for every empty gallery slot', (WidgetTester tester) async {
+      await seedProfile();
+      await pumpScreen(tester);
+
+      // No cover photo and no gallery photos seeded — all 3 gallery slots
+      // are empty, and (same as the cover photo's own gradient-fallback
+      // test) that means no Image widget anywhere on screen at all.
+      expect(find.byType(Image), findsNothing);
+      expect(find.text('Fotoğraf Ekle'), findsNWidgets(3));
+      expect(find.byIcon(Icons.add_photo_alternate_outlined), findsNWidgets(3));
+    });
+
+    testWidgets(
+      'A removed slot stays a real empty gap at its own index — the remaining photos are not shifted to fill it',
+      (WidgetTester tester) async {
+        // Simulates the real Firestore state right after removing the
+        // middle (index 1) photo via removeGalleryPhoto: index 0 and 2
+        // still have their own real photos, index 1 is a real null.
+        // (removeGalleryPhoto's own Storage-delete call isn't exercised
+        // here — there is no fake Storage in this project's test
+        // dependencies yet, same gap already documented for the upload
+        // flow — this test covers the resulting *display* state, which is
+        // what "without shifting others" is actually about.)
+        await seedProfile(galleryPhotoUrls: [galleryUrl0, null, galleryUrl2]);
+        await pumpScreen(tester);
+
+        final images = tester.widgetList<Image>(find.byType(Image)).toList();
+        expect(images, hasLength(2));
+        expect((images[0].image as NetworkImage).url, galleryUrl0);
+        expect((images[1].image as NetworkImage).url, galleryUrl2);
+
+        // Positional proof, not just presence: the empty slot's "Fotoğraf
+        // Ekle" tile sits strictly BETWEEN the two real photos left to
+        // right — if removal had instead shifted the photos together, the
+        // empty tile would be pushed to the rightmost slot instead.
+        final firstPhotoX = tester
+            .getCenter(
+              find.byWidgetPredicate(
+                (widget) => widget is Image && widget.image is NetworkImage && (widget.image as NetworkImage).url == galleryUrl0,
+              ),
+            )
+            .dx;
+        final emptyTileX = tester.getCenter(find.text('Fotoğraf Ekle')).dx;
+        final secondPhotoX = tester
+            .getCenter(
+              find.byWidgetPredicate(
+                (widget) => widget is Image && widget.image is NetworkImage && (widget.image as NetworkImage).url == galleryUrl2,
+              ),
+            )
+            .dx;
+        expect(firstPhotoX, lessThan(emptyTileX));
+        expect(emptyTileX, lessThan(secondPhotoX));
+      },
+    );
   });
 
   group('İşletme Hakkında', () {

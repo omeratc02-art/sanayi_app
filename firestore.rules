@@ -68,6 +68,16 @@ service cloud.firestore {
       // may set their own cover photo, never anyone else's — mirroring the
       // same ownership check storage.rules applies to the actual file
       // upload itself.
+      //
+      // galleryPhotoUrls — same owner-only pattern as coverPhotoUrl, for
+      // MechanicProfileRepository.uploadGalleryPhoto/removeGalleryPhoto
+      // (up to 3 additional real photos — see mechanic_profile.dart's own
+      // doc comment on this field). One rule branch for the whole array
+      // field, not per-index: every write replaces the full 3-element
+      // array (see uploadGalleryPhoto/removeGalleryPhoto's read-mutate-
+      // write pattern), so there is no narrower per-slot boundary to
+      // enforce here beyond "only this document's own owner may touch it
+      // at all".
       allow update: if
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
@@ -90,6 +100,11 @@ service cloud.firestore {
         &&
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['coverPhotoUrl'])
+          || (request.auth != null && request.auth.uid == uid)
+        )
+        &&
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['galleryPhotoUrls'])
           || (request.auth != null && request.auth.uid == uid)
         );
 

@@ -19,6 +19,7 @@ class MechanicProfile {
     this.reviewCount,
     this.hizmetler = const [],
     this.coverPhotoUrl,
+    this.galleryPhotoUrls = const [null, null, null],
   });
 
   /// Firebase Auth UID — same as the mechanicAccounts/{uid} document id.
@@ -61,6 +62,16 @@ class MechanicProfile {
   /// state to render a fallback for, never a broken-image placeholder.
   final String? coverPhotoUrl;
 
+  /// Up to 3 additional real photos beyond the cover photo — see
+  /// MechanicProfileRepository.uploadGalleryPhoto/removeGalleryPhoto, one
+  /// file per slot at mechanic_gallery/{uid}/{index}.jpg. Always exactly 3
+  /// entries, index-aligned with that Storage slot (see
+  /// [padGalleryPhotoUrls]); a null entry is a real, permanent "empty
+  /// slot" state — removing a photo leaves a gap at that index rather than
+  /// shifting the others, so a slot's index always identifies the same
+  /// Storage file across adds/removes.
+  final List<String?> galleryPhotoUrls;
+
   factory MechanicProfile.fromFirestore(String uid, Map<String, dynamic> data) {
     final rating = data['rating'];
     return MechanicProfile(
@@ -73,8 +84,30 @@ class MechanicProfile {
       isVerified: data['isVerified'] as bool? ?? false,
       rating: rating is num ? rating.toDouble() : null,
       reviewCount: data['reviewCount'] as int?,
-      hizmetler: (data['hizmetler'] as List<dynamic>?)?.whereType<String>().toList() ?? const [],
+      hizmetler:
+          (data['hizmetler'] as List<dynamic>?)?.whereType<String>().toList() ??
+          const [],
       coverPhotoUrl: data['coverPhotoUrl'] as String?,
+      galleryPhotoUrls: padGalleryPhotoUrls(
+        data['galleryPhotoUrls'] as List<dynamic>?,
+      ),
     );
   }
+}
+
+/// Pads/truncates a raw Firestore `galleryPhotoUrls` array to exactly 3
+/// slots, index-aligned with mechanic_gallery/{uid}/{index}.jpg — shared by
+/// [MechanicProfile.fromFirestore] and MechanicProfileRepository's
+/// upload/removeGalleryPhoto (which need this same current-state shape
+/// before mutating a single index and writing the whole array back, since
+/// Firestore has no atomic "update index N of an array" operation). A
+/// missing index or a non-String element (defensive against malformed/
+/// legacy data) is treated the same as an explicit null — a real empty
+/// slot, never a crash.
+List<String?> padGalleryPhotoUrls(List<dynamic>? raw) {
+  return List<String?>.generate(3, (i) {
+    if (raw == null || i >= raw.length) return null;
+    final value = raw[i];
+    return value is String ? value : null;
+  });
 }

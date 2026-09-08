@@ -15,9 +15,11 @@ import 'mechanic_profile.dart';
 /// used exactly as before by identity.dart's resolveMyBusinessId and by
 /// the appointments security rules' exists() checks.
 class MechanicProfileRepository {
-  MechanicProfileRepository({FirebaseFirestore? firestore, FirebaseStorage? storage})
-    : _firestore = firestore ?? firestoreInstance,
-      _storageOverride = storage;
+  MechanicProfileRepository({
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+  }) : _firestore = firestore ?? firestoreInstance,
+       _storageOverride = storage;
 
   final FirebaseFirestore _firestore;
 
@@ -61,7 +63,10 @@ class MechanicProfileRepository {
   /// full reasoning); skipping archived matches here picks the real,
   /// current document deterministically instead of an arbitrary one.
   Future<int?> fetchRepeatCustomerRate(String businessId) async {
-    final snapshot = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
+    final snapshot = await _firestore
+        .collection('mechanicAccounts')
+        .where('businessId', isEqualTo: businessId)
+        .get();
     for (final doc in snapshot.docs) {
       final data = doc.data();
       if (data['archived'] == true) continue;
@@ -79,7 +84,10 @@ class MechanicProfileRepository {
   /// above, just a different field: null both when no matching document
   /// exists and when the function hasn't run for this business yet.
   Future<int?> fetchRepeatCustomerCount(String businessId) async {
-    final snapshot = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
+    final snapshot = await _firestore
+        .collection('mechanicAccounts')
+        .where('businessId', isEqualTo: businessId)
+        .get();
     for (final doc in snapshot.docs) {
       final data = doc.data();
       if (data['archived'] == true) continue;
@@ -137,10 +145,16 @@ class MechanicProfileRepository {
   /// grants `create` (never `update`), so Firestore itself rejects a
   /// second same-day write as an unauthorized update, independent of
   /// whether this client-side check ever runs.
-  Future<void> recordProfileView({required String businessId, required String? customerId}) async {
+  Future<void> recordProfileView({
+    required String businessId,
+    required String? customerId,
+  }) async {
     if (customerId == null || customerId.isEmpty) return;
 
-    final matches = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
+    final matches = await _firestore
+        .collection('mechanicAccounts')
+        .where('businessId', isEqualTo: businessId)
+        .get();
     QueryDocumentSnapshot<Map<String, dynamic>>? businessDoc;
     for (final doc in matches.docs) {
       if (doc.data()['archived'] == true) continue;
@@ -155,7 +169,9 @@ class MechanicProfileRepository {
         '${today.year.toString().padLeft(4, '0')}-'
         '${today.month.toString().padLeft(2, '0')}-'
         '${today.day.toString().padLeft(2, '0')}';
-    final viewerDocRef = businessDoc.reference.collection('dailyViewers').doc('${customerId}_$dayKey');
+    final viewerDocRef = businessDoc.reference
+        .collection('dailyViewers')
+        .doc('${customerId}_$dayKey');
     final businessDocRef = businessDoc.reference;
 
     await _firestore.runTransaction((transaction) async {
@@ -163,8 +179,13 @@ class MechanicProfileRepository {
       final viewerDoc = await transaction.get(viewerDocRef);
       if (viewerDoc.exists) return; // Already counted today — a real no-op.
 
-      transaction.set(viewerDocRef, {'customerId': customerId, 'viewedAt': FieldValue.serverTimestamp()});
-      transaction.update(businessDocRef, {'profileViewCount': FieldValue.increment(1)});
+      transaction.set(viewerDocRef, {
+        'customerId': customerId,
+        'viewedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.update(businessDocRef, {
+        'profileViewCount': FieldValue.increment(1),
+      });
     });
   }
 
@@ -184,11 +205,107 @@ class MechanicProfileRepository {
   /// logging it (see mechanic_profile_screen.dart's debugPrint convention),
   /// and showing the mechanic real error feedback instead of a fake
   /// success state.
-  Future<String> uploadCoverPhoto({required String uid, required Uint8List bytes}) async {
+  Future<String> uploadCoverPhoto({
+    required String uid,
+    required Uint8List bytes,
+  }) async {
     final ref = _storage.ref('mechanic_covers/$uid/cover.jpg');
     await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
     final url = await ref.getDownloadURL();
-    await _firestore.collection('mechanicAccounts').doc(uid).update({'coverPhotoUrl': url});
+    await _firestore.collection('mechanicAccounts').doc(uid).update({
+      'coverPhotoUrl': url,
+    });
     return url;
+  }
+
+  /// Resolves a full [MechanicProfile] by businessId rather than uid — for
+  /// customer-facing screens like MechanicDetailPage, which only ever know
+  /// a business's public slug, never the owning mechanic's Firebase Auth
+  /// uid (same businessId-based lookup [fetchRepeatCustomerRate] and
+  /// [recordProfileView] already use). Reuses
+  /// [MechanicProfile.fromFirestore] directly rather than hand-picking
+  /// individual fields, so MechanicDetailPage gets exactly the same
+  /// coverPhotoUrl/galleryPhotoUrls parsing (padding, null-handling)
+  /// MechanicProfileScreen already relies on, not a second, parallel
+  /// implementation of the same logic.
+  ///
+  /// Same not-`.limit(1)`/archived-skip reasoning as
+  /// [fetchRepeatCustomerRate] above. Null both when no matching document
+  /// exists and when only an archived one does.
+  Future<MechanicProfile?> fetchProfileByBusinessId(String businessId) async {
+    final snapshot = await _firestore
+        .collection('mechanicAccounts')
+        .where('businessId', isEqualTo: businessId)
+        .get();
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['archived'] == true) continue;
+      return MechanicProfile.fromFirestore(doc.id, data);
+    }
+    return null;
+  }
+
+  /// Uploads [bytes] as one of the signed-in mechanic's up to 3 gallery
+  /// photos — Firebase Storage path mechanic_gallery/{uid}/{index}.jpg
+  /// (same uid-keyed reasoning as [uploadCoverPhoto]; see storage.rules'
+  /// own doc comment on that path). A fresh upload to an already-filled
+  /// [index] overwrites it (replace), same "no history of old ones"
+  /// behavior as the cover photo.
+  ///
+  /// On success, writes the resulting real download URL into
+  /// mechanicAccounts/{uid}.galleryPhotoUrls at position [index] — read the
+  /// current 3-element array first (via [padGalleryPhotoUrls], so a
+  /// document with no field yet or a shorter/malformed array is handled
+  /// the same defensive way [MechanicProfile.fromFirestore] already is),
+  /// mutate just that one index, then write the whole array back:
+  /// Firestore has no atomic "update index N of an array" operation, so
+  /// this read-mutate-write is the real mechanism, not a shortcut.
+  ///
+  /// Throws on failure, same as [uploadCoverPhoto] — the caller is
+  /// responsible for catching this, logging it, and showing the mechanic
+  /// real error feedback instead of a fake success state.
+  Future<String> uploadGalleryPhoto({
+    required String uid,
+    required int index,
+    required Uint8List bytes,
+  }) async {
+    final ref = _storage.ref('mechanic_gallery/$uid/$index.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    final url = await ref.getDownloadURL();
+
+    final docRef = _firestore.collection('mechanicAccounts').doc(uid);
+    final doc = await docRef.get();
+    final gallery = padGalleryPhotoUrls(
+      doc.data()?['galleryPhotoUrls'] as List<dynamic>?,
+    );
+    gallery[index] = url;
+    await docRef.update({'galleryPhotoUrls': gallery});
+    return url;
+  }
+
+  /// Removes the gallery photo at [index] — deletes the real Storage file
+  /// and clears mechanicAccounts/{uid}.galleryPhotoUrls at that position
+  /// back to null, leaving a real, permanent gap at [index] rather than
+  /// shifting the remaining photos left (see [MechanicProfile.galleryPhotoUrls]'s
+  /// own doc comment for why: a slot's index always identifies the same
+  /// Storage file across adds/removes, so shifting would require also
+  /// renaming/moving the other Storage files to stay in sync — real
+  /// complexity this 3-slot feature doesn't need).
+  ///
+  /// Same read-mutate-write array update as [uploadGalleryPhoto], and same
+  /// throws-on-failure contract as [uploadCoverPhoto].
+  Future<void> removeGalleryPhoto({
+    required String uid,
+    required int index,
+  }) async {
+    await _storage.ref('mechanic_gallery/$uid/$index.jpg').delete();
+
+    final docRef = _firestore.collection('mechanicAccounts').doc(uid);
+    final doc = await docRef.get();
+    final gallery = padGalleryPhotoUrls(
+      doc.data()?['galleryPhotoUrls'] as List<dynamic>?,
+    );
+    gallery[index] = null;
+    await docRef.update({'galleryPhotoUrls': gallery});
   }
 }

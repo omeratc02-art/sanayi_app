@@ -35,5 +35,26 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+
+    // Up to 3 additional gallery photos per mechanic account — see
+    // MechanicProfileRepository.uploadGalleryPhoto/removeGalleryPhoto.
+    // {filename} is a full-segment wildcard (Storage Rules path segments
+    // can't mix a {variable} with a literal suffix like {index}.jpg in the
+    // same segment — unlike Firestore's rules language, that's a
+    // compilation error here), so it just captures the whole '0.jpg' /
+    // '1.jpg' / '2.jpg' string as one opaque value; the client is what
+    // actually only ever writes index 0-2, same trust boundary
+    // mechanic_covers already relies on for its own single fixed filename.
+    // Same uid-keyed, same-service ownership check as mechanic_covers
+    // above, for the same reason: cross-service firestore.get()/exists()
+    // rules were confirmed unusable for this project (see mechanic_covers'
+    // own doc comment for the full story).
+    match /mechanic_gallery/{uid}/{filename} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
   }
 }

@@ -35,6 +35,7 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
   bool _loading = true;
   MechanicProfile? _profile;
   var _uploadingCoverPhoto = false;
+  int? _uploadingGalleryIndex;
 
   @override
   void initState() {
@@ -76,7 +77,11 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
 
     final XFile? picked;
     try {
-      picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1600);
+      picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
     } catch (error) {
       debugPrint('MECHANIC PROFILE COVER PHOTO PICK ERROR: $error');
       return;
@@ -96,8 +101,14 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
         compressQuality: 90,
         aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
         uiSettings: [
-          AndroidUiSettings(toolbarTitle: 'Kapak Fotoğrafını Kırp', lockAspectRatio: true),
-          IOSUiSettings(title: 'Kapak Fotoğrafını Kırp', aspectRatioLockEnabled: true),
+          AndroidUiSettings(
+            toolbarTitle: 'Kapak Fotoğrafını Kırp',
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Kapak Fotoğrafını Kırp',
+            aspectRatioLockEnabled: true,
+          ),
           WebUiSettings(context: context),
         ],
       );
@@ -110,16 +121,115 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
     setState(() => _uploadingCoverPhoto = true);
     try {
       final bytes = await cropped.readAsBytes();
-      await MechanicProfileRepository().uploadCoverPhoto(uid: profile.uid, bytes: bytes);
+      await MechanicProfileRepository().uploadCoverPhoto(
+        uid: profile.uid,
+        bytes: bytes,
+      );
       await _load();
     } catch (error) {
       debugPrint('MECHANIC PROFILE COVER PHOTO UPLOAD ERROR: $error');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kapak fotoğrafı yüklenemedi. Lütfen tekrar deneyin.')),
+        const SnackBar(
+          content: Text('Kapak fotoğrafı yüklenemedi. Lütfen tekrar deneyin.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _uploadingCoverPhoto = false);
+    }
+  }
+
+  // Same shape as _pickAndUploadCoverPhoto above (pick -> crop -> upload,
+  // real loading state, real error SnackBar, re-runs _load() rather than
+  // patching state locally) — the two real differences are the 1:1 crop
+  // ratio (gallery thumbnails render small/square, unlike the full-width
+  // 16:9 cover) and [index], since this is one of 3 independently
+  // addressable slots rather than a single fixed photo. Also the handler
+  // for tapping an already-filled slot (replace) — there is no separate
+  // "replace" method; uploading to an occupied [index] just overwrites it,
+  // same as the cover photo's own upload-always-overwrites behavior.
+  Future<void> _pickAndUploadGalleryPhoto(int index) async {
+    final profile = _profile;
+    if (profile == null || _uploadingGalleryIndex != null) return;
+
+    final XFile? picked;
+    try {
+      picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE GALLERY PHOTO PICK ERROR: $error');
+      return;
+    }
+    if (picked == null || !mounted) return;
+
+    final CroppedFile? cropped;
+    try {
+      cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Fotoğrafı Kırp',
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(title: 'Fotoğrafı Kırp', aspectRatioLockEnabled: true),
+          WebUiSettings(context: context),
+        ],
+      );
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE GALLERY PHOTO CROP ERROR: $error');
+      return;
+    }
+    if (cropped == null || !mounted) return;
+
+    setState(() => _uploadingGalleryIndex = index);
+    try {
+      final bytes = await cropped.readAsBytes();
+      await MechanicProfileRepository().uploadGalleryPhoto(
+        uid: profile.uid,
+        index: index,
+        bytes: bytes,
+      );
+      await _load();
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE GALLERY PHOTO UPLOAD ERROR: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fotoğraf yüklenemedi. Lütfen tekrar deneyin.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingGalleryIndex = null);
+    }
+  }
+
+  Future<void> _removeGalleryPhoto(int index) async {
+    final profile = _profile;
+    if (profile == null || _uploadingGalleryIndex != null) return;
+
+    setState(() => _uploadingGalleryIndex = index);
+    try {
+      await MechanicProfileRepository().removeGalleryPhoto(
+        uid: profile.uid,
+        index: index,
+      );
+      await _load();
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE GALLERY PHOTO REMOVE ERROR: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fotoğraf silinemedi. Lütfen tekrar deneyin.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingGalleryIndex = null);
     }
   }
 
@@ -137,6 +247,9 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
                 fallback: _fallbackMechanic(_profile!.businessId),
                 isUploadingCoverPhoto: _uploadingCoverPhoto,
                 onPickCoverPhoto: _pickAndUploadCoverPhoto,
+                uploadingGalleryIndex: _uploadingGalleryIndex,
+                onTapGallerySlot: _pickAndUploadGalleryPhoto,
+                onRemoveGalleryPhoto: _removeGalleryPhoto,
               ),
       ),
     );
@@ -154,11 +267,19 @@ class _NoProfileState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.store_outlined, size: 56, color: AppColors.textSecondary),
+            const Icon(
+              Icons.store_outlined,
+              size: 56,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(height: 12),
             const Text(
               'Usta hesabı bulunamadı',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -179,6 +300,9 @@ class _ProfileBody extends StatelessWidget {
     required this.fallback,
     required this.isUploadingCoverPhoto,
     required this.onPickCoverPhoto,
+    required this.uploadingGalleryIndex,
+    required this.onTapGallerySlot,
+    required this.onRemoveGalleryPhoto,
   });
 
   final MechanicProfile profile;
@@ -190,7 +314,12 @@ class _ProfileBody extends StatelessWidget {
   final bool isUploadingCoverPhoto;
   final VoidCallback onPickCoverPhoto;
 
-  String? _mergedField(String? real, String? fallbackValue) => (real == null || real.isEmpty) ? fallbackValue : real;
+  final int? uploadingGalleryIndex;
+  final void Function(int index) onTapGallerySlot;
+  final void Function(int index) onRemoveGalleryPhoto;
+
+  String? _mergedField(String? real, String? fallbackValue) =>
+      (real == null || real.isEmpty) ? fallbackValue : real;
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +328,9 @@ class _ProfileBody extends StatelessWidget {
     final rating = profile.rating ?? fallback?.rating;
     final reviewCount = profile.reviewCount ?? fallback?.reviewCount;
     final isVerified = profile.isVerified || (fallback?.isVerified ?? false);
-    final services = profile.hizmetler.isNotEmpty ? profile.hizmetler : (fallback?.hizmetler ?? const <String>[]);
+    final services = profile.hizmetler.isNotEmpty
+        ? profile.hizmetler
+        : (fallback?.hizmetler ?? const <String>[]);
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -217,27 +348,54 @@ class _ProfileBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _StatsCard(businessId: profile.businessId, rating: rating, reviewCount: reviewCount),
+              _GalleryPhotosSection(
+                galleryPhotoUrls: profile.galleryPhotoUrls,
+                uploadingIndex: uploadingGalleryIndex,
+                onTapSlot: onTapGallerySlot,
+                onRemoveSlot: onRemoveGalleryPhoto,
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              _StatsCard(
+                businessId: profile.businessId,
+                rating: rating,
+                reviewCount: reviewCount,
+              ),
               const SizedBox(height: AppSpacing.xxl),
               const SectionLabel(text: 'İletişim Bilgileri'),
               const SizedBox(height: AppSpacing.md),
               if (phone != null && phone.isNotEmpty) ...[
-                _ContactCard(icon: Icons.phone_outlined, label: 'Telefon Numarası', value: phone),
+                _ContactCard(
+                  icon: Icons.phone_outlined,
+                  label: 'Telefon Numarası',
+                  value: phone,
+                ),
                 const SizedBox(height: AppSpacing.sm),
               ],
               // profile.email is a required field — always real and present,
               // unlike phone/address which can be genuinely unset on older
               // accounts.
-              _ContactCard(icon: Icons.email_outlined, label: 'E-posta', value: profile.email),
+              _ContactCard(
+                icon: Icons.email_outlined,
+                label: 'E-posta',
+                value: profile.email,
+              ),
               if (address != null && address.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
-                _ContactCard(icon: Icons.location_on_outlined, label: 'Adres', value: address),
+                _ContactCard(
+                  icon: Icons.location_on_outlined,
+                  label: 'Adres',
+                  value: address,
+                ),
               ],
               const SizedBox(height: AppSpacing.xxl),
               const SectionLabel(text: 'İşletme Hakkında'),
               const SizedBox(height: AppSpacing.md),
               _AboutCard(
-                text: businessAboutText(businessName: profile.businessName, address: address, hizmetler: services),
+                text: businessAboutText(
+                  businessName: profile.businessName,
+                  address: address,
+                  hizmetler: services,
+                ),
               ),
               if (services.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xxl),
@@ -260,10 +418,16 @@ class _ProfileBody extends StatelessWidget {
 /// reading/displaying one — every word here traces back to a real field,
 /// nothing is a hardcoded example. Public (not private) so it's directly
 /// unit-testable without pumping the whole widget tree.
-String businessAboutText({required String businessName, required String? address, required List<String> hizmetler}) {
+String businessAboutText({
+  required String businessName,
+  required String? address,
+  required List<String> hizmetler,
+}) {
   final city = _cityFromAddress(address);
   final locationClause = city == null ? '' : "$city'da ";
-  final buffer = StringBuffer('$businessName, ${locationClause}hizmet veren bir özel servistir.');
+  final buffer = StringBuffer(
+    '$businessName, ${locationClause}hizmet veren bir özel servistir.',
+  );
   if (hizmetler.isNotEmpty) {
     buffer.write(' ${_naturalList(hizmetler)} hizmetleri sunmaktadır.');
   }
@@ -311,13 +475,21 @@ class _AboutCard extends StatelessWidget {
               color: AppColors.turquoise.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.storefront_outlined, size: 20, color: AppColors.turquoise),
+            child: const Icon(
+              Icons.storefront_outlined,
+              size: 20,
+              color: AppColors.turquoise,
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 13, height: 1.5, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ],
@@ -367,7 +539,9 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPhoto = coverPhotoUrl != null && coverPhotoUrl!.isNotEmpty;
-    return hasPhoto ? _buildWithPhoto(coverPhotoUrl!) : _buildGradientFallback();
+    return hasPhoto
+        ? _buildWithPhoto(coverPhotoUrl!)
+        : _buildGradientFallback();
   }
 
   Widget _editButton() {
@@ -380,14 +554,27 @@ class _ProfileHeader extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: isUploadingCoverPhoto
             ? const Padding(
                 padding: EdgeInsets.all(9),
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.turquoise),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.turquoise,
+                ),
               )
-            : const Icon(Icons.camera_alt_outlined, size: 18, color: AppColors.turquoise),
+            : const Icon(
+                Icons.camera_alt_outlined,
+                size: 18,
+                color: AppColors.turquoise,
+              ),
       ),
     );
   }
@@ -395,7 +582,12 @@ class _ProfileHeader extends StatelessWidget {
   Widget _buildGradientFallback() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xxl),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xxl,
+      ),
       decoration: const BoxDecoration(
         gradient: _coverGradient,
         borderRadius: BorderRadius.only(
@@ -413,26 +605,44 @@ class _ProfileHeader extends StatelessWidget {
                 width: 64,
                 height: 64,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), shape: BoxShape.circle),
-                child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 32),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.storefront_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
                 businessName,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
               ),
               if (address != null && address!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: Colors.white.withValues(alpha: 0.85)),
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         address!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.85)),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
                       ),
                     ),
                   ],
@@ -499,20 +709,31 @@ class _ProfileHeader extends StatelessWidget {
                 children: [
                   Text(
                     businessName,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   if (address != null && address!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             address!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ],
@@ -539,10 +760,18 @@ class _ProfileHeader extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 3),
             ),
-            child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 32),
+            child: const Icon(
+              Icons.storefront_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
           ),
         ),
-        Positioned(right: AppSpacing.lg, top: _coverPhotoHeight - _editButtonSize - AppSpacing.md, child: _editButton()),
+        Positioned(
+          right: AppSpacing.lg,
+          top: _coverPhotoHeight - _editButtonSize - AppSpacing.md,
+          child: _editButton(),
+        ),
       ],
     );
   }
@@ -555,11 +784,16 @@ class _VerifiedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = onGradient ? Colors.white.withValues(alpha: 0.18) : AppColors.scheduleTodayBackground;
+    final backgroundColor = onGradient
+        ? Colors.white.withValues(alpha: 0.18)
+        : AppColors.scheduleTodayBackground;
     final foregroundColor = onGradient ? Colors.white : AppColors.turquoise;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -567,12 +801,250 @@ class _VerifiedBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             'Doğrulanmış Servis',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: foregroundColor),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: foregroundColor,
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+/// Up to 3 additional real photos beyond the cover photo (see
+/// MechanicProfile.galleryPhotoUrls/MechanicProfileRepository.uploadGalleryPhoto)
+/// — always exactly 3 slots shown here (unlike the customer-facing gallery
+/// strip on MechanicDetailPage, which shows only real photos and nothing
+/// for empty ones): this is the mechanic's own management view, where an
+/// empty slot is itself a real, actionable "add a photo here" affordance,
+/// not something to hide.
+class _GalleryPhotosSection extends StatelessWidget {
+  const _GalleryPhotosSection({
+    required this.galleryPhotoUrls,
+    required this.uploadingIndex,
+    required this.onTapSlot,
+    required this.onRemoveSlot,
+  });
+
+  /// Always exactly 3 entries — see MechanicProfile.galleryPhotoUrls.
+  final List<String?> galleryPhotoUrls;
+
+  final int? uploadingIndex;
+  final void Function(int index) onTapSlot;
+  final void Function(int index) onRemoveSlot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionLabel(text: 'Fotoğraflar'),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            for (var i = 0; i < 3; i++) ...[
+              if (i != 0) const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _GalleryPhotoSlot(
+                  url: galleryPhotoUrls[i],
+                  isUploading: uploadingIndex == i,
+                  onTap: () => onTapSlot(i),
+                  onRemove: () => onRemoveSlot(i),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// One 1:1 gallery slot — either a real uploaded photo (tap to replace,
+/// small "x" badge to remove) or, when empty, a dashed-border "add a
+/// photo" tile (tap to upload). Both variants trigger the same
+/// pick-then-crop-then-upload flow one level up
+/// (MechanicProfileScreen._pickAndUploadGalleryPhoto) — uploading to an
+/// already-filled slot simply overwrites it, so there's no separate
+/// "replace" code path to keep in sync with "add".
+class _GalleryPhotoSlot extends StatelessWidget {
+  const _GalleryPhotoSlot({
+    required this.url,
+    required this.isUploading,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final String? url;
+  final bool isUploading;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = url != null && url!.isNotEmpty;
+    return AspectRatio(
+      aspectRatio: 1,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: isUploading ? null : onTap,
+            child: hasPhoto ? _photoTile(url!) : _emptyTile(),
+          ),
+          if (isUploading)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // The remove "x" — NOT AppColors.emergency/red: that color is
+          // reserved exclusively for the roadside-help emergency card
+          // elsewhere in this app (see app_theme.dart's own doc comment on
+          // AppColors.emergency), so this uses a neutral dark scrim
+          // instead, same as common photo-picker remove affordances.
+          if (hasPhoto && !isUploading)
+            Positioned(
+              right: 4,
+              top: 4,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: const Icon(Icons.close, size: 13, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _photoTile(String url) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.divider),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        // Same "log, plain neutral fallback, never a fabricated photo"
+        // convention as _ProfileHeader's own cover-photo Image.network.
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('MECHANIC PROFILE GALLERY PHOTO LOAD ERROR: $error');
+          return Container(color: AppColors.divider);
+        },
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: AppColors.divider,
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(strokeWidth: 2),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _emptyTile() {
+    return CustomPaint(
+      painter: const _DashedBorderPainter(
+        color: AppColors.divider,
+        radius: AppRadius.sm,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        alignment: Alignment.center,
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 22,
+              color: AppColors.turquoise,
+            ),
+            SizedBox(height: 2),
+            Text(
+              'Fotoğraf Ekle',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.turquoise,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A dashed rounded-rect border — Flutter's BoxDecoration/Border only
+/// support solid strokes, and this is a small, purely decorative need
+/// (the empty gallery slot's "add a photo here" affordance), not
+/// justification for a new package dependency on top of image_cropper.
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  static const _dashWidth = 5.0;
+  static const _dashGap = 4.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = (distance + _dashWidth).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance = next + _dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// Tamamlanan İş / Tekrar Eden Müşteri / Değerlendirme — the same three
@@ -582,7 +1054,11 @@ class _VerifiedBadge extends StatelessWidget {
 /// reviewCount with the same MockData fallback), just combined into one
 /// horizontal card instead of three stacked rows.
 class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.businessId, required this.rating, required this.reviewCount});
+  const _StatsCard({
+    required this.businessId,
+    required this.rating,
+    required this.reviewCount,
+  });
 
   final String businessId;
   final double? rating;
@@ -591,7 +1067,10 @@ class _StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumSurface(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xxl,
+        horizontal: AppSpacing.lg,
+      ),
       borderRadius: AppRadius.lg,
       border: Border.all(color: AppColors.divider),
       child: Row(
@@ -600,9 +1079,12 @@ class _StatsCard extends StatelessWidget {
           Expanded(
             child: FutureBuilder<int>(
               // Same call/data source as before — only the layout changed.
-              future: AppointmentRepository().fetchVerifiedCompletedCount(businessId),
+              future: AppointmentRepository().fetchVerifiedCompletedCount(
+                businessId,
+              ),
               builder: (context, snapshot) {
-                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final isLoading =
+                    snapshot.connectionState == ConnectionState.waiting;
                 return _StatColumn(
                   icon: Icons.verified_outlined,
                   value: isLoading ? '...' : '${snapshot.data ?? 0}',
@@ -612,13 +1094,21 @@ class _StatsCard extends StatelessWidget {
               },
             ),
           ),
-          Container(width: 1, height: 60, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs)),
+          Container(
+            width: 1,
+            height: 60,
+            color: AppColors.divider,
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+          ),
           Expanded(
             child: FutureBuilder<int?>(
               // Same call/data source as before — only the layout changed.
-              future: MechanicProfileRepository().fetchRepeatCustomerCount(businessId),
+              future: MechanicProfileRepository().fetchRepeatCustomerCount(
+                businessId,
+              ),
               builder: (context, snapshot) {
-                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final isLoading =
+                    snapshot.connectionState == ConnectionState.waiting;
                 return _StatColumn(
                   icon: Icons.repeat_rounded,
                   value: isLoading ? '...' : '${snapshot.data ?? 0}',
@@ -628,7 +1118,12 @@ class _StatsCard extends StatelessWidget {
               },
             ),
           ),
-          Container(width: 1, height: 60, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs)),
+          Container(
+            width: 1,
+            height: 60,
+            color: AppColors.divider,
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+          ),
           Expanded(
             child: _StatColumn(
               icon: Icons.star_rounded,
@@ -636,7 +1131,9 @@ class _StatsCard extends StatelessWidget {
               // yet — same convention already used elsewhere in this app
               // for a missing rating.
               value: rating != null ? rating!.toStringAsFixed(1) : '—',
-              label: reviewCount != null ? 'Değerlendirme ($reviewCount)' : 'Değerlendirme',
+              label: reviewCount != null
+                  ? 'Değerlendirme ($reviewCount)'
+                  : 'Değerlendirme',
               color: AppColors.rating,
             ),
           ),
@@ -647,7 +1144,12 @@ class _StatsCard extends StatelessWidget {
 }
 
 class _StatColumn extends StatelessWidget {
-  const _StatColumn({required this.icon, required this.value, required this.label, required this.color});
+  const _StatColumn({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
 
   final IconData icon;
   final String value;
@@ -661,14 +1163,24 @@ class _StatColumn extends StatelessWidget {
       children: [
         Icon(icon, size: 24, color: color),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
         const SizedBox(height: 2),
         Text(
           label,
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
+          style: const TextStyle(
+            fontSize: 10.5,
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
@@ -676,7 +1188,11 @@ class _StatColumn extends StatelessWidget {
 }
 
 class _ContactCard extends StatelessWidget {
-  const _ContactCard({required this.icon, required this.label, required this.value});
+  const _ContactCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -706,13 +1222,23 @@ class _ContactCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -748,7 +1274,9 @@ class _ServiceChipsSectionState extends State<_ServiceChipsSection> {
   @override
   Widget build(BuildContext context) {
     final hasMore = widget.services.length > _collapsedCount;
-    final visibleServices = _expanded ? widget.services : widget.services.take(_collapsedCount).toList();
+    final visibleServices = _expanded
+        ? widget.services
+        : widget.services.take(_collapsedCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -761,7 +1289,11 @@ class _ServiceChipsSectionState extends State<_ServiceChipsSection> {
                 onTap: () => setState(() => _expanded = true),
                 child: Text(
                   'Tümünü Gör (${widget.services.length})',
-                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
           ],
@@ -770,7 +1302,9 @@ class _ServiceChipsSectionState extends State<_ServiceChipsSection> {
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
-          children: [for (final service in visibleServices) _ServiceChip(label: service)],
+          children: [
+            for (final service in visibleServices) _ServiceChip(label: service),
+          ],
         ),
       ],
     );
@@ -785,14 +1319,21 @@ class _ServiceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: AppColors.scheduleTodayBackground,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.turquoise),
+        style: const TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          color: AppColors.turquoise,
+        ),
       ),
     );
   }
