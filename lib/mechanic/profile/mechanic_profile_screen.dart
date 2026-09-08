@@ -438,6 +438,10 @@ class _ProfileHeader extends StatelessWidget {
               child: Image.network(
                 url,
                 fit: BoxFit.cover,
+                // A shop's identifying content (signage, storefront) tends
+                // to sit near the top of the photo — centering the crop
+                // was cutting it off, so anchor the crop to the top instead.
+                alignment: Alignment.topCenter,
                 // Falls back to a plain neutral block (not a broken-image
                 // icon, not a stock photo) if the real URL fails to load —
                 // logged so a real failure is diagnosable, same convention
