@@ -168,24 +168,24 @@ class MechanicProfileRepository {
     });
   }
 
-  /// Uploads [bytes] as [businessId]'s real cover photo — one file per
-  /// business at Firebase Storage path mechanic_covers/{businessId}/cover.jpg;
-  /// a fresh upload simply overwrites whatever was there before (this
-  /// screen only ever needs the current photo, not a history of old ones).
-  /// On success, writes the resulting real download URL to
-  /// mechanicAccounts/{uid}.coverPhotoUrl and returns it — [uid] and
-  /// [businessId] are passed separately (rather than resolved here via a
-  /// query like recordProfileView does) because the caller
-  /// (mechanic_profile_screen.dart) already has its own already-fetched
-  /// MechanicProfile with both, so a second lookup would be redundant.
+  /// Uploads [bytes] as the signed-in mechanic's real cover photo — one file
+  /// per account at Firebase Storage path mechanic_covers/{uid}/cover.jpg
+  /// (keyed by uid, not businessId — see storage.rules' own doc comment on
+  /// this path for why: cross-service firestore.get() ownership checks
+  /// aren't usable in this project, so the path itself carries the
+  /// ownership check instead, via a plain request.auth.uid == uid rule); a
+  /// fresh upload simply overwrites whatever was there before (this screen
+  /// only ever needs the current photo, not a history of old ones). On
+  /// success, writes the resulting real download URL to
+  /// mechanicAccounts/{uid}.coverPhotoUrl and returns it.
   ///
   /// Throws on failure (a real Storage/network/permission error) rather
   /// than swallowing it — the caller is responsible for catching this,
   /// logging it (see mechanic_profile_screen.dart's debugPrint convention),
   /// and showing the mechanic real error feedback instead of a fake
   /// success state.
-  Future<String> uploadCoverPhoto({required String uid, required String businessId, required Uint8List bytes}) async {
-    final ref = _storage.ref('mechanic_covers/$businessId/cover.jpg');
+  Future<String> uploadCoverPhoto({required String uid, required Uint8List bytes}) async {
+    final ref = _storage.ref('mechanic_covers/$uid/cover.jpg');
     await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
     final url = await ref.getDownloadURL();
     await _firestore.collection('mechanicAccounts').doc(uid).update({'coverPhotoUrl': url});

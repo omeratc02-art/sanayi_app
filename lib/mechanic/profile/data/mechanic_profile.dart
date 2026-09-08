@@ -56,8 +56,8 @@ class MechanicProfile {
 
   /// Real Firebase Storage download URL for this business's uploaded cover
   /// photo (see MechanicProfileRepository.uploadCoverPhoto — one file at
-  /// mechanic_covers/{businessId}/cover.jpg, this field always points at
-  /// its current download URL). Null means "no photo uploaded yet", a real
+  /// mechanic_covers/{uid}/cover.jpg, this field always points at its
+  /// current download URL). Null means "no photo uploaded yet", a real
   /// state to render a fallback for, never a broken-image placeholder.
   final String? coverPhotoUrl;
 

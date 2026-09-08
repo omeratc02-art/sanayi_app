@@ -85,11 +85,7 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
     setState(() => _uploadingCoverPhoto = true);
     try {
       final bytes = await picked.readAsBytes();
-      await MechanicProfileRepository().uploadCoverPhoto(
-        uid: profile.uid,
-        businessId: profile.businessId,
-        bytes: bytes,
-      );
+      await MechanicProfileRepository().uploadCoverPhoto(uid: profile.uid, bytes: bytes);
       await _load();
     } catch (error) {
       debugPrint('MECHANIC PROFILE COVER PHOTO UPLOAD ERROR: $error');
