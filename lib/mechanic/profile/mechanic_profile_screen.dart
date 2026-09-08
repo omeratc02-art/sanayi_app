@@ -566,7 +566,7 @@ class _StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumSurface(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
       borderRadius: AppRadius.lg,
       border: Border.all(color: AppColors.divider),
       child: Row(
@@ -587,7 +587,7 @@ class _StatsCard extends StatelessWidget {
               },
             ),
           ),
-          Container(width: 1, height: 44, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs)),
+          Container(width: 1, height: 60, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs)),
           Expanded(
             child: FutureBuilder<int?>(
               // Same call/data source as before — only the layout changed.
@@ -603,7 +603,7 @@ class _StatsCard extends StatelessWidget {
               },
             ),
           ),
-          Container(width: 1, height: 44, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs)),
+          Container(width: 1, height: 60, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs)),
           Expanded(
             child: _StatColumn(
               icon: Icons.star_rounded,
@@ -634,9 +634,9 @@ class _StatColumn extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: color),
+        Icon(icon, size: 24, color: color),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
         const SizedBox(height: 2),
         Text(
           label,
