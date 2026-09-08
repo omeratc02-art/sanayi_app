@@ -35,6 +35,11 @@
   <!-- Google Sign-In (web): the OAuth client id from Firebase Console's
        Google provider config — read by google_sign_in_web at init. -->
   <meta name="google-signin-client_id" content="258200808152-utq5inecdjmajigumge1qtpd6gkecrqe.apps.googleusercontent.com">
+
+  <!-- cropperjs — required by image_cropper on web (mechanic cover-photo
+       upload's crop step). -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 </head>
 <body>
   <!-- Host element for Firebase Auth's phone-auth reCAPTCHA verifier on web

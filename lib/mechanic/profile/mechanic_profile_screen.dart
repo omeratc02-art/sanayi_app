@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/mock_data.dart';
@@ -82,9 +83,33 @@ class _MechanicProfileScreenState extends State<MechanicProfileScreen> {
     }
     if (picked == null || !mounted) return;
 
+    // Lets the mechanic reposition/zoom before upload, locked to the same
+    // ~16:9 shape as the cover photo container itself (see
+    // _ProfileHeader._coverPhotoHeight) so the crop the mechanic sees
+    // matches what customers will actually see, rather than uploading
+    // whatever raw framing the gallery photo happened to have.
+    final CroppedFile? cropped;
+    try {
+      cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+        uiSettings: [
+          AndroidUiSettings(toolbarTitle: 'Kapak Fotoğrafını Kırp', lockAspectRatio: true),
+          IOSUiSettings(title: 'Kapak Fotoğrafını Kırp', aspectRatioLockEnabled: true),
+          WebUiSettings(context: context),
+        ],
+      );
+    } catch (error) {
+      debugPrint('MECHANIC PROFILE COVER PHOTO CROP ERROR: $error');
+      return;
+    }
+    if (cropped == null || !mounted) return;
+
     setState(() => _uploadingCoverPhoto = true);
     try {
-      final bytes = await picked.readAsBytes();
+      final bytes = await cropped.readAsBytes();
       await MechanicProfileRepository().uploadCoverPhoto(uid: profile.uid, bytes: bytes);
       await _load();
     } catch (error) {
