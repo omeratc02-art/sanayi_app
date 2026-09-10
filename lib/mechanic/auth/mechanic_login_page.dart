@@ -126,10 +126,15 @@ Future<List<_ClaimableOption>> _fetchClaimableBusinesses() async {
   ];
 }
 
-/// Thrown by [_claimBusiness] when live chat/appointment activity already
-/// exists under the business's slug — surfaced as this dialog's own error
-/// text exactly like any other registration failure. Never silently
-/// ignored, and the claim never proceeds when this is thrown.
+/// Thrown by [_claimBusiness] when the target business is no longer safely
+/// claimable — either real chat/appointment activity already exists under
+/// its slug, or (a real, previously-unguarded race — see [_claimBusiness]'s
+/// own doc comment) a different mechanic claimed it first between when the
+/// claimable list was fetched and when this claim actually committed.
+/// [message] is written to distinguish the two cases to the caller/UI, not
+/// a single generic string, so a mechanic sees the right explanation.
+/// Never silently ignored, and the claim never proceeds when this is
+/// thrown.
 class ClaimConflictException implements Exception {
   const ClaimConflictException(this.message);
   final String message;
@@ -151,11 +156,31 @@ class ClaimConflictException implements Exception {
 /// business that isn't actually theirs. claimedByUid is also deliberately
 /// not copied — a real registered account should never carry that field.
 ///
-/// Re-checks live Firestore for chats/appointments under this business's
-/// slug immediately before writing anything, in case real activity has
-/// appeared since the picker was last loaded — throws
-/// [ClaimConflictException] and writes nothing at all if it finds any,
-/// rather than silently proceeding or overwriting.
+/// Two different kinds of conflict are checked here, for two different
+/// reasons:
+///
+/// The chats/randevular activity checks run first, as plain reads *before*
+/// the transaction below even starts. This isn't a shortcut — Firestore
+/// transactions can only read one specific DocumentReference
+/// (Transaction.get()); there is no way to run a Query (like the
+/// randevular `.where(...)` lookup) inside one at all, in this SDK or any
+/// Firestore client SDK. These two checks are also conceptually a
+/// different problem than the one below (real customer activity already
+/// exists under this slug, independent of who's racing to claim it), so
+/// them running as fail-fast pre-checks rather than inside the atomic
+/// section is the correct shape, not just a technical workaround.
+///
+/// The claim itself — is [option.docId] still genuinely unclaimed right
+/// now — is what actually needs real atomicity: two different mechanics
+/// could both fetch the same claimable list, both pass every check above,
+/// and without this, both writes would have succeeded, silently
+/// overwriting one claim with the other. The transaction re-reads the
+/// target document fresh (never trusting [option].rawData, captured
+/// whenever the claimable list was last fetched and possibly stale by the
+/// time this actually runs) and only proceeds if claimedByUid is still
+/// null. Firestore transactions require every read to happen before any
+/// write — that fresh re-read is this transaction's one and only read,
+/// ahead of both of its writes.
 Future<void> _claimBusiness({required String uid, required String email, required _ClaimableOption option}) async {
   final mechanic = option.mechanic;
   final businessId = mechanicChatId(mechanic.name);
@@ -177,26 +202,34 @@ Future<void> _claimBusiness({required String uid, required String email, require
     );
   }
 
-  final batch = firestoreInstance.batch();
-  batch.set(firestoreInstance.collection('mechanicAccounts').doc(uid), {
-    'name': mechanic.name,
-    'businessId': businessId,
-    'işletme_kimliği': businessId,
-    'email': email,
-    'role': 'mechanic',
-    'phone': mechanic.phone,
-    'address': mechanic.address,
-    'hizmetTürü': mechanic.hizmetTuru,
-    'hizmetler': mechanic.hizmetler,
-    'workingHours': mechanic.workingHours,
-    'acilDurumHizmeti': option.rawData['acilDurumHizmeti'],
-    'isVerified': false,
+  final oldDocRef = firestoreInstance.collection('mechanicAccounts').doc(option.docId);
+  await firestoreInstance.runTransaction((transaction) async {
+    final freshOldDoc = await transaction.get(oldDocRef);
+    if (freshOldDoc.data()?['claimedByUid'] != null) {
+      throw ClaimConflictException(
+        '${mechanic.name} az önce başka biri tarafından talep edildi. Lütfen listeyi yenileyip tekrar deneyin.',
+      );
+    }
+
+    transaction.set(firestoreInstance.collection('mechanicAccounts').doc(uid), {
+      'name': mechanic.name,
+      'businessId': businessId,
+      'işletme_kimliği': businessId,
+      'email': email,
+      'role': 'mechanic',
+      'phone': mechanic.phone,
+      'address': mechanic.address,
+      'hizmetTürü': mechanic.hizmetTuru,
+      'hizmetler': mechanic.hizmetler,
+      'workingHours': mechanic.workingHours,
+      'acilDurumHizmeti': option.rawData['acilDurumHizmeti'],
+      'isVerified': false,
+    });
+    transaction.update(oldDocRef, {
+      'claimedByUid': uid,
+      'archived': true,
+    });
   });
-  batch.update(firestoreInstance.collection('mechanicAccounts').doc(option.docId), {
-    'claimedByUid': uid,
-    'archived': true,
-  });
-  await batch.commit();
 }
 
 /// Small distinguishing marker for a [_ClaimableOption] dropdown item — a

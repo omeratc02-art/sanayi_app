@@ -291,5 +291,65 @@ void main() {
         expect(oldDoc.data()!.containsKey('archived'), isFalse);
       },
     );
+
+    testWidgets(
+      'The double-claim race: if the business is claimed by someone else between selecting it and submitting, '
+      'the fresh in-transaction re-check catches it — a distinct error, and nothing overwritten',
+      (WidgetTester tester) async {
+        // FakeFirebaseFirestore has no real concurrency to race two actual
+        // simultaneous transactions against each other — but the exact
+        // property that matters is testable directly: does _claimBusiness's
+        // transaction trust the option snapshot captured when the claimable
+        // list was fetched, or does it genuinely re-read fresh right before
+        // writing? Simulating "someone else's claim already landed" as a
+        // real Firestore write, injected between selecting the option in
+        // the dialog and submitting it, exercises exactly that fresh-read
+        // path — the bug this whole fix closes.
+        await seedClaimableBusiness(
+          docId: 'claim-test-race-id',
+          name: 'Claim Race Ustası',
+          businessId: 'claim-race-ustasi',
+        );
+
+        await openMechanicRegisterDialog(tester);
+        await tester.tap(find.text('Usta / İşletme Adı'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Claim Race Ustası').last);
+        await tester.pumpAndSettle();
+
+        // A different real mechanic's claim lands first, in the window
+        // between this dialog fetching its (now-stale) claimable list and
+        // this attempt actually submitting.
+        await firestoreInstance.collection('mechanicAccounts').doc('claim-test-race-id').update({
+          'claimedByUid': 'first-claimant-uid',
+          'archived': true,
+        });
+
+        await tester.enterText(find.widgetWithText(TextField, 'E-posta'), 'late-claimant@example.com');
+        await tester.enterText(find.widgetWithText(TextField, 'Şifre'), 'password123');
+        await submitAndWaitForNavigation(tester);
+
+        // Never reaches MechanicHomePage — the claim failed.
+        expect(find.byType(MechanicHomePage), findsNothing);
+        // The new, distinct race message — not the chat/appointment-activity
+        // wording, which would be actively misleading here.
+        expect(find.textContaining('az önce başka biri tarafından talep edildi'), findsOneWidget);
+        expect(find.textContaining('zaten bir mesajlaşma kaydı'), findsNothing);
+        expect(find.textContaining('zaten randevu kayıtları'), findsNothing);
+
+        // No second mechanicAccounts document was created for the late
+        // claimant — the only two documents that exist are the original
+        // claimable one (now correctly reflecting the first claimant) and
+        // nothing else.
+        final allDocs = await firestoreInstance.collection('mechanicAccounts').get();
+        expect(allDocs.docs, hasLength(1));
+
+        // The first claimant's own claim was never overwritten by the
+        // second, losing attempt.
+        final oldDoc = await firestoreInstance.collection('mechanicAccounts').doc('claim-test-race-id').get();
+        expect(oldDoc.data()!['claimedByUid'], 'first-claimant-uid');
+        expect(oldDoc.data()!['archived'], isTrue);
+      },
+    );
   });
 }

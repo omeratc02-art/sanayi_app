@@ -78,6 +78,29 @@ service cloud.firestore {
       // write pattern), so there is no narrower per-slot boundary to
       // enforce here beyond "only this document's own owner may touch it
       // at all".
+      //
+      // claimedByUid / archived — for MechanicLoginPage's "claim a
+      // script-uploaded business" flow (see mechanic_login_page.dart's
+      // _claimBusiness) — closes a real double-claim race this rule
+      // previously left wide open: before this, an update touching only
+      // these two fields matched none of the branches above and passed
+      // with no check at all, so a stale/replayed write could silently
+      // overwrite a business's claimedByUid after someone else had
+      // already claimed it. Deliberately NOT the owner-only
+      // (request.auth.uid == uid) pattern coverPhotoUrl/galleryPhotoUrls
+      // use above — {uid} here is the OLD script-uploaded document's own
+      // (random, unowned) id, never the claiming mechanic's own uid, so
+      // that check would make a legitimate claim impossible, not protect
+      // one. The real invariant instead: this document's claimedByUid
+      // must currently be null (the same "is this still genuinely
+      // unclaimed" re-check _claimBusiness's own transaction performs —
+      // this rule is the server-side backstop for that, independent of
+      // whatever the client actually sent), and the new value must be
+      // exactly the caller's own uid — nobody can claim a business "as"
+      // someone else. archived is required to flip to true in that same
+      // write, tying the two fields together exactly as _claimBusiness
+      // always sets them — archived can never be set on its own, or to
+      // any value but true, by this branch.
       allow update: if
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified'])
@@ -106,6 +129,38 @@ service cloud.firestore {
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['galleryPhotoUrls'])
           || (request.auth != null && request.auth.uid == uid)
+        )
+        &&
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['claimedByUid'])
+          || (
+            request.auth != null &&
+            // 'claimedByUid' in resource.data — not just resource.data.claimedByUid
+            // == null — matters here: a normal registered mechanic's own
+            // document never has this key at all (see _claimBusiness's own
+            // doc comment), and direct dot-access on a genuinely absent key
+            // throws in these rules rather than evaluating to null (same
+            // reason the profileViewCount branch above guards with
+            // ('profileViewCount' in resource.data) instead of comparing
+            // directly). This also makes the real invariant explicit rather
+            // than incidental: only a document that was already marked
+            // claimable in the first place can ever legitimately match this
+            // branch at all.
+            ('claimedByUid' in resource.data) &&
+            resource.data.claimedByUid == null &&
+            request.resource.data.claimedByUid == request.auth.uid
+          )
+        )
+        &&
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['archived'])
+          || (
+            request.auth != null &&
+            ('claimedByUid' in resource.data) &&
+            resource.data.claimedByUid == null &&
+            request.resource.data.claimedByUid == request.auth.uid &&
+            request.resource.data.archived == true
+          )
         );
 
       // Dedup marker for one real profile view per (customer, calendar
