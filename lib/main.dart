@@ -1,4 +1,5 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -9,22 +10,101 @@ import 'auth/social_auth.dart';
 import 'dev/dev_mode_launcher.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_page.dart';
+import 'screens/home/main_shell.dart';
 import 'services/push_notification_service.dart';
 import 'theme/app_theme.dart';
+import 'utils/firebase_instances.dart';
 
 /// The app's real entry point — a plain function (not inlined into
 /// MaterialApp.home) so the decision itself is directly unit-testable
 /// without needing to toggle the actual compile-time kDebugMode constant
-/// (see test/app_home_routing_test.dart). In a debug build, DevModeLauncher
-/// stays exactly as it always has, letting a developer freely switch
-/// between the customer/mechanic flows while testing. In every other
-/// build, a real user goes straight to the real customer-facing entry
-/// (LoginPage) — DevModeLauncher's "Geliştirici Test Ekranı" heading is
-/// real developer-facing language that must never be a real user's first
-/// screen. A mechanic reaches registration from here via LoginPage's own
-/// "İşletmeni Ekle" link, not through this dev picker.
-Widget resolveAppHome({required bool isDebugBuild}) {
-  return isDebugBuild ? const DevModeLauncher() : const LoginPage();
+/// or a live FirebaseAuth session (see test/app_home_routing_test.dart). In
+/// a debug build, DevModeLauncher stays exactly as it always has, letting a
+/// developer freely switch between the customer/mechanic flows while
+/// testing — [hasSignedInCustomer] is ignored in that branch. In every
+/// other build: a customer who already has a real, persisted session goes
+/// straight to MainShell (the exact same destination LoginPage._goToMainShell
+/// itself navigates to on a fresh sign-in — see that method) rather than
+/// signing in again every time they reopen the app; anyone else (including
+/// the 'customer-demo' guest fallback, which is never a real FirebaseAuth
+/// session — see resolveCustomerId — so it can never make
+/// [hasSignedInCustomer] true) sees LoginPage, same as before. A mechanic
+/// reaches registration from LoginPage via its own "İşletmeni Ekle" link,
+/// not through this dev picker — untouched by this customer-only check.
+Widget resolveAppHome({required bool isDebugBuild, required bool hasSignedInCustomer}) {
+  if (isDebugBuild) return const DevModeLauncher();
+  return hasSignedInCustomer ? const MainShell() : const LoginPage();
+}
+
+/// Resolves [resolveAppHome] for real — synchronous and instant in a debug
+/// build (no reason to ever wait on auth state just to show DevModeLauncher,
+/// and no change to today's behavior there), but genuinely asynchronous in a
+/// real build: firebaseAuthInstance.currentUser can't be trusted
+/// immediately after Firebase.initializeApp() completes — the native SDK's
+/// persisted-session restore runs asynchronously and may not have finished
+/// yet, so reading currentUser synchronously here could wrongly show
+/// LoginPage to an already-signed-in customer. authStateChanges()'s first
+/// emission is the reliable signal that restoration has actually finished,
+/// with either the real restored user or a genuine null — this only ever
+/// reads that first emission (a one-time decision on the app's very first
+/// frame), not a live listener for the app's whole lifetime: once
+/// LoginPage/MainShell takes over via their own pushReplacement navigation,
+/// this widget is gone from the tree, same as this app's existing
+/// pushReplacement-based flow control everywhere else. A later, real
+/// sign-out (once a customer-facing sign-out action exists — none does yet
+/// anywhere in this app) is that action's own job to navigate back to
+/// LoginPage explicitly, exactly like DevModeLauncher's own "Müşteri Modu"
+/// button already does today.
+class _AppHome extends StatelessWidget {
+  const _AppHome();
+
+  @override
+  Widget build(BuildContext context) {
+    if (kDebugMode) {
+      return resolveAppHome(isDebugBuild: true, hasSignedInCustomer: false);
+    }
+    return CustomerSessionGate(authStateChanges: firebaseAuthInstance.authStateChanges());
+  }
+}
+
+/// The real (non-debug) startup gate, split out from [_AppHome] and made
+/// public specifically so it's directly widget-testable with a fake stream
+/// (see test/app_home_routing_test.dart) — kDebugMode is always true inside
+/// `flutter test`, so _AppHome's own real-vs-debug branch can never
+/// actually reach this otherwise. Waits for [authStateChanges]'s first
+/// emission (see resolveAppHome's own doc comment for why that, not
+/// currentUser, is the reliable signal) before resolving to MainShell or
+/// LoginPage.
+class CustomerSessionGate extends StatelessWidget {
+  const CustomerSessionGate({super.key, required this.authStateChanges});
+
+  final Stream<User?> authStateChanges;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: authStateChanges,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _AppStartupSplash();
+        }
+        return resolveAppHome(isDebugBuild: false, hasSignedInCustomer: snapshot.data != null);
+      },
+    );
+  }
+}
+
+/// Shown only for the brief moment a real build spends waiting on
+/// authStateChanges()'s first emission (see _AppHome) — plain and minimal
+/// since this is expected to resolve almost immediately, not a real loading
+/// state anyone should notice.
+class _AppStartupSplash extends StatelessWidget {
+  const _AppStartupSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
 }
 
 /// Lets a notification tap (see [_handleNotificationTap]) act on the app
@@ -114,14 +194,7 @@ class SanayiApp extends StatelessWidget {
         Locale('tr', 'TR'),
         Locale('en', 'US'),
       ],
-      // TODO: this always opens on LoginPage in a real build, even for a
-      // customer who is already signed in from a previous session (there is
-      // no auth-state check/splash screen anywhere in this app yet) — they
-      // just sign in again. Revisit once that's worth building; not part of
-      // the entry-point fix this resolveAppHome split was for. See
-      // resolveAppHome's own doc comment for the debug/DevModeLauncher side
-      // of this decision.
-      home: resolveAppHome(isDebugBuild: kDebugMode),
+      home: const _AppHome(),
     );
   }
 }
