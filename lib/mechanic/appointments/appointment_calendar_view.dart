@@ -51,12 +51,64 @@ class AppointmentCalendarView extends StatefulWidget {
   State<AppointmentCalendarView> createState() => _AppointmentCalendarViewState();
 }
 
+// AppointmentCalendarView always renders one Mon–Sun week — see
+// _AppointmentCalendarViewState._weekDates(), which always generates
+// exactly 7 dates.
+const _weekDayCount = 7;
+
+// The original, fixed per-day column width — kept exactly as the
+// desktop/tablet width (see resolveDayColumnWidth): wide enough to fit all
+// 7 columns at this width, nothing changes from before. Also the width
+// _AppointmentBlock's service/vehicle/time text was originally designed
+// against.
+const _dayColumnWidth = 104.0;
+
+// The floor resolveDayColumnWidth will not shrink a column below, even if
+// that means showing fewer than 3 fully-visible columns on an unusually
+// narrow device. Reasoning: _AppointmentBlock's Row has ~20px of fixed
+// chrome per column (6+6px horizontal padding, a 3px status bar, a 5px
+// gap) before any text; its time row adds another ~14px (a 12px icon + a
+// 2px gap) before the "HH:mm" text itself. At 68px that leaves ~48px for
+// the service/vehicle lines and ~34px for the time text — enough for
+// "HH:mm" to render in full without needing its own ellipsis in the
+// normal case, and enough for a real Turkish service name (e.g. "Fren
+// Bakımı") to read as more than a couple of characters before truncating.
+// (All three lines are genuinely ellipsis-safe at any width now — a real
+// RenderFlex overflow in the time row, found via a test at a narrower
+// width than this file had ever exercised before, turned out to be a
+// pre-existing latent bug: that row's Text had no actual width constraint
+// to make its own overflow: ellipsis do anything, fixed alongside this.
+// So this floor is a legibility judgment call, not a crash-safety one —
+// worth confirming against a real device the way the original 2-day
+// report itself was.)
+const _minDayColumnWidth = 68.0;
+
+/// Resolves how wide each of the week's 7 day columns should be for the
+/// strip's current [availableWidth] — the space actually given to the
+/// scrollable day strip itself, excluding the hour column and the
+/// week-jump arrows on either side (see _DayStrip's own LayoutBuilder,
+/// which measures exactly that region). Desktop/tablet (wide enough for
+/// all 7 columns at the original fixed 104px width): returns that same
+/// fixed width, unchanged from before — no scrolling needed there either
+/// way. Narrower than that (phone width): shrinks columns so exactly 3
+/// fill the visible width with none partially clipped at the edge —
+/// floored at [_minDayColumnWidth] so an unusually narrow device shows
+/// fewer than 3 fully-visible columns rather than illegible text.
+///
+/// A plain top-level function (not a State method) so it's directly
+/// unit-testable without pumping any widget — see
+/// test/appointment_calendar_view_test.dart.
+double resolveDayColumnWidth(double availableWidth) {
+  if (availableWidth >= _dayColumnWidth * _weekDayCount) return _dayColumnWidth;
+  final threeColumnWidth = availableWidth / 3;
+  return threeColumnWidth < _minDayColumnWidth ? _minDayColumnWidth : threeColumnWidth;
+}
+
 class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
   static const _startHour = 8;
   static const _endHour = 19;
   static const _hourHeight = 56.0;
   static const _hourColumnWidth = 44.0;
-  static const _dayColumnWidth = 104.0;
 
   // Only meaningful in slot-selection mode (widget.onSlotSelected != null)
   // — how many weeks forward from today the "Başka Saat Öner" strip's
@@ -159,51 +211,41 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
                         const SizedBox(width: 16),
                       ],
                       Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
+                        child: _DayStrip(
+                          weekDates: weekDates,
+                          itemBuilder: (date, columnWidth) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              for (final date in weekDates)
-                                SizedBox(
-                                  width: _dayColumnWidth,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      _DayHeaderCell(date: date, isSelected: date == selected),
-                                      SizedBox(
-                                        // +1: the inner Column below sums to
-                                        // exactly hourCount * _hourHeight with
-                                        // zero slack, which is a zero-margin fit
-                                        // prone to a sub-pixel RenderFlex
-                                        // overflow. This buffer pixel is not
-                                        // visible.
-                                        height: hourCount * _hourHeight + 1,
-                                        child: Stack(
-                                          children: [
-                                            Column(
-                                              children: [
-                                                for (var hour = _startHour; hour < _endHour; hour++)
-                                                  Container(
-                                                    height: _hourHeight,
-                                                    decoration: const BoxDecoration(
-                                                      border: Border(top: BorderSide(color: AppColors.divider)),
-                                                    ),
-                                                  ),
-                                              ],
+                              _DayHeaderCell(date: date, isSelected: date == selected),
+                              SizedBox(
+                                // +1: the inner Column below sums to
+                                // exactly hourCount * _hourHeight with
+                                // zero slack, which is a zero-margin fit
+                                // prone to a sub-pixel RenderFlex
+                                // overflow. This buffer pixel is not
+                                // visible.
+                                height: hourCount * _hourHeight + 1,
+                                child: Stack(
+                                  children: [
+                                    Column(
+                                      children: [
+                                        for (var hour = _startHour; hour < _endHour; hour++)
+                                          Container(
+                                            height: _hourHeight,
+                                            decoration: const BoxDecoration(
+                                              border: Border(top: BorderSide(color: AppColors.divider)),
                                             ),
-                                            for (final appointment in widget.appointments)
-                                              if (_dateOnly(appointment.start) == date)
-                                                _positionedBlock(appointment),
-                                            if (isSlotSelectionMode)
-                                              for (var hour = _startHour; hour < _endHour; hour++)
-                                                if (!_isHourOccupied(date, hour))
-                                                  _positionedSlotTap(date, hour),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                          ),
+                                      ],
+                                    ),
+                                    for (final appointment in widget.appointments)
+                                      if (_dateOnly(appointment.start) == date) _positionedBlock(appointment),
+                                    if (isSlotSelectionMode)
+                                      for (var hour = _startHour; hour < _endHour; hour++)
+                                        if (!_isHourOccupied(date, hour)) _positionedSlotTap(date, hour),
+                                  ],
                                 ),
+                              ),
                             ],
                           ),
                         ),
@@ -248,17 +290,10 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
                             const SizedBox(width: 16),
                           ],
                           Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  for (final date in weekDates)
-                                    SizedBox(
-                                      width: _dayColumnWidth,
-                                      child: _DayHeaderCell(date: date, isSelected: date == selected),
-                                    ),
-                                ],
-                              ),
+                            child: _DayStrip(
+                              weekDates: weekDates,
+                              itemBuilder: (date, columnWidth) =>
+                                  _DayHeaderCell(date: date, isSelected: date == selected),
                             ),
                           ),
                           if (widget.onWeekChanged != null) ...[
@@ -332,6 +367,114 @@ class _AppointmentCalendarViewState extends State<AppointmentCalendarView> {
           onTap: () => widget.onSlotSelected!(DateTime(date.year, date.month, date.day, hour)),
         ),
       ),
+    );
+  }
+}
+
+/// Shared scrollable week-day strip — used for both the grid-column header
+/// (showGrid == true, [itemBuilder] returns the full header+hours+
+/// appointments column) and the header-only strip above the empty state
+/// (showGrid == false, [itemBuilder] returns just a _DayHeaderCell), so
+/// both paths resolve/apply the exact same per-day column width (see
+/// [resolveDayColumnWidth]) and get the exact same scroll-affordance fade
+/// from one implementation, rather than two hand-kept-in-sync copies that
+/// could drift apart.
+///
+/// A right-edge fade (see [_DayStripState._updateCanScrollForMore]) shows
+/// only while there's real, unscrolled-to content beyond the visible edge
+/// — on a desktop/tablet width, all 7 columns already fit and
+/// maxScrollExtent is 0, so the fade never appears there, matching the
+/// unchanged desktop behavior this fix must preserve.
+class _DayStrip extends StatefulWidget {
+  const _DayStrip({required this.weekDates, required this.itemBuilder});
+
+  final List<DateTime> weekDates;
+  final Widget Function(DateTime date, double columnWidth) itemBuilder;
+
+  @override
+  State<_DayStrip> createState() => _DayStripState();
+}
+
+class _DayStripState extends State<_DayStrip> {
+  static const _fadeWidth = 24.0;
+
+  final _scrollController = ScrollController();
+  var _canScrollForMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateCanScrollForMore);
+    // maxScrollExtent isn't known until after the first layout pass — check
+    // again once that's happened so the fade's initial visibility is
+    // correct from the very first frame, not only after the mechanic's
+    // first scroll gesture.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateCanScrollForMore());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateCanScrollForMore);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateCanScrollForMore() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final canScroll = position.maxScrollExtent - position.pixels > 1;
+    if (canScroll != _canScrollForMore) setState(() => _canScrollForMore = canScroll);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columnWidth = resolveDayColumnWidth(constraints.maxWidth);
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final date in widget.weekDates)
+                    SizedBox(
+                      // Keyed by date (not just positional) so a test can
+                      // reliably locate/measure one specific day's column
+                      // geometry — see test/appointment_calendar_view_test.dart
+                      // — without depending on locale-specific rendered text.
+                      key: ValueKey(date),
+                      width: columnWidth,
+                      child: widget.itemBuilder(date, columnWidth),
+                    ),
+                ],
+              ),
+            ),
+            // Purely a visual "there's more to scroll to" hint — never
+            // intercepts touches, so a tap/drag near the right edge still
+            // reaches the real content underneath.
+            if (_canScrollForMore)
+              const Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: _fadeWidth,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Colors.transparent, AppColors.background],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -601,19 +744,31 @@ class _AppointmentBlock extends StatelessWidget {
                       style: const TextStyle(fontSize: 12, height: 1.25, color: AppColors.textSecondary),
                     ),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.access_time, size: 12, color: Color(0xFF616161)),
                         const SizedBox(width: 2),
-                        Text(
-                          time,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            height: 1.25,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF616161),
+                        // Flexible, not a bare child — an un-flexed Text
+                        // inside a Row gets an unbounded intrinsic width
+                        // from its parent, so its own overflow: ellipsis
+                        // never actually activates no matter how narrow the
+                        // column gets. Harmless at the original fixed
+                        // 104px column width (this text is only ever
+                        // "HH:mm", which always fits comfortably there),
+                        // but a real RenderFlex overflow once
+                        // resolveDayColumnWidth can shrink columns below
+                        // that — found via a real test at a narrow column
+                        // width, not a hypothetical.
+                        Flexible(
+                          child: Text(
+                            time,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              height: 1.25,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF616161),
+                            ),
                           ),
                         ),
                       ],
