@@ -2,10 +2,14 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
+import 'package:sanayi_app/mechanic/auth/mechanic_login_page.dart';
 import 'package:sanayi_app/mechanic/profile/mechanic_profile_screen.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
 import 'package:sanayi_app/widgets/common/premium_surface.dart';
+
+import 'test_utils/fake_google_sign_in_platform.dart';
 
 /// MechanicProfileScreen shows a mechanic their own completed-job and
 /// repeat-customer counts as an always-visible, unthresholded motivational
@@ -29,6 +33,7 @@ void main() {
       signedIn: true,
     );
     firestoreInstance = FakeFirebaseFirestore();
+    GoogleSignInPlatform.instance = FakeGoogleSignInPlatform();
   });
 
   Future<void> seedProfile({
@@ -426,6 +431,67 @@ void main() {
       // 3+ items join with commas between all but the last two, "ve"
       // between the last two — real natural-list phrasing, not a flat join.
       expect(b, contains('Akü, Far Ayarı ve Kablo Tesisatı'));
+    });
+  });
+
+  group('Çıkış Yap (sign out)', () {
+    testWidgets('Button is present on the profile screen', (WidgetTester tester) async {
+      await seedProfile();
+      await pumpScreen(tester);
+      await tester.scrollUntilVisible(find.text('Çıkış Yap'), 300);
+
+      expect(find.text('Çıkış Yap'), findsOneWidget);
+    });
+
+    testWidgets('Tapping it shows a real confirmation dialog before signing out', (WidgetTester tester) async {
+      await seedProfile();
+      await pumpScreen(tester);
+      await tester.scrollUntilVisible(find.text('Çıkış Yap'), 300);
+
+      await tester.tap(find.text('Çıkış Yap'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Çıkış yapmak istediğinize emin misiniz?'), findsOneWidget);
+      // Not signed out yet — only the confirmation dialog is up so far.
+      expect(firebaseAuthInstance.currentUser, isNotNull);
+    });
+
+    testWidgets('Confirming (Evet) signs out and navigates to MechanicLoginPage, clearing the stack', (
+      WidgetTester tester,
+    ) async {
+      await seedProfile();
+      await pumpScreen(tester);
+      await tester.scrollUntilVisible(find.text('Çıkış Yap'), 300);
+
+      await tester.tap(find.text('Çıkış Yap'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Evet'));
+      await tester.pumpAndSettle();
+
+      expect(firebaseAuthInstance.currentUser, isNull);
+      expect(find.byType(MechanicLoginPage), findsOneWidget);
+      expect(find.byType(MechanicProfileScreen), findsNothing);
+
+      // The stack was genuinely cleared, not just pushed on top — there is
+      // nothing left to pop back into a signed-out session with.
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      expect(navigator.canPop(), isFalse);
+    });
+
+    testWidgets('Cancelling (Hayır) neither signs out nor navigates away', (WidgetTester tester) async {
+      await seedProfile();
+      await pumpScreen(tester);
+      await tester.scrollUntilVisible(find.text('Çıkış Yap'), 300);
+
+      await tester.tap(find.text('Çıkış Yap'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hayır'));
+      await tester.pumpAndSettle();
+
+      expect(firebaseAuthInstance.currentUser, isNotNull);
+      expect(find.byType(MechanicProfileScreen), findsOneWidget);
+      expect(find.byType(MechanicLoginPage), findsNothing);
+      expect(find.text('Çıkış yapmak istediğinize emin misiniz?'), findsNothing);
     });
   });
 }

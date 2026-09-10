@@ -10,6 +10,7 @@ import '../../utils/firebase_instances.dart';
 import '../../widgets/booking/section_label.dart';
 import '../../widgets/common/premium_surface.dart';
 import '../appointments/data/appointment_repository.dart';
+import '../auth/mechanic_login_page.dart';
 import 'data/mechanic_profile.dart';
 import 'data/mechanic_profile_repository.dart';
 
@@ -401,10 +402,71 @@ class _ProfileBody extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xxl),
                 _ServiceChipsSection(services: services),
               ],
+              const SizedBox(height: AppSpacing.xxl),
+              const _SignOutButton(),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Signs the mechanic out and clears the entire navigation stack back to
+/// MechanicLoginPage — same firebaseAuthInstance.signOut() call
+/// DevModeLauncher's own "Müşteri Modu" sign-out already uses, but with
+/// pushAndRemoveUntil rather than a plain push: this screen sits several
+/// levels deep inside MechanicHomePage's single shared root Navigator (no
+/// nested Navigator anywhere in the mechanic module — see the earlier
+/// back-button-logs-out investigation), so a plain push would leave the
+/// whole signed-out session still reachable by popping back into it.
+/// (route) => false clears every route unconditionally, including
+/// whatever originally led here (DevModeLauncher included, in a debug
+/// build), so there is nothing left to navigate "back" into.
+class _SignOutButton extends StatelessWidget {
+  const _SignOutButton();
+
+  Future<void> _confirmAndSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Çıkış Yap'),
+        content: const Text('Çıkış yapmak istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Hayır'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Evet'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await firebaseAuthInstance.signOut();
+    if (!context.mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MechanicLoginPage()),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _confirmAndSignOut(context),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textSecondary,
+          side: const BorderSide(color: AppColors.divider),
+        ),
+        icon: const Icon(Icons.logout, size: 18),
+        label: const Text('Çıkış Yap'),
+      ),
     );
   }
 }
