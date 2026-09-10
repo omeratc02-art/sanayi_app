@@ -239,6 +239,35 @@ void main() {
     });
   });
 
+  group('Pending approval banner', () {
+    testWidgets('Shows the real pending-review message for an unverified account', (WidgetTester tester) async {
+      await seedMechanicAccount(isVerified: false);
+      await pumpScreen(tester);
+
+      expect(
+        find.text('Hesabınız şu anda incelemede. Onaylandığında bu bildirim otomatik olarak kalkacaktır.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Is absent entirely for a verified account', (WidgetTester tester) async {
+      await seedMechanicAccount(isVerified: true);
+      await pumpScreen(tester);
+
+      expect(find.textContaining('incelemede'), findsNothing);
+    });
+
+    testWidgets('Is absent when there is no mechanicAccounts profile at all (never flashes for a still-loading one)', (
+      WidgetTester tester,
+    ) async {
+      // Deliberately no seedMechanicAccount() call — _profile stays null,
+      // same "no fake profile" case the top-bar fallback tests above cover.
+      await pumpScreen(tester);
+
+      expect(find.textContaining('incelemede'), findsNothing);
+    });
+  });
+
   group('Greeting', () {
     testWidgets('Shows the fixed "Merhaba 👋" greeting and fixed subtitle, regardless of business name', (
       WidgetTester tester,

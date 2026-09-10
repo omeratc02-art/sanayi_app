@@ -1,14 +1,31 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/social_auth.dart';
 import 'dev/dev_mode_launcher.dart';
 import 'firebase_options.dart';
+import 'screens/auth/login_page.dart';
 import 'services/push_notification_service.dart';
 import 'theme/app_theme.dart';
+
+/// The app's real entry point — a plain function (not inlined into
+/// MaterialApp.home) so the decision itself is directly unit-testable
+/// without needing to toggle the actual compile-time kDebugMode constant
+/// (see test/app_home_routing_test.dart). In a debug build, DevModeLauncher
+/// stays exactly as it always has, letting a developer freely switch
+/// between the customer/mechanic flows while testing. In every other
+/// build, a real user goes straight to the real customer-facing entry
+/// (LoginPage) — DevModeLauncher's "Geliştirici Test Ekranı" heading is
+/// real developer-facing language that must never be a real user's first
+/// screen. A mechanic reaches registration from here via LoginPage's own
+/// "İşletmeni Ekle" link, not through this dev picker.
+Widget resolveAppHome({required bool isDebugBuild}) {
+  return isDebugBuild ? const DevModeLauncher() : const LoginPage();
+}
 
 /// Lets a notification tap (see [_handleNotificationTap]) act on the app
 /// from outside any widget's own BuildContext — pop back to the root route
@@ -97,15 +114,14 @@ class SanayiApp extends StatelessWidget {
         Locale('tr', 'TR'),
         Locale('en', 'US'),
       ],
-      // TODO: Once authentication/user roles exist, pick the home screen
-      // based on the logged-in user's role directly — MainShell
-      // (screens/home/main_shell.dart) for customers, MechanicHomePage
-      // (mechanic/home/mechanic_home_page.dart) for mechanics.
-      // DevModeLauncher (dev/dev_mode_launcher.dart) is the dev-only manual
-      // picker used until that real role-based routing exists — its "Usta
-      // Modu" button leads to MechanicLoginPage, so real Firebase mechanic
-      // sign-in is still exercised end-to-end.
-      home: const DevModeLauncher(),
+      // TODO: this always opens on LoginPage in a real build, even for a
+      // customer who is already signed in from a previous session (there is
+      // no auth-state check/splash screen anywhere in this app yet) — they
+      // just sign in again. Revisit once that's worth building; not part of
+      // the entry-point fix this resolveAppHome split was for. See
+      // resolveAppHome's own doc comment for the debug/DevModeLauncher side
+      // of this decision.
+      home: resolveAppHome(isDebugBuild: kDebugMode),
     );
   }
 }

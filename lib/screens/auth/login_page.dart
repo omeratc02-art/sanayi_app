@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../auth/social_auth.dart';
+import '../../mechanic/auth/mechanic_login_page.dart';
 import '../../services/push_notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/firebase_instances.dart';
@@ -222,6 +223,31 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: _showPhoneAuthDialog,
                   icon: const Icon(Icons.phone_outlined, size: 18),
                   label: const Text('Telefon ile Devam Et'),
+                ),
+              ),
+              const SizedBox(height: 18),
+              // Real, always-visible mechanic entry point — LoginPage is now
+              // the real app's home (see main.dart's resolveAppHome), so
+              // this is the only way a real mechanic ever reaches
+              // MechanicLoginPage/registration without passing through
+              // DevModeLauncher's developer-facing picker.
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MechanicLoginPage()),
+                  ),
+                  child: RichText(
+                    text: const TextSpan(
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      children: [
+                        TextSpan(text: 'İşletme sahibi misiniz? '),
+                        TextSpan(
+                          text: 'İşletmeni Ekle',
+                          style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               if (kDebugMode) _debugLoginButton(),

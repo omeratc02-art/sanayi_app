@@ -294,6 +294,17 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
               unreadChatCount: _unreadChatCount,
               onNotificationTap: _openNotifications,
             ),
+            // Only once the real profile has actually loaded — isVerified
+            // above defaults to false while _profile is still null, which
+            // would otherwise flash this banner for an already-verified
+            // mechanic during the brief initial load. Disappears the
+            // moment isVerified flips to true (next time this screen
+            // rebuilds/reloads) — no push notification for the change in
+            // this pass, the banner's own absence is the signal.
+            if (_profile != null && !_profile!.isVerified) ...[
+              const SizedBox(height: AppSpacing.md),
+              const _PendingApprovalBanner(),
+            ],
             const SizedBox(height: AppSpacing.xxl),
             const _MechanicHomeGreetingHero(),
             const SizedBox(height: AppSpacing.lg),
@@ -305,6 +316,44 @@ class _MechanicHomeScreenState extends State<MechanicHomeScreen> {
             ...mainColumnChildren,
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shown only while the signed-in mechanic's own account has isVerified ==
+/// false (see MechanicHomeScreen.build's own guard, which also waits for
+/// the real profile to have loaded first) — tells a newly-registered
+/// mechanic their account is real and pending admin review, rather than
+/// leaving them to wonder why no "Doğrulanmış Servis" badge appears
+/// anywhere with zero explanation. Calm, non-alarming styling (turquoise,
+/// the same accent already used for the verified badge itself) — this is
+/// expected/normal, not a warning.
+class _PendingApprovalBanner extends StatelessWidget {
+  const _PendingApprovalBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.turquoise.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.turquoise.withValues(alpha: 0.3)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, size: 18, color: AppColors.turquoise),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Hesabınız şu anda incelemede. Onaylandığında bu bildirim otomatik olarak kalkacaktır.',
+              style: TextStyle(fontSize: 12.5, color: AppColors.textPrimary, height: 1.4),
+            ),
+          ),
+        ],
       ),
     );
   }

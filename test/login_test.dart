@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
 import 'package:sanayi_app/main.dart';
+import 'package:sanayi_app/mechanic/auth/mechanic_login_page.dart';
 import 'package:sanayi_app/screens/auth/login_page.dart';
 import 'package:sanayi_app/screens/home/main_shell.dart';
 import 'package:sanayi_app/utils/firebase_instances.dart';
@@ -104,4 +105,34 @@ void main() {
     expect(find.byType(LoginPage), findsOneWidget);
     expect(find.byType(MainShell), findsNothing);
   });
+
+  testWidgets(
+    '"İşletmeni Ekle" opens real mechanic registration (MechanicLoginPage) — the only way a real mechanic '
+    'reaches it without ever seeing DevModeLauncher\'s developer-facing picker',
+    (WidgetTester tester) async {
+      await pumpApp(tester);
+
+      // Both spans render inside one bare RichText (not Text.rich), which
+      // find.text/find.textContaining don't match — same established
+      // pattern as appointment_negotiation_test.dart's own RichText finder.
+      bool anyRichTextContains(String text) => tester
+          .widgetList<RichText>(find.byType(RichText))
+          .any((richText) => richText.text.toPlainText().contains(text));
+
+      expect(anyRichTextContains('İşletme sahibi misiniz?'), isTrue);
+      expect(anyRichTextContains('İşletmeni Ekle'), isTrue);
+
+      final linkButton = find.ancestor(
+        of: find.byWidgetPredicate(
+          (widget) => widget is RichText && widget.text.toPlainText().contains('İşletmeni Ekle'),
+        ),
+        matching: find.byType(TextButton),
+      );
+      await tester.tap(linkButton);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MechanicLoginPage), findsOneWidget);
+      expect(find.byType(LoginPage), findsNothing);
+    },
+  );
 }
