@@ -224,17 +224,11 @@ class _CompletionVerificationCardState extends State<_CompletionVerificationCard
   var _isSubmitting = false;
 
   Future<void> _confirmCompleted() async {
-    // TEMP DEBUG — remove once it's confirmed for certain whether this
-    // method is even invoked, and whether the dialog returns non-null.
-    debugPrint('TRACE _confirmCompleted CALLED for ${widget.appointment.appointmentId}');
     final result = await showDialog<_VerificationResult>(
       context: context,
       builder: (_) => const _VerificationDialog(),
     );
     if (result == null) return;
-    // TEMP DEBUG — remove once it's confirmed for certain whether this
-    // method is even invoked, and whether the dialog returns non-null.
-    debugPrint('TRACE _confirmCompleted dialog result non-null, rating=${result.rating} comment=${result.comment}');
     setState(() => _isSubmitting = true);
     try {
       await AppointmentRepository().markCustomerVerified(
@@ -242,13 +236,8 @@ class _CompletionVerificationCardState extends State<_CompletionVerificationCard
         rating: result.rating,
         comment: result.comment,
       );
-      // TEMP DEBUG — remove once it's confirmed for certain whether this
-      // write succeeds or is silently denied by firestore.rules.
-      debugPrint('TRACE markCustomerVerified SUCCEEDED for ${widget.appointment.appointmentId}');
     } catch (error) {
-      // TEMP DEBUG — remove once it's confirmed for certain whether this
-      // write succeeds or is silently denied by firestore.rules.
-      debugPrint('TRACE markCustomerVerified FAILED for ${widget.appointment.appointmentId}: $error');
+      debugPrint('CUSTOMER APPOINTMENT VERIFICATION ERROR: $error');
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
