@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../auth/social_auth.dart';
+import '../../services/push_notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/firebase_instances.dart';
 import '../home/main_shell.dart';
@@ -40,6 +41,13 @@ class _LoginPageState extends State<LoginPage> {
 
   void _goToMainShell() {
     if (!mounted) return;
+    // Every real customer sign-in path in this file (Google, phone,
+    // email/password, the debug quick sign-in) funnels through here — the
+    // single chokepoint where resolveCustomerId() first becomes meaningful
+    // for this session, so it's where device-token capture starts too.
+    // Not awaited: a slow/failed token write must never delay or block
+    // actually taking the customer to MainShell.
+    unawaited(PushNotificationService.instance.onCustomerSignedIn());
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
   }
 

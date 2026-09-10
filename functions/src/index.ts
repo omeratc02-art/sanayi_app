@@ -1,15 +1,18 @@
 import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import {
   fetchCompletedAppointments,
   computeRepeatCustomerRates,
   RepeatCustomerRateResult,
 } from "./repeatCustomerRate";
+import { isNewlyAwaitingVerification, sendCompletionReminder } from "./completionReminder";
 
 admin.initializeApp();
 
 const MECHANIC_ACCOUNTS_COLLECTION = "mechanicAccounts";
+const RANDEVULAR_COLLECTION = "randevular";
 
 /**
  * mechanicAccounts is keyed by Firebase Auth UID, not businessId (see
@@ -85,5 +88,31 @@ export const updateRepeatCustomerRates = onSchedule(
     }
 
     logger.info("repeatCustomerRate update completed.");
+  }
+);
+
+/**
+ * Fires on every write to a randevular document, but only actually does
+ * anything for the one transition this reminder cares about — see
+ * isNewlyAwaitingVerification's own doc comment. A single push, no
+ * repeat/re-reminder mechanism (a deliberate scope decision from this
+ * feature's own design investigation, not an oversight).
+ */
+export const onAppointmentAwaitingVerification = onDocumentUpdated(
+  `${RANDEVULAR_COLLECTION}/{appointmentId}`,
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!isNewlyAwaitingVerification(before, after)) return;
+
+    const customerId = after?.["müşteri_kimliği"] as string | undefined;
+    if (!customerId) {
+      logger.warn(
+        `randevular/${event.params.appointmentId} moved to usta_onayladi_bekleniyor with no müşteri_kimliği — skipping reminder.`
+      );
+      return;
+    }
+
+    await sendCompletionReminder(admin.firestore(), admin.messaging(), customerId);
   }
 );

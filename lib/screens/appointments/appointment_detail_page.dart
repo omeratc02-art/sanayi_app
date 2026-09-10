@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../data/appointment_request_store.dart';
 import '../../models/appointment_request.dart';
+import '../../services/push_notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/chat_id.dart';
 import '../../utils/turkish_date.dart';
@@ -44,6 +47,10 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
       return;
     }
     setState(() {});
+    // Fire-and-forget: the soft-ask/permission flow must never block or
+    // fail this already-successful confirmation — see
+    // PushNotificationService.maybeAskForPermission's own doc comment.
+    unawaited(PushNotificationService.instance.maybeAskForPermission(context, appointmentId: request.id));
   }
 
   // Same counter-proposal flow as NotificationsPage._requestAnotherTime —

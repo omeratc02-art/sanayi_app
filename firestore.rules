@@ -133,6 +133,20 @@ service cloud.firestore {
       }
     }
 
+    // A customer's own FCM device token — see PushNotificationService (Flutter)
+    // and functions/src/completionReminder.ts (the Cloud Function that reads
+    // it to send the completion-confirmation reminder push). Deliberately
+    // minimal: just the token + when it was last written, not a general
+    // customer-profile collection — nothing else about a customer lives
+    // here. Owner-only both ways: a customer's device token is never
+    // meaningful to anyone but this app's own backend (via the Admin SDK,
+    // which bypasses these rules entirely) and the owning customer's own
+    // signed-in client, so there is no public-read case here the way
+    // mechanicAccounts has.
+    match /customers/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Gates access to admin-only app features (currently: AdminApprovalScreen's
     // ability to set mechanicAccounts.isVerified — see the update rule above).
     // Membership is managed entirely via Firebase Console for now; no client

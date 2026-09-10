@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/appointment_request_store.dart';
+import '../../main.dart' show pendingAppointmentsTabRequest;
 import '../../mechanic/appointments/data/chat_message.dart';
 import '../../mechanic/appointments/data/chat_repository.dart';
 import '../../utils/identity.dart';
@@ -36,6 +37,11 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  // Bottom-nav tab order below (tabs list in build()) — Randevularım is
+  // index 2. Named here once so _onPendingAppointmentsTabRequest doesn't
+  // carry a bare magic number.
+  static const _appointmentsTabIndex = 2;
+
   int _selectedIndex = 0;
   String? _searchCategory;
 
@@ -53,11 +59,30 @@ class _MainShellState extends State<MainShell> {
     _unreadChatsSubscription = ChatRepository().watchUnreadChats(resolveCustomerId()).listen((chats) {
       setState(() => _unreadChats = chats);
     });
+
+    // A notification tap (background or cold-start-via-getInitialMessage —
+    // see main.dart's pendingAppointmentsTabRequest) may have already set
+    // this before this MainShell was even created — consumed directly into
+    // the initial value here (this contributes to the very first build, so
+    // no setState is needed yet), rather than only relying on the listener
+    // below, which fires solely on a *new* value arriving after this point.
+    if (pendingAppointmentsTabRequest.value != null) {
+      pendingAppointmentsTabRequest.value = null;
+      _selectedIndex = _appointmentsTabIndex;
+    }
+    pendingAppointmentsTabRequest.addListener(_onPendingAppointmentsTabRequest);
+  }
+
+  void _onPendingAppointmentsTabRequest() {
+    if (pendingAppointmentsTabRequest.value == null) return;
+    pendingAppointmentsTabRequest.value = null; // consume once
+    setState(() => _selectedIndex = _appointmentsTabIndex);
   }
 
   @override
   void dispose() {
     AppointmentRequestStore.instance.removeListener(_onAppointmentsChanged);
+    pendingAppointmentsTabRequest.removeListener(_onPendingAppointmentsTabRequest);
     _unreadChatsSubscription?.cancel();
     super.dispose();
   }

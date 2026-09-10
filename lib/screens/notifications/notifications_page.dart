@@ -8,6 +8,7 @@ import '../../mechanic/appointments/data/appointment_repository.dart';
 import '../../mechanic/appointments/data/chat_message.dart';
 import '../../mechanic/appointments/data/chat_repository.dart';
 import '../../models/appointment_request.dart';
+import '../../services/push_notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/firebase_instances.dart';
 import '../../utils/identity.dart';
@@ -99,11 +100,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
   // notifyListeners() already updates this page's UI via _onStoreChanged.
   Future<void> _acceptSuggestion(AppointmentRequest request) async {
     final success = await AppointmentRequestStore.instance.accept(request);
-    if (!success && mounted) {
+    if (!mounted) return;
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Randevu onaylanamadı. Lütfen tekrar deneyin.')),
       );
+      return;
     }
+    // Fire-and-forget: the soft-ask/permission flow must never block or
+    // fail this already-successful confirmation — see
+    // PushNotificationService.maybeAskForPermission's own doc comment.
+    unawaited(PushNotificationService.instance.maybeAskForPermission(context, appointmentId: request.id));
   }
 
   // Counter-proposes a new date/time — a real Firestore write (see
