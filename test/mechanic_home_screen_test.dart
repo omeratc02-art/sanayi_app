@@ -245,7 +245,10 @@ void main() {
       await pumpScreen(tester);
 
       expect(
-        find.text('Hesabınız şu anda incelemede. Onaylandığında bu bildirim otomatik olarak kalkacaktır.'),
+        find.text(
+          'Hesabınız şu anda incelemede. Onaylanana kadar işletmeniz müşteri aramalarında görünmez ve '
+          'randevu talebi alamaz; onaylandığında bu bildirim otomatik olarak kalkacaktır.',
+        ),
         findsOneWidget,
       );
     });

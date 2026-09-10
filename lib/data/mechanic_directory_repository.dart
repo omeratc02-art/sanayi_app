@@ -29,13 +29,31 @@ class MechanicDirectoryRepository {
   /// entirely, which every real mechanicAccounts document is (archived is
   /// only ever set on a claimed-away document), so that query would hide
   /// everyone, not just the archived ones.
+  ///
+  /// Also excludes any business whose isVerified isn't explicitly true —
+  /// closes a real gap where a freshly-registered/claimed mechanic (or one
+  /// of the script-uploaded businesses, which have no isVerified field at
+  /// all) was fully visible and bookable before an admin ever reviewed
+  /// them. Missing/null/false are all treated identically as "not
+  /// visible" (see _isVisible below) — this is a deliberate, expected
+  /// change for the script-uploaded businesses too, not a bug: they
+  /// reappear once claimed and verified. Same client-side-filter reasoning
+  /// as archived above — a combined `where('hizmetTürü', ...).where
+  /// ('isVerified', isEqualTo: true)` would need a composite index this
+  /// collection doesn't have.
   Future<List<Mechanic>> fetchByHizmetTuru(String hizmetTuru) async {
     final snapshot = await _firestore.collection('mechanicAccounts').where('hizmetTürü', isEqualTo: hizmetTuru).get();
-    return snapshot.docs
-        .where((doc) => doc.data()['archived'] != true)
-        .map((doc) => Mechanic.fromFirestore(doc.data()))
-        .toList();
+    return snapshot.docs.where((doc) => _isVisible(doc.data())).map((doc) => Mechanic.fromFirestore(doc.data())).toList();
   }
+
+  /// True only for a business that should ever be shown to a customer:
+  /// not archived (claimed-away, see fetchByHizmetTuru's doc comment), and
+  /// isVerified explicitly true. A missing isVerified field (every
+  /// script-uploaded, not-yet-claimed business) and an explicit `false`
+  /// (every freshly-registered/claimed-but-not-yet-approved business) are
+  /// both "not visible" — there is no third state customers should ever
+  /// see.
+  static bool _isVisible(Map<String, dynamic> data) => data['archived'] != true && data['isVerified'] == true;
 
   /// A single real mechanic by its stable businessId — the same id already
   /// used as that business's chats/{chatId} document id (see
@@ -51,10 +69,15 @@ class MechanicDirectoryRepository {
   /// Firestore doesn't guarantee which a `.limit(1)` query would return.
   /// Fetching all matches and skipping archived ones deterministically
   /// picks the real, current document instead.
+  ///
+  /// Also excludes an unverified business, same as fetchByHizmetTuru — a
+  /// customer who already has an old link/chat pointing at a business that
+  /// has since become unverified again (or was never verified) must not be
+  /// able to reach its real detail page this way either.
   Future<Mechanic?> fetchByBusinessId(String businessId) async {
     final snapshot = await _firestore.collection('mechanicAccounts').where('businessId', isEqualTo: businessId).get();
     for (final doc in snapshot.docs) {
-      if (doc.data()['archived'] == true) continue;
+      if (!_isVisible(doc.data())) continue;
       return Mechanic.fromFirestore(doc.data());
     }
     return null;

@@ -2,6 +2,26 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // True only for a signed-in caller whose own mechanicAccounts/{uid}
+    // document exists AND has isVerified explicitly true — used to gate
+    // accept/update on appointments and randevular (see those match
+    // blocks below), so an unverified mechanic account (freshly
+    // registered, freshly claimed, or one of the script-uploaded
+    // businesses with no isVerified field at all) can no longer act on a
+    // real appointment even via a direct API call, not just be hidden
+    // from customer-facing UI (see MechanicDirectoryRepository's matching
+    // client-side filter). 'isVerified' in ... — not a direct
+    // .data.isVerified dot-access — because direct access on a genuinely
+    // missing key throws in these rules rather than evaluating to null
+    // (same reason the profileViewCount branch further down guards the
+    // same way); a missing field must be treated exactly like an explicit
+    // false, never like a passing check.
+    function isVerifiedMechanic(uid) {
+      return exists(/databases/$(database)/documents/mechanicAccounts/$(uid))
+        && ('isVerified' in get(/databases/$(database)/documents/mechanicAccounts/$(uid)).data)
+        && get(/databases/$(database)/documents/mechanicAccounts/$(uid)).data.isVerified == true;
+    }
+
     // Chat access is unchanged from the project's previous (fully open)
     // rules — customers can message without signing in (see
     // CustomerConversationPage's 'customer-demo' fallback), so this
@@ -281,8 +301,13 @@ service cloud.firestore {
       allow list: if request.auth != null
         && resource.data.customerId == request.auth.uid;
 
-      // Mechanic permission is unchanged from before (accept, decline, or
-      // any other status change made from the mechanic's own screens).
+      // Mechanic permission now additionally requires isVerifiedMechanic
+      // (accept, decline, or any other status change made from the
+      // mechanic's own screens) — an unverified mechanic account can read
+      // its own pending requests (allow get/list above are unchanged) but
+      // can no longer act on any of them, closing the confirmed gap where
+      // an unverified account could accept a real appointment before
+      // admin approval.
       //
       // The second branch is new and intentionally narrow: it lets the
       // owning authenticated customer perform exactly one transition —
@@ -300,8 +325,7 @@ service cloud.firestore {
       // customer/vehicle/service field are guaranteed untouched by this
       // path regardless of what a client attempts to send.
       allow update: if
-        (request.auth != null
-         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid)))
+        (request.auth != null && isVerifiedMechanic(request.auth.uid))
         ||
         (request.auth != null
          && request.auth.uid == resource.data.customerId
@@ -352,8 +376,7 @@ service cloud.firestore {
         && resource.data.tamamlanmaDurumu == 'dogrulanmis_tamamlandi';
 
       allow update: if
-        (request.auth != null
-         && exists(/databases/$(database)/documents/mechanicAccounts/$(request.auth.uid)))
+        (request.auth != null && isVerifiedMechanic(request.auth.uid))
         ||
         (request.auth != null
          && request.auth.uid == resource.data['müşteri_kimliği']

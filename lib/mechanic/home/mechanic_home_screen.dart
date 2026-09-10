@@ -349,7 +349,8 @@ class _PendingApprovalBanner extends StatelessWidget {
           SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              'Hesabınız şu anda incelemede. Onaylandığında bu bildirim otomatik olarak kalkacaktır.',
+              'Hesabınız şu anda incelemede. Onaylanana kadar işletmeniz müşteri aramalarında görünmez ve '
+              'randevu talebi alamaz; onaylandığında bu bildirim otomatik olarak kalkacaktır.',
               style: TextStyle(fontSize: 12.5, color: AppColors.textPrimary, height: 1.4),
             ),
           ),
