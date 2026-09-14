@@ -48,6 +48,50 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258200808152:android:74afb9368eb58abc5545ad",
+        "android_client_info": {
+          "package_name": "com.sanayigo.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "258200808152-vl465vgf465v6f1ttnnka40bjpfcarsg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sanayigo.app",
+            "certificate_hash": "2045655005c6d7252777e30ef70ad23ec6d6b4d7"
+          }
+        },
+        {
+          "client_id": "258200808152-utq5inecdjmajigumge1qtpd6gkecrqe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8LRMF0poH-5Gt5Bp2os95B4Ld2wiflf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "258200808152-utq5inecdjmajigumge1qtpd6gkecrqe.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "258200808152-5mnugai7e60j674r2pqjlfqu8u1k854l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sanayiApp"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
