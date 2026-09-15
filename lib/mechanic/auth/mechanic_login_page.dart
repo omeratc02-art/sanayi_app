@@ -26,6 +26,19 @@ import '../home/mechanic_home_page.dart';
 /// phone/address/isVerified/rating/reviewCount/specialty/hizmetler are left
 /// unset rather than fabricated, same "don't invent data" pattern already
 /// used for priceMin/priceMax/workingHours elsewhere in this app.
+///
+/// isVerified is always false here — a confirmed real bug previously had
+/// this copy business.isVerified straight from the picked MockData catalog
+/// entry, and every MockData.allMechanics entry hardcodes isVerified: true
+/// (it's read that way legitimately elsewhere, purely for display fallback
+/// — see customer_conversation_list_page.dart's _findMechanicByName and
+/// mechanic_profile_screen.dart's _fallbackMechanic, neither of which
+/// writes to Firestore), so picking any MockData name self-granted a fresh
+/// account verified status with zero admin review — a full bypass of the
+/// verification gate, through the app's own normal registration UI. Every
+/// brand-new account, MockData-templated or not, must start unverified and
+/// go through AdminApprovalScreen, exactly like _claimBusiness already
+/// correctly does for a claimed business.
 Map<String, dynamic> _mechanicAccountData({
   required String hizmetTuru,
   required String email,
@@ -41,7 +54,7 @@ Map<String, dynamic> _mechanicAccountData({
       'role': 'mechanic',
       'phone': business.phone,
       'address': business.address,
-      'isVerified': business.isVerified,
+      'isVerified': false,
       'rating': business.rating,
       'reviewCount': business.reviewCount,
       'specialty': business.specialty,
@@ -244,6 +257,15 @@ class _BusinessOptionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final option = this.option;
+    // Real, claimable Firestore business vs. a MockData catalog template
+    // for a brand-new registration look identical by name alone — the
+    // confirmed source of a real bug where picking a MockData name was
+    // mistaken for claiming a real listing (MockData.allMechanics entries
+    // all display as pre-verified elsewhere — see this file's own
+    // _mechanicAccountData doc comment — so the mix-up isn't just
+    // cosmetic). Icon + a short trailing label make the distinction
+    // visible both in the closed field and the open menu, without a
+    // structural change to the dropdown itself.
     if (option is _ClaimableOption) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -251,10 +273,29 @@ class _BusinessOptionLabel extends StatelessWidget {
           const Icon(Icons.storefront_outlined, size: 15, color: AppColors.primary),
           const SizedBox(width: 6),
           Flexible(child: Text(option.mechanic.name, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 6),
+          const Text(
+            '· Mevcut işletme',
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       );
     }
-    return Text(option.mechanic.name, overflow: TextOverflow.ellipsis);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.add_circle_outline, size: 15, color: AppColors.textSecondary),
+        const SizedBox(width: 6),
+        Flexible(child: Text(option.mechanic.name, overflow: TextOverflow.ellipsis)),
+        const SizedBox(width: 6),
+        const Text(
+          '· Yeni kayıt',
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 }
 

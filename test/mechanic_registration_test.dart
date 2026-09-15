@@ -73,6 +73,14 @@ void main() {
     // selection existed.
     expect(data['phone'], isNotNull);
     expect(data['specialty'], isNotNull);
+    // Regression test for a real, confirmed bug: this used to copy
+    // business.isVerified straight from the picked MockData catalog entry,
+    // and every MockData.allMechanics entry hardcodes isVerified: true —
+    // so picking any catalog name self-granted a fresh account verified
+    // status with zero admin review. A brand-new account must always start
+    // unverified, MockData-templated or not, exactly like the real
+    // business-claim flow already correctly does.
+    expect(data['isVerified'], isFalse);
   });
 
   testWidgets('Registering as Ekspertiz uses a typed business name (no MockData catalog) and writes hizmetTürü: ekspertiz', (
