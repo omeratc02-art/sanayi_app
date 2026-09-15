@@ -28,7 +28,7 @@ Randevu Talebi Kapsamında Kişisel Verilerin İşlenmesi
 
 Veri Güvenliği: Verileriniz, yetkisiz erişime karşı makul teknik ve idari önlemlerle korunur.
 
-Haklarınız: KVKK'nın 11. maddesi uyarınca, verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini talep etme haklarına sahipsiniz. Taleplerinizi [iletişim kanalı] üzerinden iletebilirsiniz.
+Haklarınız: KVKK'nın 11. maddesi uyarınca, verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini talep etme haklarına sahipsiniz. Taleplerinizi sanayigo.destek@gmail.com adresine e-posta göndererek iletebilirsiniz.
 ''';
 
 /// Live "5XX XXX XX XX" masking as the user types — groups after the 3rd,
